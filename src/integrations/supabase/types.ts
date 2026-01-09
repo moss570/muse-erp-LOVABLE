@@ -413,6 +413,7 @@ export type Database = {
       }
       material_purchase_units: {
         Row: {
+          code: string | null
           conversion_to_base: number
           created_at: string
           id: string
@@ -423,6 +424,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code?: string | null
           conversion_to_base: number
           created_at?: string
           id?: string
@@ -433,6 +435,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code?: string | null
           conversion_to_base?: number
           created_at?: string
           id?: string

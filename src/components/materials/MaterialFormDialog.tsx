@@ -42,6 +42,16 @@ type Unit = Tables<'units_of_measure'>;
 type DropdownOption = Tables<'dropdown_options'>;
 type ListedMaterial = Tables<'listed_material_names'>;
 
+// Generate a unique material code
+const generateMaterialCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'MAT-';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
 const materialFormSchema = z.object({
   // Basic Info
   code: z.string().min(1, 'Code is required'),
@@ -84,6 +94,7 @@ type MaterialFormData = z.infer<typeof materialFormSchema>;
 
 interface PurchaseUnit {
   id?: string;
+  code: string;
   unit_id: string;
   conversion_to_base: number;
   is_default: boolean;
@@ -235,7 +246,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         min_stock_level: material.min_stock_level ?? null,
       });
     } else {
-      form.reset();
+      form.reset({
+        ...form.formState.defaultValues,
+        code: generateMaterialCode(),
+      } as MaterialFormData);
       setPurchaseUnits([]);
     }
     setActiveTab('basic');
@@ -246,6 +260,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     if (existingPurchaseUnits) {
       setPurchaseUnits(existingPurchaseUnits.map(pu => ({
         id: pu.id,
+        code: (pu as { code?: string }).code || '',
         unit_id: pu.unit_id,
         conversion_to_base: Number(pu.conversion_to_base),
         is_default: pu.is_default ?? false,
@@ -297,6 +312,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           .from('material_purchase_units')
           .insert(purchaseUnits.map(pu => ({
             material_id: newMaterial.id,
+            code: pu.code,
             unit_id: pu.unit_id,
             conversion_to_base: pu.conversion_to_base,
             is_default: pu.is_default,
@@ -367,6 +383,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       for (const pu of purchaseUnits) {
         if (pu.id) {
           await supabase.from('material_purchase_units').update({
+            code: pu.code,
             unit_id: pu.unit_id,
             conversion_to_base: pu.conversion_to_base,
             is_default: pu.is_default,
@@ -374,6 +391,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         } else {
           await supabase.from('material_purchase_units').insert({
             material_id: material.id,
+            code: pu.code,
             unit_id: pu.unit_id,
             conversion_to_base: pu.conversion_to_base,
             is_default: pu.is_default,
@@ -401,7 +419,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   };
 
   const addPurchaseUnit = () => {
-    setPurchaseUnits([...purchaseUnits, { unit_id: '', conversion_to_base: 1, is_default: false }]);
+    const baseCode = form.getValues('code');
+    const suffix = String(purchaseUnits.length + 1).padStart(2, '0');
+    const newCode = `${baseCode}-${suffix}`;
+    setPurchaseUnits([...purchaseUnits, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false }]);
   };
 
   const removePurchaseUnit = (index: number) => {
@@ -441,10 +462,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     name="code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Code *</FormLabel>
+                        <FormLabel>Material Code</FormLabel>
                         <FormControl>
-                          <Input placeholder="MAT-001" {...field} />
+                          <Input {...field} readOnly className="bg-muted font-mono" />
                         </FormControl>
+                        <FormDescription>Auto-generated unique code</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1043,141 +1065,129 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                 </div>
               </TabsContent>
 
-              {/* Purchasing Tab */}
+              {/* Purchasing Tab - Alternative Purchase Units */}
               <TabsContent value="purchasing" className="space-y-6 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="min_stock_level"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Stock Level</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="0" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Purchase Units */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium">Purchase Units</h4>
+                      <h4 className="font-medium">Alternative Purchase Units</h4>
                       <p className="text-sm text-muted-foreground">
-                        Define how this material can be purchased and the conversion to inventory unit
+                        Define additional ways this material can be purchased (e.g., different package sizes)
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={addPurchaseUnit}>
-                      <Plus className="h-4 w-4 mr-1" /> Add Unit
+                      <Plus className="h-4 w-4 mr-1" /> Add Alternative Unit
                     </Button>
                   </div>
 
+                  {/* Show default unit info */}
+                  {(() => {
+                    const baseUnitId = form.watch('base_unit_id');
+                    const baseUnit = units?.find(u => u.id === baseUnitId);
+                    const mainCode = form.watch('code');
+                    const usageUnitId = form.watch('usage_unit_id');
+                    const usageUnit = units?.find(u => u.id === usageUnitId);
+                    const usageConversion = form.watch('usage_unit_conversion');
+                    
+                    return (
+                      <div className="p-4 border rounded-md bg-primary/5 border-primary/20">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="default">Default</Badge>
+                              <span className="font-mono text-sm font-medium">{mainCode}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {baseUnit?.name} ({baseUnit?.code})
+                              {usageUnit && usageConversion && (
+                                <span className="ml-2">
+                                  → {usageConversion} {usageUnit.code}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">From Basic Info</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {purchaseUnits.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
-                      No purchase units defined. Click "Add Unit" to add one.
+                    <div className="text-center py-6 text-muted-foreground border rounded-md bg-muted/20">
+                      <p>No alternative purchase units defined.</p>
+                      <p className="text-xs mt-1">Click "Add Alternative Unit" to add different package sizes.</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {purchaseUnits.map((pu, index) => {
                         const selectedUnit = units?.find(u => u.id === pu.unit_id);
-                        const baseUnit = units?.find(u => u.id === form.watch('base_unit_id'));
-                        const isWeightUnit = selectedUnit?.unit_type === 'weight';
-                        const baseIsKg = baseUnit?.code === 'KG';
-                        
-                        // Weight conversion factors to KG
-                        const weightToKg: Record<string, number> = {
-                          'LB': 0.453592,
-                          'OZ': 0.0283495,
-                          'G': 0.001,
-                          'KG': 1,
-                        };
-                        
-                        const canAutoConvert = isWeightUnit && baseIsKg && selectedUnit?.code && weightToKg[selectedUnit.code];
+                        const usageUnitId = form.watch('usage_unit_id');
+                        const usageUnit = units?.find(u => u.id === usageUnitId);
+                        const baseUnitId = form.watch('base_unit_id');
+                        const baseUnit = units?.find(u => u.id === baseUnitId);
+                        const displayUnit = usageUnit || baseUnit;
                         
                         return (
-                          <div key={index} className="flex flex-col gap-2 p-3 border rounded-md bg-card">
+                          <div key={index} className="p-4 border rounded-md bg-card space-y-3">
                             <div className="flex items-center gap-3">
-                              <Select
-                                value={pu.unit_id}
-                                onValueChange={(value) => {
-                                  const newUnit = units?.find(u => u.id === value);
-                                  updatePurchaseUnit(index, 'unit_id', value);
-                                  
-                                  // Auto-calculate conversion if weight unit to KG
-                                  if (newUnit?.unit_type === 'weight' && baseIsKg && newUnit.code && weightToKg[newUnit.code]) {
-                                    updatePurchaseUnit(index, 'conversion_to_base', weightToKg[newUnit.code]);
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="w-[180px]">
-                                  <SelectValue placeholder="Select unit" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {units?.map((unit) => (
-                                    <SelectItem key={unit.id} value={unit.id}>
-                                      {unit.name} ({unit.code})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <span className="text-muted-foreground">=</span>
-                              {canAutoConvert ? (
-                                <div className="flex items-center gap-2">
+                              <div className="flex-1 grid grid-cols-3 gap-3">
+                                <div>
+                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                    Code
+                                  </label>
                                   <Input
-                                    type="number"
-                                    step="0.001"
-                                    className="w-24"
-                                    placeholder="Qty"
-                                    value={pu.input_qty || 1}
-                                    onChange={(e) => {
-                                      const qty = parseFloat(e.target.value) || 1;
-                                      updatePurchaseUnit(index, 'input_qty', qty);
-                                      const factor = weightToKg[selectedUnit!.code!] || 1;
-                                      updatePurchaseUnit(index, 'conversion_to_base', qty * factor);
-                                    }}
+                                    value={pu.code}
+                                    onChange={(e) => updatePurchaseUnit(index, 'code', e.target.value)}
+                                    placeholder="Material code"
+                                    className="font-mono"
                                   />
-                                  <span className="text-muted-foreground text-sm">{selectedUnit?.code}</span>
-                                  <span className="text-muted-foreground">=</span>
-                                  <span className="font-medium text-sm min-w-[60px]">
-                                    {pu.conversion_to_base?.toFixed(4)} {baseUnit?.code}
-                                  </span>
                                 </div>
-                              ) : (
-                                <>
+                                <div>
+                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                    Purchase Unit
+                                  </label>
+                                  <Select
+                                    value={pu.unit_id}
+                                    onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select unit" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {units?.map((unit) => (
+                                        <SelectItem key={unit.id} value={unit.id}>
+                                          {unit.name} ({unit.code})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                    {displayUnit ? `${displayUnit.code} per unit` : 'Conversion'}
+                                  </label>
                                   <Input
                                     type="number"
-                                    step="0.001"
-                                    className="w-24"
+                                    step="0.01"
                                     value={pu.conversion_to_base}
                                     onChange={(e) => updatePurchaseUnit(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
+                                    placeholder="e.g., 3.785"
                                   />
-                                  <span className="text-muted-foreground text-sm">
-                                    {baseUnit?.code || 'base units'}
-                                  </span>
-                                </>
-                              )}
-                              <label className="flex items-center gap-1.5 ml-auto">
-                                <Checkbox
-                                  checked={pu.is_default}
-                                  onCheckedChange={(checked) => updatePurchaseUnit(index, 'is_default', !!checked)}
-                                />
-                                <span className="text-sm">Default</span>
-                              </label>
+                                </div>
+                              </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive"
+                                className="h-8 w-8 text-destructive shrink-0"
                                 onClick={() => removePurchaseUnit(index)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                            {canAutoConvert && (
-                              <p className="text-xs text-muted-foreground ml-1">
-                                Auto-calculated: 1 {selectedUnit?.code} = {weightToKg[selectedUnit!.code!]} KG
+                            {selectedUnit && displayUnit && (
+                              <p className="text-xs text-muted-foreground">
+                                1 {selectedUnit.code} = {pu.conversion_to_base} {displayUnit.code}
                               </p>
                             )}
                           </div>
@@ -1185,6 +1195,32 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       })}
                     </div>
                   )}
+                </div>
+
+                <div className="pt-4 border-t">
+                  <FormField
+                    control={form.control}
+                    name="min_stock_level"
+                    render={({ field }) => {
+                      const usageUnitId = form.watch('usage_unit_id');
+                      const usageUnit = units?.find(u => u.id === usageUnitId);
+                      const baseUnitId = form.watch('base_unit_id');
+                      const baseUnit = units?.find(u => u.id === baseUnitId);
+                      const displayUnit = usageUnit || baseUnit;
+                      
+                      return (
+                        <FormItem className="max-w-xs">
+                          <FormLabel>Minimum Stock Level</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormDescription>
+                            {displayUnit ? `Reorder point in ${displayUnit.code}` : 'Minimum quantity to maintain'}
+                          </FormDescription>
+                        </FormItem>
+                      );
+                    }}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
