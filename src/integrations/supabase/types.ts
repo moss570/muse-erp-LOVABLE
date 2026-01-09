@@ -468,6 +468,39 @@ export type Database = {
           },
         ]
       }
+      material_sub_categories: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       material_suppliers: {
         Row: {
           cost_per_unit: number | null
@@ -568,6 +601,7 @@ export type Database = {
           receiving_temperature_min: number | null
           storage_temperature_max: number | null
           storage_temperature_min: number | null
+          sub_category: string | null
           supply_chain_complexity: string | null
           updated_at: string
           usage_unit_conversion: number | null
@@ -602,6 +636,7 @@ export type Database = {
           receiving_temperature_min?: number | null
           storage_temperature_max?: number | null
           storage_temperature_min?: number | null
+          sub_category?: string | null
           supply_chain_complexity?: string | null
           updated_at?: string
           usage_unit_conversion?: number | null
@@ -636,6 +671,7 @@ export type Database = {
           receiving_temperature_min?: number | null
           storage_temperature_max?: number | null
           storage_temperature_min?: number | null
+          sub_category?: string | null
           supply_chain_complexity?: string | null
           updated_at?: string
           usage_unit_conversion?: number | null
