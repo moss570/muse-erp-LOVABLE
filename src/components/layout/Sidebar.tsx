@@ -123,8 +123,9 @@ const navItems: NavItem[] = [
     title: 'Settings',
     href: '/settings',
     icon: Settings,
-    requiredRole: 'admin',
+    requiredRole: 'manager',
     children: [
+      { title: 'Locations', href: '/settings/locations' },
       { title: 'Machines', href: '/settings/machines' },
     ],
   },
