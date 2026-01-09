@@ -8,6 +8,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Materials from "./pages/inventory/Materials";
+import Products from "./pages/inventory/Products";
+import Suppliers from "./pages/purchasing/Suppliers";
+import Machines from "./pages/settings/Machines";
 
 const queryClient = new QueryClient();
 
@@ -23,49 +27,22 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             
             {/* Protected routes - wrapped in AppLayout */}
-            <Route
-              path="/"
-              element={
-                <AppLayout>
-                  <Dashboard />
-                </AppLayout>
-              }
-            />
+            <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
             
-            {/* Placeholder routes for navigation */}
-            <Route
-              path="/inventory/*"
-              element={
-                <AppLayout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold mb-2">Inventory Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 2</p>
-                  </div>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/production/*"
-              element={
-                <AppLayout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold mb-2">Production Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 2</p>
-                  </div>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/purchasing/*"
-              element={
-                <AppLayout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold mb-2">Purchasing Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 2</p>
-                  </div>
-                </AppLayout>
-              }
-            />
+            {/* Inventory routes */}
+            <Route path="/inventory/materials" element={<AppLayout><Materials /></AppLayout>} />
+            <Route path="/inventory/products" element={<AppLayout><Products /></AppLayout>} />
+            <Route path="/inventory/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Inventory Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
+            
+            {/* Purchasing routes */}
+            <Route path="/purchasing/suppliers" element={<AppLayout><Suppliers /></AppLayout>} />
+            <Route path="/purchasing/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Purchasing Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
+            
+            {/* Settings routes */}
+            <Route path="/settings/machines" element={<AppLayout><Machines /></AppLayout>} />
+            <Route path="/settings/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Settings</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
+            
+            {/* Other placeholder routes */}
             <Route
               path="/sales"
               element={
@@ -127,17 +104,6 @@ const App = () => (
                 <AppLayout>
                   <div className="text-center py-12">
                     <h2 className="text-2xl font-bold mb-2">Documents Module</h2>
-                    <p className="text-muted-foreground">Coming soon</p>
-                  </div>
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/settings/*"
-              element={
-                <AppLayout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold mb-2">Settings</h2>
                     <p className="text-muted-foreground">Coming soon</p>
                   </div>
                 </AppLayout>

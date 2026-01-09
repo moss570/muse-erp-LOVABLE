@@ -124,6 +124,9 @@ const navItems: NavItem[] = [
     href: '/settings',
     icon: Settings,
     requiredRole: 'admin',
+    children: [
+      { title: 'Machines', href: '/settings/machines' },
+    ],
   },
 ];
 
