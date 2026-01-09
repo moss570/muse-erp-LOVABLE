@@ -34,7 +34,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle } from 'lucide-react';
+import { CreateUnitDialog } from './CreateUnitDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Material = Tables<'materials'>;
@@ -110,6 +111,8 @@ interface MaterialFormDialogProps {
 export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFormDialogProps) {
   const [activeTab, setActiveTab] = useState('basic');
   const [purchaseUnits, setPurchaseUnits] = useState<PurchaseUnit[]>([]);
+  const [createUnitOpen, setCreateUnitOpen] = useState(false);
+  const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -552,20 +555,34 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Purchase Unit *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {units?.map((unit) => (
-                              <SelectItem key={unit.id} value={unit.id}>
-                                {unit.name} ({unit.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="Select unit" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {units?.map((unit) => (
+                                <SelectItem key={unit.id} value={unit.id}>
+                                  {unit.name} ({unit.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              setPendingUnitField('base_unit_id');
+                              setCreateUnitOpen(true);
+                            }}
+                            title="Create custom unit"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <FormDescription>
                           Unit used when purchasing from suppliers and receiving inventory
                         </FormDescription>
@@ -582,24 +599,38 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Usage Unit</FormLabel>
-                        <Select 
-                          onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
-                          value={field.value || '__none__'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select usage unit (optional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="__none__">Same as Purchase Unit</SelectItem>
-                            {units?.map((unit) => (
-                              <SelectItem key={unit.id} value={unit.id}>
-                                {unit.name} ({unit.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <Select 
+                            onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                            value={field.value || '__none__'}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="Select usage unit (optional)" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="__none__">Same as Purchase Unit</SelectItem>
+                              {units?.map((unit) => (
+                                <SelectItem key={unit.id} value={unit.id}>
+                                  {unit.name} ({unit.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              setPendingUnitField('usage_unit_id');
+                              setCreateUnitOpen(true);
+                            }}
+                            title="Create custom unit"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <FormDescription>
                           Unit for issuing to production
                         </FormDescription>
@@ -1146,21 +1177,36 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                     Purchase Unit
                                   </label>
-                                  <Select
-                                    value={pu.unit_id}
-                                    onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select unit" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {units?.map((unit) => (
-                                        <SelectItem key={unit.id} value={unit.id}>
-                                          {unit.name} ({unit.code})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <div className="flex gap-1">
+                                    <Select
+                                      value={pu.unit_id}
+                                      onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
+                                    >
+                                      <SelectTrigger className="flex-1">
+                                        <SelectValue placeholder="Select unit" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {units?.map((unit) => (
+                                          <SelectItem key={unit.id} value={unit.id}>
+                                            {unit.name} ({unit.code})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="shrink-0"
+                                      onClick={() => {
+                                        setPendingUnitField(index);
+                                        setCreateUnitOpen(true);
+                                      }}
+                                      title="Create custom unit"
+                                    >
+                                      <PlusCircle className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                                 <div>
                                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -1235,6 +1281,21 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             </div>
           </form>
         </Form>
+
+        <CreateUnitDialog
+          open={createUnitOpen}
+          onOpenChange={setCreateUnitOpen}
+          onUnitCreated={(unitId) => {
+            if (pendingUnitField === 'base_unit_id') {
+              form.setValue('base_unit_id', unitId);
+            } else if (pendingUnitField === 'usage_unit_id') {
+              form.setValue('usage_unit_id', unitId);
+            } else if (typeof pendingUnitField === 'number') {
+              updatePurchaseUnit(pendingUnitField, 'unit_id', unitId);
+            }
+            setPendingUnitField(null);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
