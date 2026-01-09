@@ -491,6 +491,7 @@ export type Database = {
           storage_temperature_min: number | null
           supply_chain_complexity: string | null
           updated_at: string
+          usage_unit_id: string | null
         }
         Insert: {
           allergens?: string[] | null
@@ -523,6 +524,7 @@ export type Database = {
           storage_temperature_min?: number | null
           supply_chain_complexity?: string | null
           updated_at?: string
+          usage_unit_id?: string | null
         }
         Update: {
           allergens?: string[] | null
@@ -555,6 +557,7 @@ export type Database = {
           storage_temperature_min?: number | null
           supply_chain_complexity?: string | null
           updated_at?: string
+          usage_unit_id?: string | null
         }
         Relationships: [
           {
@@ -569,6 +572,13 @@ export type Database = {
             columns: ["listed_material_id"]
             isOneToOne: false
             referencedRelation: "listed_material_names"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_usage_unit_id_fkey"
+            columns: ["usage_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
             referencedColumns: ["id"]
           },
         ]

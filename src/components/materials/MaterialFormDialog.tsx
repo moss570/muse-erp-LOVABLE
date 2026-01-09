@@ -49,7 +49,8 @@ const materialFormSchema = z.object({
   listed_material_id: z.string().optional().nullable(),
   description: z.string().optional(),
   category: z.string().optional(),
-  base_unit_id: z.string().min(1, 'Base unit is required'),
+  base_unit_id: z.string().min(1, 'Purchase unit is required'),
+  usage_unit_id: z.string().optional().nullable(),
   is_active: z.boolean().default(true),
   
   // Specifications Tab
@@ -109,6 +110,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       description: '',
       category: '',
       base_unit_id: '',
+      usage_unit_id: null,
       is_active: true,
       allergens: [],
       food_claims: [],
@@ -207,6 +209,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         description: material.description || '',
         category: material.category || '',
         base_unit_id: material.base_unit_id,
+        usage_unit_id: material.usage_unit_id || null,
         is_active: material.is_active ?? true,
         allergens: material.allergens || [],
         food_claims: material.food_claims || [],
@@ -258,6 +261,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           description: data.description || null,
           category: data.category || null,
           base_unit_id: data.base_unit_id,
+          usage_unit_id: data.usage_unit_id || null,
           is_active: data.is_active,
           allergens: data.allergens.length > 0 ? data.allergens : null,
           food_claims: data.food_claims.length > 0 ? data.food_claims : null,
@@ -321,6 +325,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           description: data.description || null,
           category: data.category || null,
           base_unit_id: data.base_unit_id,
+          usage_unit_id: data.usage_unit_id || null,
           is_active: data.is_active,
           allergens: data.allergens.length > 0 ? data.allergens : null,
           food_claims: data.food_claims.length > 0 ? data.food_claims : null,
@@ -542,6 +547,38 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="usage_unit_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Usage Unit</FormLabel>
+                      <Select 
+                        onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                        value={field.value || '__none__'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select usage unit (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__none__">Same as Purchase Unit</SelectItem>
+                          {units?.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                              {unit.name} ({unit.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Unit used when issuing to production (e.g., KG for ingredients, EACH for packaging)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}

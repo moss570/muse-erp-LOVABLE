@@ -43,10 +43,10 @@ export default function Materials() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('materials')
-        .select('*, units_of_measure:base_unit_id(*)')
+        .select('*, purchase_unit:units_of_measure!materials_base_unit_id_fkey(*), usage_unit:units_of_measure!materials_usage_unit_id_fkey(*)')
         .order('name');
       if (error) throw error;
-      return data as (Material & { units_of_measure: Unit })[];
+      return data as (Material & { purchase_unit: Unit | null; usage_unit: Unit | null })[];
     },
   });
 
@@ -168,7 +168,7 @@ export default function Materials() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>{material.units_of_measure?.code || '-'}</TableCell>
+                      <TableCell>{material.purchase_unit?.code || '-'}</TableCell>
                       <TableCell className="text-right">
                         {material.cost_per_base_unit
                           ? `$${Number(material.cost_per_base_unit).toFixed(2)}`
