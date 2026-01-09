@@ -167,7 +167,7 @@ export type Database = {
       }
       document_requirements: {
         Row: {
-          area: string
+          areas: string[]
           created_at: string
           description: string | null
           document_name: string
@@ -178,7 +178,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          area: string
+          areas: string[]
           created_at?: string
           description?: string | null
           document_name: string
@@ -189,7 +189,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          area?: string
+          areas?: string[]
           created_at?: string
           description?: string | null
           document_name?: string

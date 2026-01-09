@@ -287,11 +287,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       const { data, error } = await supabase
         .from('document_requirements')
         .select('*')
-        .eq('area', 'materials')
+        .contains('areas', ['materials'])
         .eq('is_active', true)
         .order('sort_order');
       if (error) throw error;
-      return data as DocumentRequirement[];
+      return data;
     },
   });
 
