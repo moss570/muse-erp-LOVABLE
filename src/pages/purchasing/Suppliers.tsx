@@ -36,6 +36,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
@@ -66,6 +67,17 @@ const SUPPLIER_TYPES = [
   { value: 'manufacturer', label: 'Manufacturer Only' },
   { value: 'manufacturer_distributor', label: 'Manufacturer & Distributor' },
   { value: 'distributor', label: 'Distributor Only' },
+] as const;
+
+const SUPPLIER_CATEGORIES = [
+  { value: 'ingredient', label: 'Ingredient' },
+  { value: 'packaging', label: 'Packaging' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'services', label: 'Services' },
+  { value: 'chemicals', label: 'Chemicals' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'office_supplies', label: 'Office Supplies' },
+  { value: 'other', label: 'Other' },
 ] as const;
 
 const APPROVAL_STATUSES = [
@@ -109,6 +121,7 @@ const supplierSchema = z.object({
   code: z.string().min(1, 'Code is required'),
   name: z.string().min(1, 'Name is required'),
   supplier_type: z.string().default('manufacturer'),
+  categories: z.array(z.string()).default([]),
   contact_name: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional(),
@@ -198,6 +211,7 @@ export default function Suppliers() {
       code: '',
       name: '',
       supplier_type: 'manufacturer',
+      categories: [],
       contact_name: '',
       email: '',
       phone: '',
@@ -623,7 +637,8 @@ export default function Suppliers() {
       form.reset({
         code: supplier.code,
         name: supplier.name,
-        supplier_type: supplier.supplier_type || 'ingredient',
+        supplier_type: supplier.supplier_type || 'manufacturer',
+        categories: (supplier as any).categories || [],
         contact_name: supplier.contact_name || '',
         email: supplier.email || '',
         phone: supplier.phone || '',
@@ -963,6 +978,44 @@ export default function Suppliers() {
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="categories"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categories</FormLabel>
+                        <FormDescription>
+                          Select all material types this supplier provides
+                        </FormDescription>
+                        <div className="grid grid-cols-4 gap-3 mt-2">
+                          {SUPPLIER_CATEGORIES.map((category) => (
+                            <div key={category.value} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`category-${category.value}`}
+                                checked={field.value?.includes(category.value)}
+                                onCheckedChange={(checked) => {
+                                  const current = field.value || [];
+                                  if (checked) {
+                                    field.onChange([...current, category.value]);
+                                  } else {
+                                    field.onChange(current.filter((v: string) => v !== category.value));
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor={`category-${category.value}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {category.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid grid-cols-3 gap-4">
                     <FormField

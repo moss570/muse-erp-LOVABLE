@@ -1307,6 +1307,7 @@ export type Database = {
           approval_status: string | null
           approved_by: string | null
           audit_score: number | null
+          categories: string[] | null
           certification_expiry_date: string | null
           city: string | null
           code: string
@@ -1340,6 +1341,7 @@ export type Database = {
           approval_status?: string | null
           approved_by?: string | null
           audit_score?: number | null
+          categories?: string[] | null
           certification_expiry_date?: string | null
           city?: string | null
           code: string
@@ -1373,6 +1375,7 @@ export type Database = {
           approval_status?: string | null
           approved_by?: string | null
           audit_score?: number | null
+          categories?: string[] | null
           certification_expiry_date?: string | null
           city?: string | null
           code?: string
