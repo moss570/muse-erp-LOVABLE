@@ -51,6 +51,7 @@ const materialFormSchema = z.object({
   category: z.string().optional(),
   base_unit_id: z.string().min(1, 'Purchase unit is required'),
   usage_unit_id: z.string().optional().nullable(),
+  usage_unit_conversion: z.coerce.number().min(0).optional().nullable(),
   is_active: z.boolean().default(true),
   
   // Specifications Tab
@@ -111,6 +112,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       category: '',
       base_unit_id: '',
       usage_unit_id: null,
+      usage_unit_conversion: null,
       is_active: true,
       allergens: [],
       food_claims: [],
@@ -210,6 +212,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         category: material.category || '',
         base_unit_id: material.base_unit_id,
         usage_unit_id: material.usage_unit_id || null,
+        usage_unit_conversion: material.usage_unit_conversion ?? null,
         is_active: material.is_active ?? true,
         allergens: material.allergens || [],
         food_claims: material.food_claims || [],
@@ -262,6 +265,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           category: data.category || null,
           base_unit_id: data.base_unit_id,
           usage_unit_id: data.usage_unit_id || null,
+          usage_unit_conversion: data.usage_unit_conversion || null,
           is_active: data.is_active,
           allergens: data.allergens.length > 0 ? data.allergens : null,
           food_claims: data.food_claims.length > 0 ? data.food_claims : null,
@@ -326,6 +330,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           category: data.category || null,
           base_unit_id: data.base_unit_id,
           usage_unit_id: data.usage_unit_id || null,
+          usage_unit_conversion: data.usage_unit_conversion || null,
           is_active: data.is_active,
           allergens: data.allergens.length > 0 ? data.allergens : null,
           food_claims: data.food_claims.length > 0 ? data.food_claims : null,
@@ -548,37 +553,72 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="usage_unit_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Usage Unit</FormLabel>
-                      <Select 
-                        onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
-                        value={field.value || '__none__'}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select usage unit (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="__none__">Same as Purchase Unit</SelectItem>
-                          {units?.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id}>
-                              {unit.name} ({unit.code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Unit used when issuing to production (e.g., KG for ingredients, EACH for packaging)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="usage_unit_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Usage Unit</FormLabel>
+                        <Select 
+                          onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                          value={field.value || '__none__'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select usage unit (optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none__">Same as Purchase Unit</SelectItem>
+                            {units?.map((unit) => (
+                              <SelectItem key={unit.id} value={unit.id}>
+                                {unit.name} ({unit.code})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Unit for issuing to production
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="usage_unit_conversion"
+                    render={({ field }) => {
+                      const usageUnitId = form.watch('usage_unit_id');
+                      const purchaseUnitId = form.watch('base_unit_id');
+                      const usageUnit = units?.find(u => u.id === usageUnitId);
+                      const purchaseUnit = units?.find(u => u.id === purchaseUnitId);
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Usage Units per Purchase Unit</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="0.01"
+                              placeholder="e.g., 22.68"
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                              disabled={!usageUnitId}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {usageUnitId && purchaseUnit && usageUnit 
+                              ? `1 ${purchaseUnit.code} = ${field.value || '?'} ${usageUnit.code}`
+                              : 'Select a usage unit first'}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
