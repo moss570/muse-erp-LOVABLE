@@ -53,7 +53,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  XCircle
+  XCircle,
+  Plus,
+  Users,
+  Mail
 } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
@@ -152,6 +155,17 @@ interface DocumentUpload {
   isNew: boolean;
 }
 
+interface SupplierContact {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+  send_po_to: boolean;
+  is_primary: boolean;
+  isNew: boolean;
+}
+
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'All Status' },
   { value: 'active', label: 'Active' },
@@ -173,6 +187,7 @@ export default function Suppliers() {
   const [pageSize, setPageSize] = useState(10);
   const [activeTab, setActiveTab] = useState('general');
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
+  const [contacts, setContacts] = useState<SupplierContact[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -252,6 +267,22 @@ export default function Suppliers() {
     enabled: !!editingSupplier?.id,
   });
 
+  // Fetch existing supplier contacts when editing
+  const { data: existingContacts } = useQuery({
+    queryKey: ['supplier-contacts', editingSupplier?.id],
+    queryFn: async () => {
+      if (!editingSupplier?.id) return [];
+      const { data, error } = await supabase
+        .from('supplier_contacts')
+        .select('*')
+        .eq('supplier_id', editingSupplier.id)
+        .order('is_primary', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!editingSupplier?.id,
+  });
+
   // Load existing documents when editing
   useEffect(() => {
     if (existingDocuments) {
@@ -268,6 +299,22 @@ export default function Suppliers() {
       })));
     }
   }, [existingDocuments]);
+
+  // Load existing contacts when editing
+  useEffect(() => {
+    if (existingContacts) {
+      setContacts(existingContacts.map(contact => ({
+        id: contact.id,
+        name: contact.name,
+        role: contact.role || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
+        send_po_to: contact.send_po_to || false,
+        is_primary: contact.is_primary || false,
+        isNew: false,
+      })));
+    }
+  }, [existingContacts]);
 
   const createMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
@@ -302,9 +349,10 @@ export default function Suppliers() {
       }]).select().single();
       if (error) throw error;
       
-      // Upload documents
+      // Upload documents and save contacts
       if (newSupplier) {
         await uploadDocuments(newSupplier.id);
+        await saveContacts(newSupplier.id);
       }
       
       return newSupplier;
@@ -356,13 +404,16 @@ export default function Suppliers() {
         .eq('id', id);
       if (error) throw error;
       
-      // Upload documents
+      // Upload documents and save contacts
       await uploadDocuments(id);
+      await saveContacts(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['supplier-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['supplier-contacts'] });
       toast({ title: 'Supplier updated successfully' });
+      handleCloseDialog();
       handleCloseDialog();
     },
     onError: (error: Error) => {
@@ -491,6 +542,81 @@ export default function Suppliers() {
     URL.revokeObjectURL(url);
   };
 
+  // Contact management functions
+  const saveContacts = async (supplierId: string) => {
+    for (const contact of contacts) {
+      if (contact.isNew) {
+        // Create new contact
+        const { error } = await supabase
+          .from('supplier_contacts')
+          .insert({
+            supplier_id: supplierId,
+            name: contact.name,
+            role: contact.role || null,
+            email: contact.email || null,
+            phone: contact.phone || null,
+            send_po_to: contact.send_po_to,
+            is_primary: contact.is_primary,
+          });
+        if (error) throw error;
+      } else {
+        // Update existing contact
+        const { error } = await supabase
+          .from('supplier_contacts')
+          .update({
+            name: contact.name,
+            role: contact.role || null,
+            email: contact.email || null,
+            phone: contact.phone || null,
+            send_po_to: contact.send_po_to,
+            is_primary: contact.is_primary,
+          })
+          .eq('id', contact.id);
+        if (error) throw error;
+      }
+    }
+  };
+
+  const addContact = () => {
+    setContacts(prev => [...prev, {
+      id: `new-${Date.now()}`,
+      name: '',
+      role: '',
+      email: '',
+      phone: '',
+      send_po_to: false,
+      is_primary: prev.length === 0, // First contact is primary by default
+      isNew: true,
+    }]);
+  };
+
+  const removeContact = async (contactId: string, isNew: boolean) => {
+    if (!isNew) {
+      const { error } = await supabase
+        .from('supplier_contacts')
+        .delete()
+        .eq('id', contactId);
+      if (error) {
+        toast({ title: 'Error deleting contact', description: error.message, variant: 'destructive' });
+        return;
+      }
+    }
+    setContacts(prev => prev.filter(c => c.id !== contactId));
+  };
+
+  const updateContact = (contactId: string, field: keyof SupplierContact, value: string | boolean) => {
+    setContacts(prev => prev.map(c => 
+      c.id === contactId ? { ...c, [field]: value } : c
+    ));
+  };
+
+  const setPrimaryContact = (contactId: string) => {
+    setContacts(prev => prev.map(c => ({
+      ...c,
+      is_primary: c.id === contactId,
+    })));
+  };
+
   const handleOpenDialog = (supplier?: Supplier) => {
     if (supplier) {
       setEditingSupplier(supplier);
@@ -526,6 +652,7 @@ export default function Suppliers() {
     } else {
       setEditingSupplier(null);
       setDocuments([]);
+      setContacts([]);
       form.reset();
     }
     setActiveTab('general');
@@ -536,6 +663,7 @@ export default function Suppliers() {
     setIsDialogOpen(false);
     setEditingSupplier(null);
     setDocuments([]);
+    setContacts([]);
     form.reset();
   };
 
@@ -756,8 +884,9 @@ export default function Suppliers() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
                   <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="approval">Approval</TabsTrigger>
                   <TabsTrigger value="compliance">Compliance</TabsTrigger>
                   <TabsTrigger value="payment">Payment</TabsTrigger>
@@ -989,6 +1118,125 @@ export default function Suppliers() {
                       </FormItem>
                     )}
                   />
+                </TabsContent>
+
+                {/* Contacts Tab */}
+                <TabsContent value="contacts" className="space-y-4 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium">Supplier Contacts</p>
+                        <p className="text-sm text-muted-foreground">Manage contacts for this supplier</p>
+                      </div>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={addContact}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Contact
+                    </Button>
+                  </div>
+
+                  {contacts.length === 0 ? (
+                    <div className="p-8 bg-muted/50 rounded-lg text-center text-muted-foreground">
+                      <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">No contacts added</p>
+                      <p className="text-sm mb-3">Add contacts to manage supplier communication</p>
+                      <Button type="button" variant="outline" size="sm" onClick={addContact}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Contact
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {contacts.map((contact, index) => (
+                        <div key={contact.id} className="p-4 border rounded-lg space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Contact {index + 1}</span>
+                              {contact.is_primary && (
+                                <Badge variant="default" className="text-xs">Primary</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!contact.is_primary && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setPrimaryContact(contact.id)}
+                                >
+                                  Set as Primary
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => removeContact(contact.id, contact.isNew)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium">Name *</label>
+                              <Input
+                                value={contact.name}
+                                onChange={(e) => updateContact(contact.id, 'name', e.target.value)}
+                                placeholder="Contact name"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Role / Title</label>
+                              <Input
+                                value={contact.role}
+                                onChange={(e) => updateContact(contact.id, 'role', e.target.value)}
+                                placeholder="e.g., Sales Rep, Account Manager"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium">Email</label>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="email"
+                                  value={contact.email}
+                                  onChange={(e) => updateContact(contact.id, 'email', e.target.value)}
+                                  placeholder="email@supplier.com"
+                                  className="pl-9"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Phone</label>
+                              <Input
+                                value={contact.phone}
+                                onChange={(e) => updateContact(contact.id, 'phone', e.target.value)}
+                                placeholder="(555) 123-4567"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+                            <div>
+                              <p className="font-medium text-sm">Send PO To</p>
+                              <p className="text-xs text-muted-foreground">Include this contact when sending purchase orders</p>
+                            </div>
+                            <Switch
+                              checked={contact.send_po_to}
+                              onCheckedChange={(checked) => updateContact(contact.id, 'send_po_to', checked)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
 
                 {/* Approval Tab */}
