@@ -14,6 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
+      bills_of_lading: {
+        Row: {
+          bol_number: string
+          carrier_name: string | null
+          created_at: string
+          created_by: string | null
+          delivery_date: string | null
+          driver_name: string | null
+          from_location_id: string
+          id: string
+          notes: string | null
+          seal_number: string | null
+          ship_date: string
+          status: string | null
+          to_location_id: string
+          total_cases: number | null
+          total_pallets: number | null
+          trailer_number: string | null
+          truck_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          bol_number: string
+          carrier_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_date?: string | null
+          driver_name?: string | null
+          from_location_id: string
+          id?: string
+          notes?: string | null
+          seal_number?: string | null
+          ship_date?: string
+          status?: string | null
+          to_location_id: string
+          total_cases?: number | null
+          total_pallets?: number | null
+          trailer_number?: string | null
+          truck_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bol_number?: string
+          carrier_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_date?: string | null
+          driver_name?: string | null
+          from_location_id?: string
+          id?: string
+          notes?: string | null
+          seal_number?: string | null
+          ship_date?: string
+          status?: string | null
+          to_location_id?: string
+          total_cases?: number | null
+          total_pallets?: number | null
+          trailer_number?: string | null
+          truck_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_of_lading_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_of_lading_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_of_lading_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bol_pallets: {
+        Row: {
+          added_at: string
+          bol_id: string
+          id: string
+          pallet_id: string
+        }
+        Insert: {
+          added_at?: string
+          bol_id: string
+          id?: string
+          pallet_id: string
+        }
+        Update: {
+          added_at?: string
+          bol_id?: string
+          id?: string
+          pallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bol_pallets_bol_id_fkey"
+            columns: ["bol_id"]
+            isOneToOne: false
+            referencedRelation: "bills_of_lading"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bol_pallets_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "pallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -82,6 +203,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_3pl: boolean | null
           is_active: boolean
           location_code: string
           location_type: string
@@ -95,6 +217,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_3pl?: boolean | null
           is_active?: boolean
           location_code: string
           location_type: string
@@ -108,6 +231,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_3pl?: boolean | null
           is_active?: boolean
           location_code?: string
           location_type?: string
@@ -118,6 +242,460 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      machines: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          location_id: string | null
+          machine_number: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          machine_number: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          machine_number?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machines_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          base_unit_id: string
+          category: string | null
+          code: string
+          cost_per_base_unit: number | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          min_stock_level: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_unit_id: string
+          category?: string | null
+          code: string
+          cost_per_base_unit?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_stock_level?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_unit_id?: string
+          category?: string | null
+          code?: string
+          cost_per_base_unit?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_stock_level?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_base_unit_id_fkey"
+            columns: ["base_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pallet_cases: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          id: string
+          pallet_id: string
+          product_id: string
+          production_lot_id: string
+          quantity: number
+          removed_at: string | null
+          removed_by: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          pallet_id: string
+          product_id: string
+          production_lot_id: string
+          quantity: number
+          removed_at?: string | null
+          removed_by?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          pallet_id?: string
+          product_id?: string
+          production_lot_id?: string
+          quantity?: number
+          removed_at?: string | null
+          removed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pallet_cases_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_cases_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "pallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_cases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_cases_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_cases_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pallet_transfers: {
+        Row: {
+          bol_id: string | null
+          created_at: string
+          from_location_id: string | null
+          id: string
+          notes: string | null
+          pallet_id: string
+          to_location_id: string
+          transfer_date: string
+          transferred_by: string | null
+        }
+        Insert: {
+          bol_id?: string | null
+          created_at?: string
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          pallet_id: string
+          to_location_id: string
+          transfer_date?: string
+          transferred_by?: string | null
+        }
+        Update: {
+          bol_id?: string | null
+          created_at?: string
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          pallet_id?: string
+          to_location_id?: string
+          transfer_date?: string
+          transferred_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pallet_transfers_bol_id_fkey"
+            columns: ["bol_id"]
+            isOneToOne: false
+            referencedRelation: "bills_of_lading"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_transfers_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_transfers_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "pallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_transfers_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_transfers_transferred_by_fkey"
+            columns: ["transferred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pallets: {
+        Row: {
+          build_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          location_id: string | null
+          notes: string | null
+          pallet_number: string
+          status: string | null
+          total_cases: number | null
+          updated_at: string
+        }
+        Insert: {
+          build_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          pallet_number: string
+          status?: string | null
+          total_cases?: number | null
+          updated_at?: string
+        }
+        Update: {
+          build_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          pallet_number?: string
+          status?: string | null
+          total_cases?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pallets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_lot_materials: {
+        Row: {
+          created_at: string
+          id: string
+          production_lot_id: string
+          quantity_used: number
+          receiving_lot_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          production_lot_id: string
+          quantity_used: number
+          receiving_lot_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          production_lot_id?: string
+          quantity_used?: number
+          receiving_lot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_lot_materials_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lot_materials_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_lots: {
+        Row: {
+          batch_number: number
+          created_at: string
+          expiry_date: string | null
+          id: string
+          julian_day: number
+          lot_number: string
+          machine_id: string
+          notes: string | null
+          produced_by: string | null
+          product_id: string
+          production_date: string
+          quantity_available: number
+          quantity_produced: number
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_number: number
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          julian_day: number
+          lot_number: string
+          machine_id: string
+          notes?: string | null
+          produced_by?: string | null
+          product_id: string
+          production_date?: string
+          quantity_available: number
+          quantity_produced: number
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_number?: number
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          julian_day?: number
+          lot_number?: string
+          machine_id?: string
+          notes?: string | null
+          produced_by?: string | null
+          product_id?: string
+          production_date?: string
+          quantity_available?: number
+          quantity_produced?: number
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_lots_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lots_produced_by_fkey"
+            columns: ["produced_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          case_weight_kg: number | null
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sku: string
+          unit_id: string
+          units_per_case: number | null
+          updated_at: string
+        }
+        Insert: {
+          case_weight_kg?: number | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sku: string
+          unit_id: string
+          units_per_case?: number | null
+          updated_at?: string
+        }
+        Update: {
+          case_weight_kg?: number | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sku?: string
+          unit_id?: string
+          units_per_case?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -178,6 +756,247 @@ export type Database = {
           },
         ]
       }
+      receiving_lots: {
+        Row: {
+          cost_per_base_unit: number | null
+          cost_total: number | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          internal_lot_number: string
+          location_id: string | null
+          material_id: string
+          notes: string | null
+          quantity_in_base_unit: number
+          quantity_received: number
+          received_by: string | null
+          received_date: string
+          status: string | null
+          supplier_id: string | null
+          supplier_lot_number: string | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          cost_per_base_unit?: number | null
+          cost_total?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          internal_lot_number: string
+          location_id?: string | null
+          material_id: string
+          notes?: string | null
+          quantity_in_base_unit: number
+          quantity_received: number
+          received_by?: string | null
+          received_date?: string
+          status?: string | null
+          supplier_id?: string | null
+          supplier_lot_number?: string | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          cost_per_base_unit?: number | null
+          cost_total?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          internal_lot_number?: string
+          location_id?: string | null
+          material_id?: string
+          notes?: string | null
+          quantity_in_base_unit?: number
+          quantity_received?: number
+          received_by?: string | null
+          received_date?: string
+          status?: string | null
+          supplier_id?: string | null
+          supplier_lot_number?: string | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_lots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
+      unit_conversions: {
+        Row: {
+          conversion_factor: number
+          created_at: string
+          from_unit_id: string
+          id: string
+          is_active: boolean | null
+          material_id: string | null
+          to_unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          conversion_factor: number
+          created_at?: string
+          from_unit_id: string
+          id?: string
+          is_active?: boolean | null
+          material_id?: string | null
+          to_unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          conversion_factor?: number
+          created_at?: string
+          from_unit_id?: string
+          id?: string
+          is_active?: boolean | null
+          material_id?: string | null
+          to_unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_conversions_from_unit_id_fkey"
+            columns: ["from_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_conversions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_conversions_to_unit_id_fkey"
+            columns: ["to_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units_of_measure: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_base_unit: boolean | null
+          name: string
+          unit_type: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_base_unit?: boolean | null
+          name: string
+          unit_type: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_base_unit?: boolean | null
+          name?: string
+          unit_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -207,6 +1026,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_pallet_number: {
+        Args: { p_build_date?: string }
+        Returns: string
+      }
+      generate_production_lot_number: {
+        Args: { p_machine_id: string; p_production_date?: string }
+        Returns: string
+      }
+      generate_receiving_lot_number: {
+        Args: { p_received_date?: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
