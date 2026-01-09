@@ -71,6 +71,7 @@ const materialFormSchema = z.object({
   listed_material_id: z.string().optional().nullable(),
   description: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
+  sub_category: z.string().optional().nullable(),
   base_unit_id: z.string().min(1, 'Purchase unit is required'),
   usage_unit_id: z.string().optional().nullable(),
   usage_unit_conversion: z.coerce.number().min(0).optional().nullable(),
@@ -166,6 +167,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       listed_material_id: null,
       description: '',
       category: '',
+      sub_category: null,
       base_unit_id: '',
       usage_unit_id: null,
       usage_unit_conversion: null,
@@ -248,6 +250,21 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     },
   });
 
+  // Fetch sub-categories
+  const { data: subCategories } = useQuery({
+    queryKey: ['material-sub-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('material_sub_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; category: string; name: string }[];
+    },
+  });
+
   // Fetch existing purchase units for editing
   const { data: existingPurchaseUnits } = useQuery({
     queryKey: ['material-purchase-units', material?.id],
@@ -326,6 +343,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         listed_material_id: material.listed_material_id || null,
         description: material.description || '',
         category: material.category || '',
+        sub_category: (material as any).sub_category || null,
         base_unit_id: material.base_unit_id,
         usage_unit_id: material.usage_unit_id || null,
         usage_unit_conversion: material.usage_unit_conversion ?? null,
@@ -422,6 +440,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           listed_material_id: data.listed_material_id || null,
           description: data.description || null,
           category: data.category || null,
+          sub_category: data.sub_category || null,
           base_unit_id: data.base_unit_id,
           usage_unit_id: data.usage_unit_id || null,
           usage_unit_conversion: data.usage_unit_conversion || null,
@@ -515,6 +534,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           listed_material_id: data.listed_material_id || null,
           description: data.description || null,
           category: data.category || null,
+          sub_category: data.sub_category || null,
           base_unit_id: data.base_unit_id,
           usage_unit_id: data.usage_unit_id || null,
           usage_unit_conversion: data.usage_unit_conversion || null,
@@ -836,6 +856,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       <Select 
                         onValueChange={async (value) => {
                           field.onChange(value);
+                          // Reset sub_category when category changes
+                          form.setValue('sub_category', null);
                           // Generate new code when category changes (only for new materials)
                           if (!material) {
                             const { data, error } = await supabase.rpc('generate_material_code', { 
@@ -850,7 +872,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                               })));
                             }
                           }
-                        }} 
+                        }}
                         value={field.value || ''}
                       >
                         <FormControl>
@@ -872,6 +894,49 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+
+                {/* Sub-Category - depends on selected category */}
+                <FormField
+                  control={form.control}
+                  name="sub_category"
+                  render={({ field }) => {
+                    const selectedCategory = form.watch('category');
+                    const filteredSubCategories = subCategories?.filter(
+                      sc => sc.category === selectedCategory
+                    ) || [];
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Sub-Category</FormLabel>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} 
+                          value={field.value || '__none__'}
+                          disabled={!selectedCategory}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={selectedCategory ? "Select sub-category" : "Select a category first"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none__">-- None --</SelectItem>
+                            {filteredSubCategories.map((sc) => (
+                              <SelectItem key={sc.id} value={sc.name}>
+                                {sc.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {selectedCategory 
+                            ? `Sub-categories available for ${selectedCategory}` 
+                            : 'Select a category first to see sub-categories'}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <div className="grid grid-cols-2 gap-4">

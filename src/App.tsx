@@ -13,6 +13,7 @@ import Products from "./pages/inventory/Products";
 import Suppliers from "./pages/purchasing/Suppliers";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
+import SubCategories from "./pages/settings/SubCategories";
 import DocumentRequirements from "./pages/settings/DocumentRequirements";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             {/* Settings routes */}
             <Route path="/settings/machines" element={<AppLayout><Machines /></AppLayout>} />
             <Route path="/settings/locations" element={<AppLayout><Locations /></AppLayout>} />
+            <Route path="/settings/sub-categories" element={<AppLayout><SubCategories /></AppLayout>} />
             <Route path="/settings/document-requirements" element={<AppLayout><DocumentRequirements /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Settings</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
