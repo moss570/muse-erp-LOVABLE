@@ -43,15 +43,23 @@ type Unit = Tables<'units_of_measure'>;
 type DropdownOption = Tables<'dropdown_options'>;
 type ListedMaterial = Tables<'listed_material_names'>;
 
-// Generate a unique material code
-const generateMaterialCode = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = 'MAT-';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-};
+// Category options with their code prefixes
+const MATERIAL_CATEGORIES = [
+  { value: 'Ingredients', prefix: 'ING' },
+  { value: 'Packaging', prefix: 'PAC' },
+  { value: 'Boxes', prefix: 'BOX' },
+  { value: 'Chemical', prefix: 'CHE' },
+  { value: 'Supplies', prefix: 'SUP' },
+  { value: 'Maintenance', prefix: 'MAI' },
+  { value: 'Direct Sale', prefix: 'DIR' },
+] as const;
+
+// Categories that show food-related specs
+const FOOD_CATEGORIES = ['Ingredients', 'Direct Sale'];
+// Categories that show packaging-related specs  
+const PACKAGING_CATEGORIES = ['Packaging', 'Boxes'];
+// Categories that show chemical/supply specs
+const INDUSTRIAL_CATEGORIES = ['Chemical', 'Supplies', 'Maintenance'];
 
 const materialFormSchema = z.object({
   // Basic Info
@@ -59,7 +67,7 @@ const materialFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   listed_material_id: z.string().optional().nullable(),
   description: z.string().optional(),
-  category: z.string().optional(),
+  category: z.string().min(1, 'Category is required'),
   base_unit_id: z.string().min(1, 'Purchase unit is required'),
   usage_unit_id: z.string().optional().nullable(),
   usage_unit_conversion: z.coerce.number().min(0).optional().nullable(),
@@ -251,7 +259,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     } else {
       form.reset({
         ...form.formState.defaultValues,
-        code: generateMaterialCode(),
+        code: '', // Will be generated when category is selected
+        category: '',
       } as MaterialFormData);
       setPurchaseUnits([]);
     }
@@ -423,8 +432,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
   const addPurchaseUnit = () => {
     const baseCode = form.getValues('code');
-    const suffix = String(purchaseUnits.length + 1).padStart(2, '0');
-    const newCode = `${baseCode}-${suffix}`;
+    // Use A, B, C, D... for alternative unit suffixes
+    const suffixLetter = String.fromCharCode(65 + purchaseUnits.length); // A=65, B=66, etc.
+    const newCode = `${baseCode}${suffixLetter}`;
     setPurchaseUnits([...purchaseUnits, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false }]);
   };
 
@@ -459,6 +469,54 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
               {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4 mt-4">
+                {/* Category - Required First */}
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category *</FormLabel>
+                      <Select 
+                        onValueChange={async (value) => {
+                          field.onChange(value);
+                          // Generate new code when category changes (only for new materials)
+                          if (!material) {
+                            const { data, error } = await supabase.rpc('generate_material_code', { 
+                              p_category: value 
+                            });
+                            if (!error && data) {
+                              form.setValue('code', data);
+                              // Update any existing alternative unit codes
+                              setPurchaseUnits(prev => prev.map((pu, idx) => ({
+                                ...pu,
+                                code: `${data}${String.fromCharCode(65 + idx)}`
+                              })));
+                            }
+                          }
+                        }} 
+                        value={field.value || ''}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category (required)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {MATERIAL_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        This determines the material code prefix and available specifications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -469,7 +527,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         <FormControl>
                           <Input {...field} readOnly className="bg-muted font-mono" />
                         </FormControl>
-                        <FormDescription>Auto-generated unique code</FormDescription>
+                        <FormDescription>
+                          {form.watch('category') 
+                            ? 'Auto-generated based on category' 
+                            : 'Select a category to generate code'}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -536,19 +598,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Dairy, Packaging, etc." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="base_unit_id"
@@ -749,183 +798,246 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
               {/* Specifications Tab */}
               <TabsContent value="specifications" className="space-y-6 mt-4">
-                {/* Allergens */}
-                <FormField
-                  control={form.control}
-                  name="allergens"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Allergens</FormLabel>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {allergenOptions.map((option) => (
-                          <label
-                            key={option.id}
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
-                              field.value.includes(option.value)
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-card hover:bg-accent border-border'
-                            }`}
-                          >
-                            <Checkbox
-                              checked={field.value.includes(option.value)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  field.onChange([...field.value, option.value]);
-                                } else {
-                                  field.onChange(field.value.filter((v: string) => v !== option.value));
-                                }
-                              }}
-                              className="sr-only"
-                            />
-                            <span className="text-sm">{option.label}</span>
-                          </label>
-                        ))}
+                {(() => {
+                  const category = form.watch('category');
+                  const isFood = FOOD_CATEGORIES.includes(category);
+                  const isPackaging = PACKAGING_CATEGORIES.includes(category);
+                  const isIndustrial = INDUSTRIAL_CATEGORIES.includes(category);
+                  
+                  if (!category) {
+                    return (
+                      <div className="text-center py-12 text-muted-foreground border rounded-md bg-muted/20">
+                        <p>Please select a Category on the Basic Info tab first.</p>
+                        <p className="text-xs mt-1">Specifications will vary based on material category.</p>
                       </div>
-                      {field.value.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {field.value.map((val: string) => {
-                            const option = allergenOptions.find(o => o.value === val);
-                            return (
-                              <Badge key={val} variant="secondary" className="gap-1">
-                                {option?.label || val}
-                                <X
-                                  className="h-3 w-3 cursor-pointer"
-                                  onClick={() => field.onChange(field.value.filter((v: string) => v !== val))}
-                                />
-                              </Badge>
-                            );
-                          })}
+                    );
+                  }
+                  
+                  return (
+                    <>
+                      {/* Food-related fields: Ingredients, Direct Sale */}
+                      {isFood && (
+                        <>
+                          {/* Allergens */}
+                          <FormField
+                            control={form.control}
+                            name="allergens"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Allergens</FormLabel>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {allergenOptions.map((option) => (
+                                    <label
+                                      key={option.id}
+                                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
+                                        field.value.includes(option.value)
+                                          ? 'bg-primary text-primary-foreground border-primary'
+                                          : 'bg-card hover:bg-accent border-border'
+                                      }`}
+                                    >
+                                      <Checkbox
+                                        checked={field.value.includes(option.value)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            field.onChange([...field.value, option.value]);
+                                          } else {
+                                            field.onChange(field.value.filter((v: string) => v !== option.value));
+                                          }
+                                        }}
+                                        className="sr-only"
+                                      />
+                                      <span className="text-sm">{option.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                                {field.value.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {field.value.map((val: string) => {
+                                      const option = allergenOptions.find(o => o.value === val);
+                                      return (
+                                        <Badge key={val} variant="secondary" className="gap-1">
+                                          {option?.label || val}
+                                          <X
+                                            className="h-3 w-3 cursor-pointer"
+                                            onClick={() => field.onChange(field.value.filter((v: string) => v !== val))}
+                                          />
+                                        </Badge>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Food Claims */}
+                          <FormField
+                            control={form.control}
+                            name="food_claims"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Food Claims</FormLabel>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {foodClaimOptions.map((option) => (
+                                    <label
+                                      key={option.id}
+                                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
+                                        field.value.includes(option.value)
+                                          ? 'bg-primary text-primary-foreground border-primary'
+                                          : 'bg-card hover:bg-accent border-border'
+                                      }`}
+                                    >
+                                      <Checkbox
+                                        checked={field.value.includes(option.value)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            field.onChange([...field.value, option.value]);
+                                          } else {
+                                            field.onChange(field.value.filter((v: string) => v !== option.value));
+                                          }
+                                        }}
+                                        className="sr-only"
+                                      />
+                                      <span className="text-sm">{option.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Density for ingredients */}
+                          <FormField
+                            control={form.control}
+                            name="density"
+                            render={({ field }) => (
+                              <FormItem className="max-w-xs">
+                                <FormLabel>Density (g/mL)</FormLabel>
+                                <FormControl>
+                                  <Input type="number" step="0.001" placeholder="1.000" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormDescription>Used for volume to weight conversions</FormDescription>
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Label Copy */}
+                          <FormField
+                            control={form.control}
+                            name="label_copy"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Label Copy / Ingredient Statement</FormLabel>
+                                <FormControl>
+                                  <Textarea placeholder="Text as it appears on ingredient label..." {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
+
+                      {/* Temperature Controls - Food and Packaging */}
+                      {(isFood || isPackaging) && (
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-sm">Receiving Temperature (°F)</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              <FormField
+                                control={form.control}
+                                name="receiving_temperature_min"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="receiving_temperature_max"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-sm">Storage Temperature (°F)</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              <FormField
+                                control={form.control}
+                                name="storage_temperature_min"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="storage_temperature_max"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
-                    </FormItem>
-                  )}
-                />
 
-                {/* Food Claims */}
-                <FormField
-                  control={form.control}
-                  name="food_claims"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Food Claims</FormLabel>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {foodClaimOptions.map((option) => (
-                          <label
-                            key={option.id}
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
-                              field.value.includes(option.value)
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-card hover:bg-accent border-border'
-                            }`}
-                          >
-                            <Checkbox
-                              checked={field.value.includes(option.value)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  field.onChange([...field.value, option.value]);
-                                } else {
-                                  field.onChange(field.value.filter((v: string) => v !== option.value));
-                                }
-                              }}
-                              className="sr-only"
-                            />
-                            <span className="text-sm">{option.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                      {/* Packaging-specific fields */}
+                      {isPackaging && (
+                        <div className="p-4 border rounded-md bg-muted/30">
+                          <p className="text-sm text-muted-foreground">
+                            Additional packaging specifications (dimensions, materials, etc.) can be added in future updates.
+                          </p>
+                        </div>
+                      )}
 
-                {/* Temperature Controls */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Receiving Temperature (°F)</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={form.control}
-                        name="receiving_temperature_min"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="receiving_temperature_max"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Storage Temperature (°F)</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={form.control}
-                        name="storage_temperature_min"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="storage_temperature_max"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="density"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Density (g/mL)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.001" placeholder="1.000" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="label_copy"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Label Copy / Ingredient Statement</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Text as it appears on ingredient label..." {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                      {/* Industrial/Chemical/Supplies fields */}
+                      {isIndustrial && (
+                        <div className="space-y-4">
+                          <div className="p-4 border rounded-md bg-amber-500/10 border-amber-500/30">
+                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                              ⚠️ Industrial / Chemical Materials
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Ensure SDS (Safety Data Sheets) are uploaded in the Documents section.
+                            </p>
+                          </div>
+                          <FormField
+                            control={form.control}
+                            name="other_hazards"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Safety Notes / Hazards</FormLabel>
+                                <FormControl>
+                                  <Textarea placeholder="Special handling requirements, hazards, PPE needed..." {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </TabsContent>
 
               {/* Food Safety (VACCP) Tab */}

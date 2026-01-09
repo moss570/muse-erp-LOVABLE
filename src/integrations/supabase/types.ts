@@ -1281,6 +1281,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_material_code: { Args: { p_category: string }; Returns: string }
       generate_pallet_number: {
         Args: { p_build_date?: string }
         Returns: string
