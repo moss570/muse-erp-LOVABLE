@@ -69,7 +69,7 @@ export default function Machines() {
       machine_number: '',
       name: '',
       description: '',
-      location_id: '',
+      location_id: 'none',
       is_active: true,
     },
   });
@@ -106,7 +106,7 @@ export default function Machines() {
         name: data.name,
         is_active: data.is_active,
         description: data.description || null,
-        location_id: data.location_id || null,
+        location_id: data.location_id === 'none' ? null : (data.location_id || null),
       }]);
       if (error) throw error;
     },
@@ -128,7 +128,7 @@ export default function Machines() {
         .update({
           ...rest,
           description: rest.description || null,
-          location_id: rest.location_id || null,
+          location_id: rest.location_id === 'none' ? null : (rest.location_id || null),
         })
         .eq('id', id);
       if (error) throw error;
@@ -164,7 +164,7 @@ export default function Machines() {
         machine_number: machine.machine_number,
         name: machine.name,
         description: machine.description || '',
-        location_id: machine.location_id || '',
+        location_id: machine.location_id || 'none',
         is_active: machine.is_active ?? true,
       });
     } else {
@@ -277,7 +277,7 @@ export default function Machines() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No location</SelectItem>
+                          <SelectItem value="none">No location</SelectItem>
                           {locations?.map((location) => (
                             <SelectItem key={location.id} value={location.id}>
                               {location.name} ({location.location_code})
