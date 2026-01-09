@@ -85,6 +85,7 @@ interface PurchaseUnit {
   unit_id: string;
   conversion_to_base: number;
   is_default: boolean;
+  input_qty?: number;
 }
 
 interface MaterialFormDialogProps {
@@ -937,7 +938,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     <div>
                       <h4 className="font-medium">Purchase Units</h4>
                       <p className="text-sm text-muted-foreground">
-                        Define how this material can be purchased and the conversion to base unit
+                        Define how this material can be purchased and the conversion to inventory unit
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={addPurchaseUnit}>
@@ -951,52 +952,109 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {purchaseUnits.map((pu, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 border rounded-md bg-card">
-                          <Select
-                            value={pu.unit_id}
-                            onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {units?.map((unit) => (
-                                <SelectItem key={unit.id} value={unit.id}>
-                                  {unit.name} ({unit.code})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <span className="text-muted-foreground">=</span>
-                          <Input
-                            type="number"
-                            step="0.001"
-                            className="w-24"
-                            value={pu.conversion_to_base}
-                            onChange={(e) => updatePurchaseUnit(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
-                          />
-                          <span className="text-muted-foreground text-sm">
-                            {units?.find(u => u.id === form.watch('base_unit_id'))?.code || 'base units'}
-                          </span>
-                          <label className="flex items-center gap-1.5 ml-auto">
-                            <Checkbox
-                              checked={pu.is_default}
-                              onCheckedChange={(checked) => updatePurchaseUnit(index, 'is_default', !!checked)}
-                            />
-                            <span className="text-sm">Default</span>
-                          </label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => removePurchaseUnit(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                      {purchaseUnits.map((pu, index) => {
+                        const selectedUnit = units?.find(u => u.id === pu.unit_id);
+                        const baseUnit = units?.find(u => u.id === form.watch('base_unit_id'));
+                        const isWeightUnit = selectedUnit?.unit_type === 'weight';
+                        const baseIsKg = baseUnit?.code === 'KG';
+                        
+                        // Weight conversion factors to KG
+                        const weightToKg: Record<string, number> = {
+                          'LB': 0.453592,
+                          'OZ': 0.0283495,
+                          'G': 0.001,
+                          'KG': 1,
+                        };
+                        
+                        const canAutoConvert = isWeightUnit && baseIsKg && selectedUnit?.code && weightToKg[selectedUnit.code];
+                        
+                        return (
+                          <div key={index} className="flex flex-col gap-2 p-3 border rounded-md bg-card">
+                            <div className="flex items-center gap-3">
+                              <Select
+                                value={pu.unit_id}
+                                onValueChange={(value) => {
+                                  const newUnit = units?.find(u => u.id === value);
+                                  updatePurchaseUnit(index, 'unit_id', value);
+                                  
+                                  // Auto-calculate conversion if weight unit to KG
+                                  if (newUnit?.unit_type === 'weight' && baseIsKg && newUnit.code && weightToKg[newUnit.code]) {
+                                    updatePurchaseUnit(index, 'conversion_to_base', weightToKg[newUnit.code]);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="w-[180px]">
+                                  <SelectValue placeholder="Select unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {units?.map((unit) => (
+                                    <SelectItem key={unit.id} value={unit.id}>
+                                      {unit.name} ({unit.code})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <span className="text-muted-foreground">=</span>
+                              {canAutoConvert ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    step="0.001"
+                                    className="w-24"
+                                    placeholder="Qty"
+                                    value={pu.input_qty || 1}
+                                    onChange={(e) => {
+                                      const qty = parseFloat(e.target.value) || 1;
+                                      updatePurchaseUnit(index, 'input_qty', qty);
+                                      const factor = weightToKg[selectedUnit!.code!] || 1;
+                                      updatePurchaseUnit(index, 'conversion_to_base', qty * factor);
+                                    }}
+                                  />
+                                  <span className="text-muted-foreground text-sm">{selectedUnit?.code}</span>
+                                  <span className="text-muted-foreground">=</span>
+                                  <span className="font-medium text-sm min-w-[60px]">
+                                    {pu.conversion_to_base?.toFixed(4)} {baseUnit?.code}
+                                  </span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Input
+                                    type="number"
+                                    step="0.001"
+                                    className="w-24"
+                                    value={pu.conversion_to_base}
+                                    onChange={(e) => updatePurchaseUnit(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
+                                  />
+                                  <span className="text-muted-foreground text-sm">
+                                    {baseUnit?.code || 'base units'}
+                                  </span>
+                                </>
+                              )}
+                              <label className="flex items-center gap-1.5 ml-auto">
+                                <Checkbox
+                                  checked={pu.is_default}
+                                  onCheckedChange={(checked) => updatePurchaseUnit(index, 'is_default', !!checked)}
+                                />
+                                <span className="text-sm">Default</span>
+                              </label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => removePurchaseUnit(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {canAutoConvert && (
+                              <p className="text-xs text-muted-foreground ml-1">
+                                Auto-calculated: 1 {selectedUnit?.code} = {weightToKg[selectedUnit!.code!]} KG
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
