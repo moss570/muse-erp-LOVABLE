@@ -996,8 +996,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       <FormItem>
                         <FormLabel>Manufacturer</FormLabel>
                         <Select 
-                          onValueChange={field.onChange} 
-                          value={field.value || ''}
+                          onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                          value={field.value || '__none__'}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -1005,7 +1005,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="__none__">None</SelectItem>
                             {manufacturers?.map((manufacturer) => (
                               <SelectItem key={manufacturer.id} value={manufacturer.name}>
                                 {manufacturer.name}

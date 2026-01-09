@@ -784,14 +784,17 @@ export default function Customers() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Payment Terms</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <Select 
+                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                            value={field.value || '__none__'}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select terms" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
+                              <SelectItem value="__none__">None</SelectItem>
                               {PAYMENT_TERMS.map((term) => (
                                 <SelectItem key={term.value} value={term.value}>
                                   {term.label}
