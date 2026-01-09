@@ -459,14 +459,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Listed Material Name</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <Select 
+                        onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                        value={field.value || '__none__'}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select listed material (optional)" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="__none__">None</SelectItem>
                           {listedMaterials?.map((lm) => (
                             <SelectItem key={lm.id} value={lm.id}>
                               {lm.name}
@@ -780,14 +783,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Fraud Vulnerability Score</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <Select 
+                          onValueChange={(val) => field.onChange(val === '__none__' ? '' : val)} 
+                          value={field.value || '__none__'}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select score" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="__none__">None</SelectItem>
                             {fraudVulnerabilityOptions.map((option) => (
                               <SelectItem key={option.id} value={option.value}>
                                 {option.label}
@@ -804,14 +810,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Supply Chain Complexity</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <Select 
+                          onValueChange={(val) => field.onChange(val === '__none__' ? '' : val)} 
+                          value={field.value || '__none__'}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select complexity" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="__none__">None</SelectItem>
                             {supplyChainOptions.map((option) => (
                               <SelectItem key={option.id} value={option.value}>
                                 {option.label}
@@ -830,14 +839,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Authentication Method</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <Select 
+                        onValueChange={(val) => field.onChange(val === '__none__' ? '' : val)} 
+                        value={field.value || '__none__'}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select method" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="__none__">None</SelectItem>
                           {authMethodOptions.map((option) => (
                             <SelectItem key={option.id} value={option.value}>
                               {option.label}
