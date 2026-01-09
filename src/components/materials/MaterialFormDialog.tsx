@@ -519,7 +519,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     name="base_unit_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Base Unit *</FormLabel>
+                        <FormLabel>Purchase Unit *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -534,6 +534,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          Unit used when purchasing from suppliers and receiving inventory
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
