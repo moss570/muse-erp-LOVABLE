@@ -620,6 +620,66 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   />
                 </div>
 
+                {/* Cost Fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="cost_per_base_unit"
+                    render={({ field }) => {
+                      const purchaseUnitId = form.watch('base_unit_id');
+                      const purchaseUnit = units?.find(u => u.id === purchaseUnitId);
+                      return (
+                        <FormItem>
+                          <FormLabel>Cost Per Purchase Unit ($)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              placeholder="0.00" 
+                              {...field} 
+                              value={field.value ?? ''} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {purchaseUnit ? `Cost per ${purchaseUnit.code}` : 'Cost per unit purchased'}
+                          </FormDescription>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                  {/* Calculated Cost Per Usage Unit */}
+                  {(() => {
+                    const costPerPurchase = form.watch('cost_per_base_unit');
+                    const usageConversion = form.watch('usage_unit_conversion');
+                    const usageUnitId = form.watch('usage_unit_id');
+                    const usageUnit = units?.find(u => u.id === usageUnitId);
+                    
+                    const costPerUsage = costPerPurchase && usageConversion && usageConversion > 0
+                      ? (costPerPurchase / usageConversion)
+                      : null;
+                    
+                    if (!usageUnitId) return null;
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Cost Per Usage Unit ($)</FormLabel>
+                        <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
+                          <span className="text-sm font-medium">
+                            {costPerUsage !== null 
+                              ? `$${costPerUsage.toFixed(4)}` 
+                              : '—'}
+                          </span>
+                        </div>
+                        <FormDescription>
+                          {usageUnit 
+                            ? `Calculated cost per ${usageUnit.code}` 
+                            : 'Set cost and conversion to calculate'}
+                        </FormDescription>
+                      </FormItem>
+                    );
+                  })()}
+                </div>
+
                 <FormField
                   control={form.control}
                   name="is_active"
@@ -986,18 +1046,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
               {/* Purchasing Tab */}
               <TabsContent value="purchasing" className="space-y-6 mt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="cost_per_base_unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cost per Base Unit ($)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="min_stock_level"
