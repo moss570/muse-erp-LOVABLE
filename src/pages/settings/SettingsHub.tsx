@@ -55,7 +55,7 @@ const settingsCategories: SettingCategory[] = [
         description: 'Configure units for materials and products',
         href: '/settings/units',
         icon: Ruler,
-        status: 'coming-soon',
+        status: 'active',
       },
       {
         title: 'Material Names',
