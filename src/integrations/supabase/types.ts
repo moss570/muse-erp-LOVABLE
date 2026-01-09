@@ -415,10 +415,12 @@ export type Database = {
         Row: {
           code: string | null
           conversion_to_base: number
+          cost_per_unit: number | null
           created_at: string
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          item_number: string | null
           material_id: string
           unit_id: string
           updated_at: string
@@ -426,10 +428,12 @@ export type Database = {
         Insert: {
           code?: string | null
           conversion_to_base: number
+          cost_per_unit?: number | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          item_number?: string | null
           material_id: string
           unit_id: string
           updated_at?: string
@@ -437,10 +441,12 @@ export type Database = {
         Update: {
           code?: string | null
           conversion_to_base?: number
+          cost_per_unit?: number | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          item_number?: string | null
           material_id?: string
           unit_id?: string
           updated_at?: string

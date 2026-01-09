@@ -108,6 +108,8 @@ interface PurchaseUnit {
   conversion_to_base: number;
   is_default: boolean;
   input_qty?: number;
+  item_number?: string;
+  cost_per_unit?: number;
 }
 
 interface MaterialFormDialogProps {
@@ -276,6 +278,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         unit_id: pu.unit_id,
         conversion_to_base: Number(pu.conversion_to_base),
         is_default: pu.is_default ?? false,
+        item_number: (pu as { item_number?: string }).item_number || '',
+        cost_per_unit: (pu as { cost_per_unit?: number }).cost_per_unit ?? undefined,
       })));
     }
   }, [existingPurchaseUnits]);
@@ -328,6 +332,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             unit_id: pu.unit_id,
             conversion_to_base: pu.conversion_to_base,
             is_default: pu.is_default,
+            item_number: pu.item_number || null,
+            cost_per_unit: pu.cost_per_unit ?? null,
           })));
         if (puError) throw puError;
       }
@@ -399,6 +405,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             unit_id: pu.unit_id,
             conversion_to_base: pu.conversion_to_base,
             is_default: pu.is_default,
+            item_number: pu.item_number || null,
+            cost_per_unit: pu.cost_per_unit ?? null,
           }).eq('id', pu.id);
         } else {
           await supabase.from('material_purchase_units').insert({
@@ -407,6 +415,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             unit_id: pu.unit_id,
             conversion_to_base: pu.conversion_to_base,
             is_default: pu.is_default,
+            item_number: pu.item_number || null,
+            cost_per_unit: pu.cost_per_unit ?? null,
           });
         }
       }
@@ -435,7 +445,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     // Use A, B, C, D... for alternative unit suffixes
     const suffixLetter = String.fromCharCode(65 + purchaseUnits.length); // A=65, B=66, etc.
     const newCode = `${baseCode}${suffixLetter}`;
-    setPurchaseUnits([...purchaseUnits, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false }]);
+    setPurchaseUnits([...purchaseUnits, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false, item_number: '', cost_per_unit: undefined }]);
   };
 
   const removePurchaseUnit = (index: number) => {
@@ -1274,72 +1284,98 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         
                         return (
                           <div key={index} className="p-4 border rounded-md bg-card space-y-3">
-                            <div className="flex items-center gap-3">
-                              <div className="flex-1 grid grid-cols-3 gap-3">
-                                <div>
-                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                    Code
-                                  </label>
-                                  <Input
-                                    value={pu.code}
-                                    onChange={(e) => updatePurchaseUnit(index, 'code', e.target.value)}
-                                    placeholder="Material code"
-                                    className="font-mono"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                    Purchase Unit
-                                  </label>
-                                  <div className="flex gap-1">
-                                    <Select
-                                      value={pu.unit_id}
-                                      onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
-                                    >
-                                      <SelectTrigger className="flex-1">
-                                        <SelectValue placeholder="Select unit" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {units?.map((unit) => (
-                                          <SelectItem key={unit.id} value={unit.id}>
-                                            {unit.name} ({unit.code})
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="icon"
-                                      className="shrink-0"
-                                      onClick={() => {
-                                        setPendingUnitField(index);
-                                        setCreateUnitOpen(true);
-                                      }}
-                                      title="Create custom unit"
-                                    >
-                                      <PlusCircle className="h-4 w-4" />
-                                    </Button>
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1 space-y-3">
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Code
+                                    </label>
+                                    <Input
+                                      value={pu.code}
+                                      onChange={(e) => updatePurchaseUnit(index, 'code', e.target.value)}
+                                      placeholder="Material code"
+                                      className="font-mono"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Purchase Unit
+                                    </label>
+                                    <div className="flex gap-1">
+                                      <Select
+                                        value={pu.unit_id}
+                                        onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
+                                      >
+                                        <SelectTrigger className="flex-1">
+                                          <SelectValue placeholder="Select unit" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {units?.map((unit) => (
+                                            <SelectItem key={unit.id} value={unit.id}>
+                                              {unit.name} ({unit.code})
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        className="shrink-0"
+                                        onClick={() => {
+                                          setPendingUnitField(index);
+                                          setCreateUnitOpen(true);
+                                        }}
+                                        title="Create custom unit"
+                                      >
+                                        <PlusCircle className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      {displayUnit ? `${displayUnit.code} per unit` : 'Conversion'}
+                                    </label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={pu.conversion_to_base}
+                                      onChange={(e) => updatePurchaseUnit(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
+                                      placeholder="e.g., 3.785"
+                                    />
                                   </div>
                                 </div>
-                                <div>
-                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                    {displayUnit ? `${displayUnit.code} per unit` : 'Conversion'}
-                                  </label>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={pu.conversion_to_base}
-                                    onChange={(e) => updatePurchaseUnit(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
-                                    placeholder="e.g., 3.785"
-                                  />
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Manufacturer Item Number
+                                    </label>
+                                    <Input
+                                      value={pu.item_number || ''}
+                                      onChange={(e) => updatePurchaseUnit(index, 'item_number', e.target.value)}
+                                      placeholder="MFR-12345"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Cost Per Purchase Unit ($)
+                                    </label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={pu.cost_per_unit ?? ''}
+                                      onChange={(e) => updatePurchaseUnit(index, 'cost_per_unit', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                      placeholder="0.00"
+                                    />
+                                  </div>
                                 </div>
                               </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive shrink-0"
+                                className="h-8 w-8 text-destructive shrink-0 mt-5"
                                 onClick={() => removePurchaseUnit(index)}
                               >
                                 <Trash2 className="h-4 w-4" />
