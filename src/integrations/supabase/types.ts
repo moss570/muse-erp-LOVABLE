@@ -135,6 +135,84 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address: string | null
+          categories: string[] | null
+          city: string | null
+          code: string
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          credit_limit: number | null
+          customer_type: string | null
+          email: string | null
+          fax: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          state: string | null
+          tax_exempt: boolean | null
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          categories?: string[] | null
+          city?: string | null
+          code: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          credit_limit?: number | null
+          customer_type?: string | null
+          email?: string | null
+          fax?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          state?: string | null
+          tax_exempt?: boolean | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          categories?: string[] | null
+          city?: string | null
+          code?: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          credit_limit?: number | null
+          customer_type?: string | null
+          email?: string | null
+          fax?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          state?: string | null
+          tax_exempt?: boolean | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string
@@ -899,6 +977,42 @@ export type Database = {
           },
         ]
       }
+      permission_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          parent_key: string | null
+          resource_key: string
+          resource_name: string
+          resource_type: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          parent_key?: string | null
+          resource_key: string
+          resource_name: string
+          resource_type: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          parent_key?: string | null
+          resource_key?: string
+          resource_name?: string
+          resource_type?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       production_lot_materials: {
         Row: {
           created_at: string
@@ -1219,6 +1333,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "units_of_measure"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          access_level: string
+          created_at: string
+          id: string
+          resource_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          resource_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          resource_key?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_resource_key_fkey"
+            columns: ["resource_key"]
+            isOneToOne: false
+            referencedRelation: "permission_resources"
+            referencedColumns: ["resource_key"]
           },
         ]
       }
@@ -1566,6 +1715,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_permission: {
+        Args: {
+          _required_level?: string
+          _resource_key: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       generate_material_code: { Args: { p_category: string }; Returns: string }
       generate_pallet_number: {
         Args: { p_build_date?: string }

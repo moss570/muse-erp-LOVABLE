@@ -20,6 +20,8 @@ import UnitsOfMeasure from "./pages/settings/UnitsOfMeasure";
 import Departments from "./pages/settings/Departments";
 import ListedMaterialNames from "./pages/settings/ListedMaterialNames";
 import UserManagement from "./pages/settings/UserManagement";
+import ImportExport from "./pages/settings/ImportExport";
+import RolePermissions from "./pages/settings/RolePermissions";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,8 @@ const App = () => (
             <Route path="/settings/departments" element={<AppLayout><Departments /></AppLayout>} />
             <Route path="/settings/material-names" element={<AppLayout><ListedMaterialNames /></AppLayout>} />
             <Route path="/settings/users" element={<AppLayout><UserManagement /></AppLayout>} />
+            <Route path="/settings/permissions" element={<AppLayout><RolePermissions /></AppLayout>} />
+            <Route path="/settings/import-export" element={<AppLayout><ImportExport /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

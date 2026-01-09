@@ -18,6 +18,8 @@ import {
   Building,
   Ruler,
   Tags,
+  Upload,
+  Shield,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -128,6 +130,20 @@ const settingsCategories: SettingCategory[] = [
         description: 'Manage user accounts and permissions',
         href: '/settings/users',
         icon: Users,
+        status: 'active',
+      },
+      {
+        title: 'Role Permissions',
+        description: 'Configure access levels for each role',
+        href: '/settings/permissions',
+        icon: Shield,
+        status: 'active',
+      },
+      {
+        title: 'Import / Export',
+        description: 'Import and export data from CSV files',
+        href: '/settings/import-export',
+        icon: Upload,
         status: 'active',
       },
       {
