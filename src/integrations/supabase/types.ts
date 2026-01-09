@@ -1186,59 +1186,182 @@ export type Database = {
           },
         ]
       }
+      supplier_documents: {
+        Row: {
+          created_at: string
+          date_published: string | null
+          date_reviewed: string | null
+          document_name: string
+          expiry_date: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          requirement_id: string | null
+          supplier_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_published?: string | null
+          date_reviewed?: string | null
+          document_name: string
+          expiry_date?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          requirement_id?: string | null
+          supplier_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_published?: string | null
+          date_reviewed?: string | null
+          document_name?: string
+          expiry_date?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          requirement_id?: string | null
+          supplier_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_documents_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "document_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
+          approval_date: string | null
+          approval_status: string | null
+          approved_by: string | null
+          audit_score: number | null
+          certification_expiry_date: string | null
           city: string | null
           code: string
+          conditional_notes: string | null
           contact_name: string | null
           country: string | null
           created_at: string
+          credit_limit: number | null
           email: string | null
+          fax: string | null
+          food_safety_certification: string | null
+          gfsi_certified: boolean | null
           id: string
           is_active: boolean | null
+          last_audit_date: string | null
           name: string
+          next_review_date: string | null
           notes: string | null
+          payment_terms: string | null
           phone: string | null
+          risk_level: string | null
           state: string | null
+          supplier_type: string | null
           updated_at: string
+          website: string | null
           zip: string | null
         }
         Insert: {
           address?: string | null
+          approval_date?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          audit_score?: number | null
+          certification_expiry_date?: string | null
           city?: string | null
           code: string
+          conditional_notes?: string | null
           contact_name?: string | null
           country?: string | null
           created_at?: string
+          credit_limit?: number | null
           email?: string | null
+          fax?: string | null
+          food_safety_certification?: string | null
+          gfsi_certified?: boolean | null
           id?: string
           is_active?: boolean | null
+          last_audit_date?: string | null
           name: string
+          next_review_date?: string | null
           notes?: string | null
+          payment_terms?: string | null
           phone?: string | null
+          risk_level?: string | null
           state?: string | null
+          supplier_type?: string | null
           updated_at?: string
+          website?: string | null
           zip?: string | null
         }
         Update: {
           address?: string | null
+          approval_date?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          audit_score?: number | null
+          certification_expiry_date?: string | null
           city?: string | null
           code?: string
+          conditional_notes?: string | null
           contact_name?: string | null
           country?: string | null
           created_at?: string
+          credit_limit?: number | null
           email?: string | null
+          fax?: string | null
+          food_safety_certification?: string | null
+          gfsi_certified?: boolean | null
           id?: string
           is_active?: boolean | null
+          last_audit_date?: string | null
           name?: string
+          next_review_date?: string | null
           notes?: string | null
+          payment_terms?: string | null
           phone?: string | null
+          risk_level?: string | null
           state?: string | null
+          supplier_type?: string | null
           updated_at?: string
+          website?: string | null
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unit_conversions: {
         Row: {
