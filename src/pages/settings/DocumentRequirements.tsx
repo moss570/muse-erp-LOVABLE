@@ -36,11 +36,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Trash2, FileText, GripVertical } from 'lucide-react';
+import { Pencil, Trash2, FileText, GripVertical, X } from 'lucide-react';
 import { RequireRole } from '@/components/auth/RequireRole';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
@@ -58,7 +59,7 @@ const documentRequirementSchema = z.object({
   document_name: z.string()
     .min(1, 'Document name is required')
     .max(100, 'Name must be 100 characters or less'),
-  area: z.string().min(1, 'Area is required'),
+  areas: z.array(z.string()).min(1, 'At least one area is required'),
   description: z.string().max(500, 'Description must be 500 characters or less').optional(),
   is_required: z.boolean().default(true),
   sort_order: z.coerce.number().min(0).default(0),
@@ -94,7 +95,7 @@ function DocumentRequirementsContent() {
     resolver: zodResolver(documentRequirementSchema),
     defaultValues: {
       document_name: '',
-      area: '',
+      areas: [],
       description: '',
       is_required: true,
       sort_order: 0,
@@ -108,7 +109,6 @@ function DocumentRequirementsContent() {
       const { data, error } = await supabase
         .from('document_requirements')
         .select('*')
-        .order('area')
         .order('sort_order');
       if (error) throw error;
       return data as DocumentRequirement[];
@@ -119,7 +119,7 @@ function DocumentRequirementsContent() {
     mutationFn: async (data: DocumentRequirementFormData) => {
       const { error } = await supabase.from('document_requirements').insert([{
         document_name: data.document_name,
-        area: data.area,
+        areas: data.areas,
         description: data.description || null,
         is_required: data.is_required,
         sort_order: data.sort_order,
@@ -144,7 +144,7 @@ function DocumentRequirementsContent() {
         .from('document_requirements')
         .update({
           document_name: rest.document_name,
-          area: rest.area,
+          areas: rest.areas,
           description: rest.description || null,
           is_required: rest.is_required,
           sort_order: rest.sort_order,
@@ -182,7 +182,7 @@ function DocumentRequirementsContent() {
       setEditingRequirement(requirement);
       form.reset({
         document_name: requirement.document_name,
-        area: requirement.area,
+        areas: requirement.areas || [],
         description: requirement.description || '',
         is_required: requirement.is_required ?? true,
         sort_order: requirement.sort_order ?? 0,
@@ -222,7 +222,7 @@ function DocumentRequirementsContent() {
       statusFilter === 'all' ||
       (statusFilter === 'active' && r.is_active) ||
       (statusFilter === 'inactive' && !r.is_active);
-    const matchesArea = areaFilter === 'all' || r.area === areaFilter;
+    const matchesArea = areaFilter === 'all' || r.areas?.includes(areaFilter);
     return matchesSearch && matchesStatus && matchesArea;
   });
 
@@ -286,7 +286,7 @@ function DocumentRequirementsContent() {
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead className="w-[60px]">Order</TableHead>
                   <TableHead>Document Name</TableHead>
-                  <TableHead>Area</TableHead>
+                  <TableHead>Areas</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="w-[100px]">Required</TableHead>
                   <TableHead className="w-[100px] text-right">Actions</TableHead>
@@ -321,9 +321,13 @@ function DocumentRequirementsContent() {
                       </TableCell>
                       <TableCell className="font-medium">{requirement.document_name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-normal">
-                          {getAreaLabel(requirement.area)}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {requirement.areas?.map((area) => (
+                            <Badge key={area} variant="outline" className="font-normal text-xs">
+                              {getAreaLabel(area)}
+                            </Badge>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground max-w-xs truncate">
                         {requirement.description || '-'}
@@ -407,25 +411,67 @@ function DocumentRequirementsContent() {
 
               <FormField
                 control={form.control}
-                name="area"
+                name="areas"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Area</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select area" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {DOCUMENT_AREAS.map((area) => (
-                          <SelectItem key={area.value} value={area.value}>
-                            {area.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>Which area does this document apply to?</FormDescription>
+                    <FormLabel>Areas</FormLabel>
+                    <FormDescription>Select all areas where this document applies</FormDescription>
+                    <div className="space-y-2">
+                      {/* Selected areas as badges */}
+                      {field.value.length > 0 && (
+                        <div className="flex flex-wrap gap-1 p-2 border rounded-md bg-muted/30">
+                          {field.value.map((area) => (
+                            <Badge 
+                              key={area} 
+                              variant="secondary" 
+                              className="gap-1 pr-1"
+                            >
+                              {getAreaLabel(area)}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(field.value.filter(a => a !== area));
+                                }}
+                                className="ml-1 hover:bg-muted rounded-full p-0.5"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      {/* Checkbox list */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {DOCUMENT_AREAS.map((area) => {
+                          const isChecked = field.value.includes(area.value);
+                          return (
+                            <div 
+                              key={area.value}
+                              className="flex items-center space-x-2 rounded-md border p-2 hover:bg-muted/50 cursor-pointer"
+                              onClick={() => {
+                                if (isChecked) {
+                                  field.onChange(field.value.filter(a => a !== area.value));
+                                } else {
+                                  field.onChange([...field.value, area.value]);
+                                }
+                              }}
+                            >
+                              <Checkbox 
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    field.onChange([...field.value, area.value]);
+                                  } else {
+                                    field.onChange(field.value.filter(a => a !== area.value));
+                                  }
+                                }}
+                              />
+                              <span className="text-sm">{area.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
