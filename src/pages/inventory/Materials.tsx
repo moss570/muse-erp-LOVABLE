@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -11,51 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Pencil, Trash2, Package } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
+import { MaterialFormDialog } from '@/components/materials/MaterialFormDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
-const materialSchema = z.object({
-  code: z.string().min(1, 'Code is required'),
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  base_unit_id: z.string().min(1, 'Unit is required'),
-  cost_per_base_unit: z.coerce.number().min(0).optional(),
-  min_stock_level: z.coerce.number().min(0).optional(),
-  is_active: z.boolean().default(true),
-});
-
-type MaterialFormData = z.infer<typeof materialSchema>;
 type Material = Tables<'materials'>;
 type Unit = Tables<'units_of_measure'>;
 
@@ -76,20 +38,6 @@ export default function Materials() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const form = useForm<MaterialFormData>({
-    resolver: zodResolver(materialSchema),
-    defaultValues: {
-      code: '',
-      name: '',
-      description: '',
-      category: '',
-      base_unit_id: '',
-      cost_per_base_unit: 0,
-      min_stock_level: 0,
-      is_active: true,
-    },
-  });
-
   const { data: materials, isLoading, refetch } = useQuery({
     queryKey: ['materials'],
     queryFn: async () => {
@@ -99,68 +47,6 @@ export default function Materials() {
         .order('name');
       if (error) throw error;
       return data as (Material & { units_of_measure: Unit })[];
-    },
-  });
-
-  const { data: units } = useQuery({
-    queryKey: ['units'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('units_of_measure')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data as Unit[];
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: MaterialFormData) => {
-      const { error } = await supabase.from('materials').insert([{
-        code: data.code,
-        name: data.name,
-        base_unit_id: data.base_unit_id,
-        description: data.description || null,
-        category: data.category || null,
-        cost_per_base_unit: data.cost_per_base_unit || null,
-        min_stock_level: data.min_stock_level || null,
-        is_active: data.is_active,
-      }]);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materials'] });
-      toast({ title: 'Material created successfully' });
-      handleCloseDialog();
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Error creating material', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: MaterialFormData & { id: string }) => {
-      const { id, ...rest } = data;
-      const { error } = await supabase
-        .from('materials')
-        .update({
-          ...rest,
-          description: rest.description || null,
-          category: rest.category || null,
-          cost_per_base_unit: rest.cost_per_base_unit || null,
-          min_stock_level: rest.min_stock_level || null,
-        })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materials'] });
-      toast({ title: 'Material updated successfully' });
-      handleCloseDialog();
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Error updating material', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -179,37 +65,13 @@ export default function Materials() {
   });
 
   const handleOpenDialog = (material?: Material) => {
-    if (material) {
-      setEditingMaterial(material);
-      form.reset({
-        code: material.code,
-        name: material.name,
-        description: material.description || '',
-        category: material.category || '',
-        base_unit_id: material.base_unit_id,
-        cost_per_base_unit: material.cost_per_base_unit || 0,
-        min_stock_level: material.min_stock_level || 0,
-        is_active: material.is_active ?? true,
-      });
-    } else {
-      setEditingMaterial(null);
-      form.reset();
-    }
+    setEditingMaterial(material || null);
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingMaterial(null);
-    form.reset();
-  };
-
-  const onSubmit = (data: MaterialFormData) => {
-    if (editingMaterial) {
-      updateMutation.mutate({ ...data, id: editingMaterial.id });
-    } else {
-      createMutation.mutate(data);
-    }
   };
 
   // Filter and paginate
@@ -217,7 +79,7 @@ export default function Materials() {
     const matchesSearch = 
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.code.toLowerCase().includes(search.toLowerCase());
-    const materialStatus = (m as any).material_status || 'pending_setup';
+    const materialStatus = m.material_status || 'pending_setup';
     const matchesStatus = 
       statusFilter === 'all' || materialStatus === statusFilter;
     return matchesSearch && matchesStatus;
@@ -292,7 +154,7 @@ export default function Materials() {
                     >
                       <TableCell>
                         <StatusIndicator 
-                          status={((material as any).material_status || 'pending_setup') as any} 
+                          status={(material.material_status || 'pending_setup') as any} 
                         />
                       </TableCell>
                       <TableCell className="font-mono font-medium">{material.code}</TableCell>
@@ -362,145 +224,14 @@ export default function Materials() {
         )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingMaterial ? 'Edit Material' : 'Add Material'}</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="MAT-001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Material name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Description..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Dairy, Packaging, etc." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="base_unit_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Base Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select unit" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {units?.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id}>
-                              {unit.name} ({unit.code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="cost_per_base_unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost per Unit ($)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="min_stock_level"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Min Stock Level</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-2">
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel className="!mt-0">Active</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingMaterial ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <MaterialFormDialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setEditingMaterial(null);
+        }}
+        material={editingMaterial}
+      />
     </div>
   );
 }
