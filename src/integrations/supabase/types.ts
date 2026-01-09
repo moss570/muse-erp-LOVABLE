@@ -491,6 +491,7 @@ export type Database = {
           storage_temperature_min: number | null
           supply_chain_complexity: string | null
           updated_at: string
+          usage_unit_conversion: number | null
           usage_unit_id: string | null
         }
         Insert: {
@@ -524,6 +525,7 @@ export type Database = {
           storage_temperature_min?: number | null
           supply_chain_complexity?: string | null
           updated_at?: string
+          usage_unit_conversion?: number | null
           usage_unit_id?: string | null
         }
         Update: {
@@ -557,6 +559,7 @@ export type Database = {
           storage_temperature_min?: number | null
           supply_chain_complexity?: string | null
           updated_at?: string
+          usage_unit_conversion?: number | null
           usage_unit_id?: string | null
         }
         Relationships: [
