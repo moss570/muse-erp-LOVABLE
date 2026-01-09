@@ -41,6 +41,7 @@ import { z } from 'zod';
 import { Pencil, Trash2, Cog } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
+import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 import type { Tables } from '@/integrations/supabase/types';
 
 const machineSchema = z.object({
@@ -217,6 +218,7 @@ export default function Machines() {
 
   return (
     <div className="space-y-4">
+      <SettingsBreadcrumb currentPage="Machines" />
       <DataTableHeader
         title="Machines"
         subtitle="Manage production machines for lot number generation (YY-JJJ-MM-BB)"

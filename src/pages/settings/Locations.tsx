@@ -44,6 +44,7 @@ import { Pencil, Trash2, MapPin, Thermometer, Snowflake } from 'lucide-react';
 import { RequireRole } from '@/components/auth/RequireRole';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
+import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 import type { Tables } from '@/integrations/supabase/types';
 
 const LOCATION_TYPES = [
@@ -288,6 +289,7 @@ function LocationsContent() {
 
   return (
     <div className="space-y-4">
+      <SettingsBreadcrumb currentPage="Locations" />
       <DataTableHeader
         title="Locations"
         subtitle="Manage storage locations, warehouses, and production areas"

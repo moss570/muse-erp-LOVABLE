@@ -42,6 +42,7 @@ import { z } from 'zod';
 import { Pencil, Trash2, Layers } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
+import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 
 const MATERIAL_CATEGORIES = [
   { value: 'Ingredients', label: 'Ingredients' },
@@ -246,6 +247,7 @@ export default function SubCategories() {
 
   return (
     <div className="space-y-4">
+      <SettingsBreadcrumb currentPage="Sub-Categories" />
       <DataTableHeader
         title="Material Sub-Categories"
         subtitle="Manage sub-categories for each material category"
