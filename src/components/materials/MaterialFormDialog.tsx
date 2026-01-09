@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle, Star } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye } from 'lucide-react';
 import { CreateUnitDialog } from './CreateUnitDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -43,6 +43,8 @@ type Unit = Tables<'units_of_measure'>;
 type DropdownOption = Tables<'dropdown_options'>;
 type ListedMaterial = Tables<'listed_material_names'>;
 type Supplier = Tables<'suppliers'>;
+type DocumentRequirement = Tables<'document_requirements'>;
+type MaterialDocument = Tables<'material_documents'>;
 
 // Category options with their code prefixes
 const MATERIAL_CATEGORIES = [
@@ -126,6 +128,18 @@ interface MaterialSupplier {
   is_active: boolean;
 }
 
+interface DocumentUpload {
+  id?: string;
+  document_name: string;
+  requirement_id?: string;
+  file?: File;
+  file_path?: string;
+  file_url?: string;
+  date_published?: string;
+  date_reviewed?: string;
+  isNew: boolean;
+}
+
 interface MaterialFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -136,6 +150,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [activeTab, setActiveTab] = useState('basic');
   const [purchaseUnits, setPurchaseUnits] = useState<PurchaseUnit[]>([]);
   const [materialSuppliers, setMaterialSuppliers] = useState<MaterialSupplier[]>([]);
+  const [documents, setDocuments] = useState<DocumentUpload[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
@@ -264,6 +280,36 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     enabled: !!material?.id,
   });
 
+  // Fetch document requirements
+  const { data: documentRequirements } = useQuery({
+    queryKey: ['document-requirements', 'materials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('document_requirements')
+        .select('*')
+        .eq('area', 'materials')
+        .eq('is_active', true)
+        .order('sort_order');
+      if (error) throw error;
+      return data as DocumentRequirement[];
+    },
+  });
+
+  // Fetch existing material documents for editing
+  const { data: existingDocuments } = useQuery({
+    queryKey: ['material-documents', material?.id],
+    queryFn: async () => {
+      if (!material?.id) return [];
+      const { data, error } = await supabase
+        .from('material_documents')
+        .select('*')
+        .eq('material_id', material.id);
+      if (error) throw error;
+      return data as MaterialDocument[];
+    },
+    enabled: !!material?.id,
+  });
+
   // Group dropdown options by type
   const allergenOptions = dropdownOptions?.filter(o => o.dropdown_type === 'allergen') || [];
   const foodClaimOptions = dropdownOptions?.filter(o => o.dropdown_type === 'food_claim') || [];
@@ -312,6 +358,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       } as MaterialFormData);
       setPurchaseUnits([]);
       setMaterialSuppliers([]);
+      setDocuments([]);
     }
     setActiveTab('basic');
   }, [material, form, open]);
@@ -348,6 +395,22 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       })));
     }
   }, [existingMaterialSuppliers]);
+
+  // Load existing documents
+  useEffect(() => {
+    if (existingDocuments) {
+      setDocuments(existingDocuments.map(doc => ({
+        id: doc.id,
+        document_name: doc.document_name,
+        requirement_id: doc.requirement_id || undefined,
+        file_path: doc.file_path || undefined,
+        file_url: doc.file_url || undefined,
+        date_published: doc.date_published || undefined,
+        date_reviewed: doc.date_reviewed || undefined,
+        isNew: false,
+      })));
+    }
+  }, [existingDocuments]);
 
   const createMutation = useMutation({
     mutationFn: async (data: MaterialFormData) => {
@@ -422,10 +485,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         if (msError) throw msError;
       }
       
+      // Upload documents
+      if (documents.length > 0 && newMaterial) {
+        await uploadDocuments(newMaterial.id);
+      }
+      
       return newMaterial;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
+      queryClient.invalidateQueries({ queryKey: ['material-documents'] });
       toast({ title: 'Material created successfully' });
       onOpenChange(false);
     },
@@ -542,11 +611,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           });
         }
       }
+      
+      // Upload/update documents
+      await uploadDocuments(material.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       queryClient.invalidateQueries({ queryKey: ['material-purchase-units'] });
       queryClient.invalidateQueries({ queryKey: ['material-suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['material-documents'] });
       toast({ title: 'Material updated successfully' });
       onOpenChange(false);
     },
@@ -615,7 +688,122 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     }));
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  // Document helper functions
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setDocuments(documents.map((doc, i) => 
+      i === index ? { ...doc, file, document_name: doc.document_name || file.name } : doc
+    ));
+  };
+
+  const addDocument = () => {
+    setDocuments([...documents, { 
+      document_name: '', 
+      isNew: true 
+    }]);
+  };
+
+  const removeDocument = async (index: number) => {
+    const doc = documents[index];
+    
+    // If it's an existing document with a file, delete from storage
+    if (doc.file_path && doc.id) {
+      const { error } = await supabase.storage
+        .from('material-documents')
+        .remove([doc.file_path]);
+      
+      if (error) {
+        toast({ title: 'Error deleting file', description: error.message, variant: 'destructive' });
+        return;
+      }
+      
+      // Delete the database record
+      await supabase.from('material_documents').delete().eq('id', doc.id);
+    }
+    
+    setDocuments(documents.filter((_, i) => i !== index));
+  };
+
+  const updateDocument = (index: number, field: keyof DocumentUpload, value: string | undefined) => {
+    setDocuments(documents.map((doc, i) => 
+      i === index ? { ...doc, [field]: value } : doc
+    ));
+  };
+
+  const uploadDocuments = async (materialId: string) => {
+    const newDocs = documents.filter(doc => doc.isNew && doc.file);
+    
+    for (const doc of newDocs) {
+      if (!doc.file) continue;
+      
+      const fileExt = doc.file.name.split('.').pop();
+      const filePath = `${materialId}/${Date.now()}-${doc.document_name}.${fileExt}`;
+      
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('material-documents')
+        .upload(filePath, doc.file);
+      
+      if (uploadError) {
+        toast({ title: 'Error uploading file', description: uploadError.message, variant: 'destructive' });
+        continue;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('material-documents')
+        .getPublicUrl(filePath);
+      
+      // Insert document record
+      await supabase.from('material_documents').insert({
+        material_id: materialId,
+        document_name: doc.document_name,
+        requirement_id: doc.requirement_id || null,
+        file_path: filePath,
+        file_url: urlData.publicUrl,
+        date_published: doc.date_published || null,
+        date_reviewed: doc.date_reviewed || null,
+      });
+    }
+    
+    // Update existing docs (metadata only, not file)
+    const existingDocs = documents.filter(doc => !doc.isNew && doc.id);
+    for (const doc of existingDocs) {
+      await supabase.from('material_documents').update({
+        document_name: doc.document_name,
+        requirement_id: doc.requirement_id || null,
+        date_published: doc.date_published || null,
+        date_reviewed: doc.date_reviewed || null,
+      }).eq('id', doc.id);
+    }
+  };
+
+  const downloadDocument = async (doc: DocumentUpload) => {
+    if (!doc.file_path) return;
+    
+    const { data, error } = await supabase.storage
+      .from('material-documents')
+      .download(doc.file_path);
+    
+    if (error) {
+      toast({ title: 'Error downloading file', description: error.message, variant: 'destructive' });
+      return;
+    }
+    
+    // Create download link
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.document_name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -627,12 +815,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="specifications">Specifications</TabsTrigger>
                 <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
                 <TabsTrigger value="purchasing">Purchasing</TabsTrigger>
                 <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -1764,6 +1953,193 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Documents Tab */}
+              <TabsContent value="documents" className="space-y-6 mt-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Material Documents</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Upload specifications, COAs, SDS sheets, and other documents
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={addDocument}>
+                      <Plus className="h-4 w-4 mr-1" /> Add Document
+                    </Button>
+                  </div>
+
+                  {!material && (
+                    <div className="p-4 border rounded-md bg-amber-500/10 border-amber-500/30">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        💡 Save the material first to upload documents.
+                      </p>
+                    </div>
+                  )}
+
+                  {documents.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
+                      <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No documents uploaded.</p>
+                      <p className="text-xs mt-1">Click "Add Document" to upload specs, COAs, or SDS sheets.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {documents.map((doc, index) => {
+                        const requirement = documentRequirements?.find(r => r.id === doc.requirement_id);
+                        
+                        return (
+                          <div key={index} className="p-4 border rounded-md bg-card space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 space-y-4">
+                                {/* Document Name & Type Row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Document Name *
+                                    </label>
+                                    <Input
+                                      value={doc.document_name}
+                                      onChange={(e) => updateDocument(index, 'document_name', e.target.value)}
+                                      placeholder="e.g., Product Specification"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Document Type
+                                    </label>
+                                    <Select
+                                      value={doc.requirement_id || '__none__'}
+                                      onValueChange={(value) => updateDocument(index, 'requirement_id', value === '__none__' ? undefined : value)}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select type (optional)" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Other / Custom</SelectItem>
+                                        {documentRequirements?.map((req) => (
+                                          <SelectItem key={req.id} value={req.id}>
+                                            {req.document_name} {req.is_required && '*'}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                {/* File Upload / Download Row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      {doc.file_path ? 'Replace File' : 'Upload File'}
+                                    </label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="file"
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                        onChange={(e) => handleFileUpload(e, index)}
+                                        disabled={!material}
+                                        className="flex-1"
+                                      />
+                                    </div>
+                                    {doc.file && (
+                                      <p className="text-xs text-green-600 mt-1">
+                                        ✓ New file selected: {doc.file.name}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    {doc.file_path && (
+                                      <div>
+                                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                          Current File
+                                        </label>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => downloadDocument(doc)}
+                                            className="gap-1"
+                                          >
+                                            <Download className="h-3 w-3" /> Download
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Dates Row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Date Published
+                                    </label>
+                                    <Input
+                                      type="date"
+                                      value={doc.date_published || ''}
+                                      onChange={(e) => updateDocument(index, 'date_published', e.target.value || undefined)}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Date Reviewed
+                                    </label>
+                                    <Input
+                                      type="date"
+                                      value={doc.date_reviewed || ''}
+                                      onChange={(e) => updateDocument(index, 'date_reviewed', e.target.value || undefined)}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive shrink-0"
+                                onClick={() => removeDocument(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {requirement && (
+                              <p className="text-xs text-muted-foreground">
+                                {requirement.description}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Required documents checklist */}
+                  {documentRequirements && documentRequirements.filter(r => r.is_required).length > 0 && (
+                    <div className="pt-4 border-t">
+                      <h5 className="text-sm font-medium mb-2">Required Documents</h5>
+                      <div className="space-y-1">
+                        {documentRequirements.filter(r => r.is_required).map((req) => {
+                          const hasDoc = documents.some(d => d.requirement_id === req.id && (d.file_path || d.file));
+                          return (
+                            <div key={req.id} className="flex items-center gap-2 text-sm">
+                              {hasDoc ? (
+                                <span className="text-green-600">✓</span>
+                              ) : (
+                                <span className="text-muted-foreground">○</span>
+                              )}
+                              <span className={hasDoc ? 'text-foreground' : 'text-muted-foreground'}>
+                                {req.document_name}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
