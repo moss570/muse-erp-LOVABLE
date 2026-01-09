@@ -165,6 +165,42 @@ export type Database = {
         }
         Relationships: []
       }
+      document_requirements: {
+        Row: {
+          area: string
+          created_at: string
+          description: string | null
+          document_name: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          description?: string | null
+          document_name: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          description?: string | null
+          document_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dropdown_options: {
         Row: {
           created_at: string
@@ -195,6 +231,33 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           value?: string
+        }
+        Relationships: []
+      }
+      listed_material_names: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -284,44 +347,213 @@ export type Database = {
           },
         ]
       }
-      materials: {
+      material_documents: {
         Row: {
-          base_unit_id: string
-          category: string | null
-          code: string
-          cost_per_base_unit: number | null
           created_at: string
-          description: string | null
+          date_published: string | null
+          date_reviewed: string | null
+          document_name: string
+          file_path: string | null
+          file_url: string | null
+          id: string
+          material_id: string
+          requirement_id: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_published?: string | null
+          date_reviewed?: string | null
+          document_name: string
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          material_id: string
+          requirement_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_published?: string | null
+          date_reviewed?: string | null
+          document_name?: string
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          material_id?: string
+          requirement_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_documents_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_documents_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "document_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_purchase_units: {
+        Row: {
+          conversion_to_base: number
+          created_at: string
           id: string
           is_active: boolean | null
-          min_stock_level: number | null
-          name: string
+          is_default: boolean | null
+          material_id: string
+          unit_id: string
           updated_at: string
         }
         Insert: {
-          base_unit_id: string
-          category?: string | null
-          code: string
-          cost_per_base_unit?: number | null
+          conversion_to_base: number
           created_at?: string
-          description?: string | null
           id?: string
           is_active?: boolean | null
-          min_stock_level?: number | null
-          name: string
+          is_default?: boolean | null
+          material_id: string
+          unit_id: string
           updated_at?: string
         }
         Update: {
-          base_unit_id?: string
-          category?: string | null
-          code?: string
-          cost_per_base_unit?: number | null
+          conversion_to_base?: number
           created_at?: string
-          description?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
+          material_id?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_purchase_units_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_purchase_units_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          allergens: string[] | null
+          authentication_method: string | null
+          base_unit_id: string
+          ca_prop65_prohibited: boolean | null
+          category: string | null
+          coa_required: boolean | null
+          code: string
+          cost_per_base_unit: number | null
+          country_of_origin: string | null
+          created_at: string
+          density: number | null
+          description: string | null
+          food_claims: string[] | null
+          fraud_vulnerability_score: string | null
+          id: string
+          is_active: boolean | null
+          item_number: string | null
+          label_copy: string | null
+          listed_material_id: string | null
+          manufacturer: string | null
+          material_status: string | null
+          min_stock_level: number | null
+          name: string
+          other_hazards: string | null
+          receiving_temperature_max: number | null
+          receiving_temperature_min: number | null
+          storage_temperature_max: number | null
+          storage_temperature_min: number | null
+          supply_chain_complexity: string | null
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          authentication_method?: string | null
+          base_unit_id: string
+          ca_prop65_prohibited?: boolean | null
+          category?: string | null
+          coa_required?: boolean | null
+          code: string
+          cost_per_base_unit?: number | null
+          country_of_origin?: string | null
+          created_at?: string
+          density?: number | null
+          description?: string | null
+          food_claims?: string[] | null
+          fraud_vulnerability_score?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_number?: string | null
+          label_copy?: string | null
+          listed_material_id?: string | null
+          manufacturer?: string | null
+          material_status?: string | null
+          min_stock_level?: number | null
+          name: string
+          other_hazards?: string | null
+          receiving_temperature_max?: number | null
+          receiving_temperature_min?: number | null
+          storage_temperature_max?: number | null
+          storage_temperature_min?: number | null
+          supply_chain_complexity?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string[] | null
+          authentication_method?: string | null
+          base_unit_id?: string
+          ca_prop65_prohibited?: boolean | null
+          category?: string | null
+          coa_required?: boolean | null
+          code?: string
+          cost_per_base_unit?: number | null
+          country_of_origin?: string | null
+          created_at?: string
+          density?: number | null
+          description?: string | null
+          food_claims?: string[] | null
+          fraud_vulnerability_score?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_number?: string | null
+          label_copy?: string | null
+          listed_material_id?: string | null
+          manufacturer?: string | null
+          material_status?: string | null
           min_stock_level?: number | null
           name?: string
+          other_hazards?: string | null
+          receiving_temperature_max?: number | null
+          receiving_temperature_min?: number | null
+          storage_temperature_max?: number | null
+          storage_temperature_min?: number | null
+          supply_chain_complexity?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -330,6 +562,13 @@ export type Database = {
             columns: ["base_unit_id"]
             isOneToOne: false
             referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_listed_material_id_fkey"
+            columns: ["listed_material_id"]
+            isOneToOne: false
+            referencedRelation: "listed_material_names"
             referencedColumns: ["id"]
           },
         ]

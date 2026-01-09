@@ -61,8 +61,9 @@ type Unit = Tables<'units_of_measure'>;
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
+  { value: 'pending_setup', label: 'Pending Set-Up' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'not_approved', label: 'Not Approved' },
 ];
 
 export default function Materials() {
@@ -216,10 +217,9 @@ export default function Materials() {
     const matchesSearch = 
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.code.toLowerCase().includes(search.toLowerCase());
+    const materialStatus = (m as any).material_status || 'pending_setup';
     const matchesStatus = 
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && m.is_active) ||
-      (statusFilter === 'inactive' && !m.is_active);
+      statusFilter === 'all' || materialStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -292,7 +292,7 @@ export default function Materials() {
                     >
                       <TableCell>
                         <StatusIndicator 
-                          status={material.is_active ? 'active' : 'inactive'} 
+                          status={((material as any).material_status || 'pending_setup') as any} 
                         />
                       </TableCell>
                       <TableCell className="font-mono font-medium">{material.code}</TableCell>

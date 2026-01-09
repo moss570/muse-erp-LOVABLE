@@ -5,7 +5,8 @@ import {
   AlertCircle, 
   Clock, 
   XCircle,
-  Minus
+  Minus,
+  Settings
 } from 'lucide-react';
 import {
   Tooltip,
@@ -14,7 +15,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export type StatusType = 'active' | 'inactive' | 'pending' | 'complete' | 'warning' | 'error' | 'none';
+export type StatusType = 
+  | 'active' 
+  | 'inactive' 
+  | 'pending' 
+  | 'complete' 
+  | 'warning' 
+  | 'error' 
+  | 'none'
+  | 'pending_setup'
+  | 'approved'
+  | 'not_approved';
 
 interface StatusIndicatorProps {
   status: StatusType;
@@ -62,6 +73,21 @@ const statusConfig: Record<StatusType, {
     icon: Minus, 
     className: 'text-muted-foreground', 
     label: 'None' 
+  },
+  pending_setup: { 
+    icon: Settings, 
+    className: 'text-amber-500', 
+    label: 'Pending Set-Up' 
+  },
+  approved: { 
+    icon: CheckCircle2, 
+    className: 'text-emerald-500', 
+    label: 'Approved' 
+  },
+  not_approved: { 
+    icon: XCircle, 
+    className: 'text-destructive', 
+    label: 'Not Approved' 
   },
 };
 
