@@ -16,6 +16,7 @@ import Locations from "./pages/settings/Locations";
 import SubCategories from "./pages/settings/SubCategories";
 import DocumentRequirements from "./pages/settings/DocumentRequirements";
 import SettingsHub from "./pages/settings/SettingsHub";
+import UnitsOfMeasure from "./pages/settings/UnitsOfMeasure";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/settings/locations" element={<AppLayout><Locations /></AppLayout>} />
             <Route path="/settings/sub-categories" element={<AppLayout><SubCategories /></AppLayout>} />
             <Route path="/settings/document-requirements" element={<AppLayout><DocumentRequirements /></AppLayout>} />
+            <Route path="/settings/units" element={<AppLayout><UnitsOfMeasure /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
