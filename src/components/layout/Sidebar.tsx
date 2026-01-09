@@ -71,6 +71,11 @@ const navItems: NavItem[] = [
     title: 'Sales',
     href: '/sales',
     icon: Truck,
+    children: [
+      { title: 'Customers', href: '/sales/customers' },
+      { title: 'Orders', href: '/sales/orders' },
+      { title: 'Invoices', href: '/sales/invoices' },
+    ],
   },
   {
     title: 'Quality & Safety',

@@ -236,7 +236,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     },
   });
 
-  // Fetch suppliers
+  // Fetch suppliers (all active for supplier assignment)
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
@@ -244,6 +244,21 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         .from('suppliers')
         .select('*')
         .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as Supplier[];
+    },
+  });
+
+  // Fetch manufacturers (suppliers that are manufacturer or manufacturer_distributor)
+  const { data: manufacturers } = useQuery({
+    queryKey: ['suppliers-manufacturers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('is_active', true)
+        .in('supplier_type', ['manufacturer', 'manufacturer_distributor'])
         .order('name');
       if (error) throw error;
       return data as Supplier[];
@@ -980,9 +995,30 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Manufacturer</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Manufacturer name" {...field} />
-                        </FormControl>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value || ''}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select manufacturer" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {manufacturers?.map((manufacturer) => (
+                              <SelectItem key={manufacturer.id} value={manufacturer.name}>
+                                {manufacturer.name}
+                                {manufacturer.supplier_type === 'manufacturer_distributor' && (
+                                  <span className="text-muted-foreground ml-1">(Mfr & Dist)</span>
+                                )}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Only suppliers marked as Manufacturer or Manufacturer & Distributor
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import Materials from "./pages/inventory/Materials";
 import Products from "./pages/inventory/Products";
 import Suppliers from "./pages/purchasing/Suppliers";
+import Customers from "./pages/sales/Customers";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
 import SubCategories from "./pages/settings/SubCategories";
@@ -63,8 +64,10 @@ const App = () => (
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
+            {/* Sales routes */}
+            <Route path="/sales/customers" element={<AppLayout><Customers /></AppLayout>} />
             <Route
-              path="/sales"
+              path="/sales/*"
               element={
                 <AppLayout>
                   <div className="text-center py-12">

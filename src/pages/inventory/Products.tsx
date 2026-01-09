@@ -42,6 +42,7 @@ import { z } from 'zod';
 import { Pencil, Trash2, IceCream } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
+import { usePermissions } from '@/hooks/usePermission';
 import type { Tables } from '@/integrations/supabase/types';
 
 const productSchema = z.object({
@@ -74,6 +75,11 @@ export default function Products() {
   const [pageSize, setPageSize] = useState(10);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { checkPermission, isAdmin } = usePermissions();
+
+  const canCreate = isAdmin || checkPermission('products.create', 'full');
+  const canEdit = isAdmin || checkPermission('products.edit', 'full');
+  const canDelete = isAdmin || checkPermission('products.delete', 'full');
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -247,7 +253,7 @@ export default function Products() {
         }}
         filterOptions={STATUS_FILTER_OPTIONS}
         filterPlaceholder="All Status"
-        onAdd={() => handleOpenDialog()}
+        onAdd={canCreate ? () => handleOpenDialog() : undefined}
         addLabel="Add Product"
         onRefresh={() => refetch()}
         isLoading={isLoading}
@@ -312,28 +318,32 @@ export default function Products() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDialog(product);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteMutation.mutate(product.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDialog(product);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteMutation.mutate(product.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
