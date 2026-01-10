@@ -7,6 +7,8 @@ import {
   useSensors,
   PointerSensor,
   DragOverlay,
+  useDraggable,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   Type,
@@ -101,6 +103,10 @@ function DraggableElement({
   scale: number;
 }) {
   const barcodeRef = useRef<SVGSVGElement>(null);
+  
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: element.id,
+  });
 
   useEffect(() => {
     if (element.type === 'barcode' && barcodeRef.current) {
@@ -119,22 +125,31 @@ function DraggableElement({
     }
   }, [element.type, element.content, element.barcodeType]);
 
+  const style = {
+    left: `${element.x}%`,
+    top: `${element.y}%`,
+    width: `${element.width}%`,
+    minHeight: `${element.height}%`,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 1000 : 1,
+  };
+
   return (
     <div
+      ref={setNodeRef}
       className={cn(
         'absolute cursor-move border-2 border-transparent rounded p-1 transition-colors',
-        isSelected && 'border-primary bg-primary/5'
+        isSelected && 'border-primary bg-primary/5',
+        isDragging && 'shadow-lg'
       )}
-      style={{
-        left: `${element.x}%`,
-        top: `${element.y}%`,
-        width: `${element.width}%`,
-        minHeight: `${element.height}%`,
-      }}
+      style={style}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
       }}
+      {...listeners}
+      {...attributes}
     >
       <div className="flex items-center gap-1">
         <GripVertical className="h-3 w-3 text-muted-foreground cursor-grab flex-shrink-0" />
@@ -173,6 +188,7 @@ function DraggableElement({
         </div>
         {isSelected && (
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             className="h-5 w-5 p-0 text-destructive"
@@ -180,6 +196,7 @@ function DraggableElement({
               e.stopPropagation();
               onDelete();
             }}
+            onPointerDown={(e) => e.stopPropagation()}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -263,24 +280,19 @@ export function LabelDesigner({
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, delta } = event;
+    const { active, delta } = event;
     setDraggedPaletteItem(null);
-
-    if (!over) return;
 
     const activeId = String(active.id);
 
-    // Dropping from palette
-    if (activeId.startsWith('palette-') && over.id === 'canvas') {
-      const type = activeId.replace('palette-', '');
-      // Add near center
-      addElement(type, 10, 10);
+    // Dropping from palette - skip for now, we use button clicks instead
+    if (activeId.startsWith('palette-')) {
       return;
     }
 
-    // Moving existing element
+    // Moving existing element - update position based on delta
     const element = elements.find((el) => el.id === activeId);
-    if (element && canvasRef.current) {
+    if (element && canvasRef.current && (delta.x !== 0 || delta.y !== 0)) {
       const rect = canvasRef.current.getBoundingClientRect();
       const newX = Math.max(0, Math.min(100 - element.width, element.x + (delta.x / rect.width) * 100));
       const newY = Math.max(0, Math.min(100 - element.height, element.y + (delta.y / rect.height) * 100));
