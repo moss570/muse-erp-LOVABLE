@@ -34,9 +34,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, AlertTriangle, ImageIcon } from 'lucide-react';
 import { CreateUnitDialog } from './CreateUnitDialog';
 import type { Tables } from '@/integrations/supabase/types';
+import { differenceInMonths } from 'date-fns';
 
 type Material = Tables<'materials'>;
 type Unit = Tables<'units_of_measure'>;
@@ -98,8 +99,7 @@ const materialFormSchema = z.object({
   ca_prop65_prohibited: z.boolean().default(false),
   coa_required: z.boolean().default(false),
   
-  // Purchasing Tab
-  cost_per_base_unit: z.coerce.number().min(0).optional().nullable(),
+  // Removed from Basic Info - now on Suppliers tab only
   min_stock_level: z.coerce.number().min(0).optional().nullable(),
 });
 
@@ -111,6 +111,11 @@ interface UnitVariant {
   unit_id: string;
   conversion_to_base: number;
   is_default: boolean;
+  item_number?: string;
+  photo_path?: string;
+  photo_url?: string;
+  photo_added_at?: string;
+  photo_file?: File;
 }
 
 interface MaterialSupplier {
@@ -120,12 +125,12 @@ interface MaterialSupplier {
   supplier_item_number?: string;
   cost_per_unit?: number;
   unit_id?: string;
-  purchase_unit_id?: string; // Links to specific unit variant
+  purchase_unit_id?: string;
   lead_time_days?: number;
   min_order_quantity?: number;
   notes?: string;
   is_active: boolean;
-  is_manufacturer?: boolean; // Flag to identify auto-added manufacturer
+  is_manufacturer?: boolean;
 }
 
 interface DocumentUpload {
@@ -188,7 +193,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       other_hazards: '',
       ca_prop65_prohibited: false,
       coa_required: false,
-      cost_per_base_unit: null,
       min_stock_level: null,
     },
   });
@@ -379,13 +383,12 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         other_hazards: material.other_hazards || '',
         ca_prop65_prohibited: material.ca_prop65_prohibited ?? false,
         coa_required: material.coa_required ?? false,
-        cost_per_base_unit: material.cost_per_base_unit ?? null,
         min_stock_level: material.min_stock_level ?? null,
       });
     } else {
       form.reset({
         ...form.formState.defaultValues,
-        code: '', // Will be generated when category is selected
+        code: '',
         category: '',
       } as MaterialFormData);
       setUnitVariants([]);
@@ -400,10 +403,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     if (existingPurchaseUnits) {
       setUnitVariants(existingPurchaseUnits.map(pu => ({
         id: pu.id,
-        code: (pu as { code?: string }).code || '',
+        code: (pu as any).code || '',
         unit_id: pu.unit_id,
         conversion_to_base: Number(pu.conversion_to_base),
         is_default: pu.is_default ?? false,
+        item_number: (pu as any).item_number || undefined,
+        photo_path: (pu as any).photo_path || undefined,
+        photo_url: (pu as any).photo_url || undefined,
+        photo_added_at: (pu as any).photo_added_at || undefined,
       })));
     }
   }, [existingPurchaseUnits]);
@@ -418,6 +425,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         supplier_item_number: ms.supplier_item_number || undefined,
         cost_per_unit: ms.cost_per_unit ? Number(ms.cost_per_unit) : undefined,
         unit_id: ms.unit_id || undefined,
+        purchase_unit_id: (ms as any).purchase_unit_id || undefined,
         lead_time_days: ms.lead_time_days ?? undefined,
         min_order_quantity: ms.min_order_quantity ? Number(ms.min_order_quantity) : undefined,
         notes: ms.notes || undefined,
@@ -441,6 +449,78 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       })));
     }
   }, [existingDocuments]);
+
+  // Auto-populate suppliers when manufacturer is selected (Logic A)
+  const autoPopulateSuppliersForManufacturer = (manufacturerId: string, manufacturerItemNumber: string | undefined) => {
+    const manufacturer = suppliers?.find(s => s.id === manufacturerId);
+    if (!manufacturer || manufacturer.supplier_type !== 'manufacturer_distributor') return;
+
+    // Get the base unit and all unit variants
+    const baseUnitId = form.getValues('base_unit_id');
+    const mainItemNumber = form.getValues('item_number');
+
+    // Remove any existing entries for this manufacturer
+    const filteredSuppliers = materialSuppliers.filter(ms => ms.supplier_id !== manufacturerId);
+    
+    const newSupplierEntries: MaterialSupplier[] = [];
+
+    // Add entry for default unit (no purchase_unit_id means default)
+    newSupplierEntries.push({
+      supplier_id: manufacturerId,
+      is_primary: filteredSuppliers.length === 0,
+      supplier_item_number: mainItemNumber || manufacturerItemNumber,
+      unit_id: baseUnitId || undefined,
+      purchase_unit_id: undefined,
+      is_active: true,
+      is_manufacturer: true,
+    });
+
+    // Add entries for each unit variant
+    unitVariants.forEach(uv => {
+      newSupplierEntries.push({
+        supplier_id: manufacturerId,
+        is_primary: false,
+        supplier_item_number: uv.item_number || mainItemNumber || manufacturerItemNumber,
+        unit_id: uv.unit_id || undefined,
+        purchase_unit_id: uv.id,
+        is_active: true,
+        is_manufacturer: true,
+      });
+    });
+
+    setMaterialSuppliers([...filteredSuppliers, ...newSupplierEntries]);
+  };
+
+  const uploadUnitVariantPhotos = async (materialId: string) => {
+    for (let i = 0; i < unitVariants.length; i++) {
+      const uv = unitVariants[i];
+      if (!uv.photo_file) continue;
+
+      const fileExt = uv.photo_file.name.split('.').pop();
+      const filePath = `${materialId}/${Date.now()}-${uv.code}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('material-photos')
+        .upload(filePath, uv.photo_file);
+
+      if (uploadError) {
+        toast({ title: 'Error uploading photo', description: uploadError.message, variant: 'destructive' });
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('material-photos')
+        .getPublicUrl(filePath);
+
+      unitVariants[i] = {
+        ...uv,
+        photo_path: filePath,
+        photo_url: urlData.publicUrl,
+        photo_added_at: new Date().toISOString(),
+        photo_file: undefined,
+      };
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: MaterialFormData) => {
@@ -474,12 +554,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           other_hazards: data.other_hazards || null,
           ca_prop65_prohibited: data.ca_prop65_prohibited,
           coa_required: data.coa_required,
-          cost_per_base_unit: data.cost_per_base_unit || null,
+          cost_per_base_unit: null, // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
         }])
         .select()
         .single();
       if (error) throw error;
+      
+      // Upload photos first
+      await uploadUnitVariantPhotos(newMaterial.id);
       
       // Insert unit variants (purchase units)
       if (unitVariants.length > 0 && newMaterial) {
@@ -491,6 +574,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             unit_id: uv.unit_id,
             conversion_to_base: uv.conversion_to_base,
             is_default: uv.is_default,
+            item_number: uv.item_number || null,
+            photo_path: uv.photo_path || null,
+            photo_url: uv.photo_url || null,
+            photo_added_at: uv.photo_added_at || null,
           })));
         if (puError) throw puError;
       }
@@ -506,6 +593,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             supplier_item_number: ms.supplier_item_number || null,
             cost_per_unit: ms.cost_per_unit ?? null,
             unit_id: ms.unit_id || null,
+            purchase_unit_id: ms.purchase_unit_id || null,
             lead_time_days: ms.lead_time_days ?? null,
             min_order_quantity: ms.min_order_quantity ?? null,
             notes: ms.notes || null,
@@ -566,11 +654,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           other_hazards: data.other_hazards || null,
           ca_prop65_prohibited: data.ca_prop65_prohibited,
           coa_required: data.coa_required,
-          cost_per_base_unit: data.cost_per_base_unit || null,
+          cost_per_base_unit: null, // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
         })
         .eq('id', material.id);
       if (error) throw error;
+      
+      // Upload photos first
+      await uploadUnitVariantPhotos(material.id);
       
       // Update unit variants - delete removed, insert new, update existing
       const existingIds = existingPurchaseUnits?.map(pu => pu.id) || [];
@@ -588,6 +679,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             unit_id: uv.unit_id,
             conversion_to_base: uv.conversion_to_base,
             is_default: uv.is_default,
+            item_number: uv.item_number || null,
+            photo_path: uv.photo_path || null,
+            photo_url: uv.photo_url || null,
+            photo_added_at: uv.photo_added_at || null,
           }).eq('id', uv.id);
         } else {
           await supabase.from('material_purchase_units').insert({
@@ -596,6 +691,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             unit_id: uv.unit_id,
             conversion_to_base: uv.conversion_to_base,
             is_default: uv.is_default,
+            item_number: uv.item_number || null,
+            photo_path: uv.photo_path || null,
+            photo_url: uv.photo_url || null,
+            photo_added_at: uv.photo_added_at || null,
           });
         }
       }
@@ -617,6 +716,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             supplier_item_number: ms.supplier_item_number || null,
             cost_per_unit: ms.cost_per_unit ?? null,
             unit_id: ms.unit_id || null,
+            purchase_unit_id: ms.purchase_unit_id || null,
             lead_time_days: ms.lead_time_days ?? null,
             min_order_quantity: ms.min_order_quantity ?? null,
             notes: ms.notes || null,
@@ -630,6 +730,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
             supplier_item_number: ms.supplier_item_number || null,
             cost_per_unit: ms.cost_per_unit ?? null,
             unit_id: ms.unit_id || null,
+            purchase_unit_id: ms.purchase_unit_id || null,
             lead_time_days: ms.lead_time_days ?? null,
             min_order_quantity: ms.min_order_quantity ?? null,
             notes: ms.notes || null,
@@ -664,25 +765,37 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
   const addUnitVariant = () => {
     const baseCode = form.getValues('code');
-    // Use A, B, C, D... for alternative unit suffixes
-    const suffixLetter = String.fromCharCode(65 + unitVariants.length); // A=65, B=66, etc.
+    const mainItemNumber = form.getValues('item_number');
+    const suffixLetter = String.fromCharCode(65 + unitVariants.length);
     const newCode = `${baseCode}${suffixLetter}`;
-    setUnitVariants([...unitVariants, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false }]);
+    setUnitVariants([...unitVariants, { 
+      code: newCode, 
+      unit_id: '', 
+      conversion_to_base: 1, 
+      is_default: false,
+      item_number: mainItemNumber || '',
+    }]);
   };
 
   const removeUnitVariant = (index: number) => {
     setUnitVariants(unitVariants.filter((_, i) => i !== index));
   };
 
-  const updateUnitVariant = (index: number, field: keyof UnitVariant, value: string | number | boolean) => {
+  const updateUnitVariant = (index: number, field: keyof UnitVariant, value: string | number | boolean | File | undefined) => {
     setUnitVariants(unitVariants.map((uv, i) => 
       i === index ? { ...uv, [field]: value } : uv
     ));
   };
 
+  const handleUnitVariantPhotoUpload = (index: number, file: File | undefined) => {
+    if (!file) return;
+    setUnitVariants(unitVariants.map((uv, i) => 
+      i === index ? { ...uv, photo_file: file } : uv
+    ));
+  };
+
   // Material Supplier helper functions
   const addMaterialSupplier = () => {
-    // When adding first supplier, make it primary
     const isPrimary = materialSuppliers.length === 0;
     setMaterialSuppliers([...materialSuppliers, { 
       supplier_id: '', 
@@ -694,7 +807,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const removeMaterialSupplier = (index: number) => {
     const removed = materialSuppliers[index];
     const updated = materialSuppliers.filter((_, i) => i !== index);
-    // If we removed the primary supplier and there are others, make the first one primary
     if (removed.is_primary && updated.length > 0) {
       updated[0].is_primary = true;
     }
@@ -704,7 +816,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const updateMaterialSupplier = (index: number, field: keyof MaterialSupplier, value: string | number | boolean | undefined) => {
     setMaterialSuppliers(materialSuppliers.map((ms, i) => {
       if (i !== index) {
-        // If setting a new primary, unset others
         if (field === 'is_primary' && value === true) {
           return { ...ms, is_primary: false };
         }
@@ -734,7 +845,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const removeDocument = async (index: number) => {
     const doc = documents[index];
     
-    // If it's an existing document with a file, delete from storage
     if (doc.file_path && doc.id) {
       const { error } = await supabase.storage
         .from('material-documents')
@@ -745,7 +855,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         return;
       }
       
-      // Delete the database record
       await supabase.from('material_documents').delete().eq('id', doc.id);
     }
     
@@ -767,7 +876,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       const fileExt = doc.file.name.split('.').pop();
       const filePath = `${materialId}/${Date.now()}-${doc.document_name}.${fileExt}`;
       
-      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('material-documents')
         .upload(filePath, doc.file);
@@ -777,12 +885,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         continue;
       }
       
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('material-documents')
         .getPublicUrl(filePath);
       
-      // Insert document record
       await supabase.from('material_documents').insert({
         material_id: materialId,
         document_name: doc.document_name,
@@ -794,7 +900,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       });
     }
     
-    // Update existing docs (metadata only, not file)
     const existingDocs = documents.filter(doc => !doc.isNew && doc.id);
     for (const doc of existingDocs) {
       await supabase.from('material_documents').update({
@@ -818,7 +923,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       return;
     }
     
-    // Create download link
     const url = URL.createObjectURL(data);
     const a = document.createElement('a');
     a.href = url;
@@ -827,6 +931,36 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Check if photo is older than 10 months
+  const isPhotoStale = (photoAddedAt: string | undefined): boolean => {
+    if (!photoAddedAt) return false;
+    const addedDate = new Date(photoAddedAt);
+    const monthsDiff = differenceInMonths(new Date(), addedDate);
+    return monthsDiff >= 10;
+  };
+
+  // Get calculated cost per usage unit for a supplier entry
+  const getCalculatedUsageCost = (costPerUnit: number | undefined, purchaseUnitId: string | undefined): number | null => {
+    if (!costPerUnit) return null;
+    
+    const usageConversion = form.watch('usage_unit_conversion');
+    
+    if (purchaseUnitId) {
+      // Find the unit variant's conversion
+      const variant = unitVariants.find(uv => uv.id === purchaseUnitId);
+      if (variant && variant.conversion_to_base > 0) {
+        return costPerUnit / variant.conversion_to_base;
+      }
+    }
+    
+    // For default unit, use the usage_unit_conversion
+    if (usageConversion && usageConversion > 0) {
+      return costPerUnit / usageConversion;
+    }
+    
+    return null;
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
@@ -862,16 +996,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       <Select 
                         onValueChange={async (value) => {
                           field.onChange(value);
-                          // Reset sub_category when category changes
                           form.setValue('sub_category', null);
-                          // Generate new code when category changes (only for new materials)
                           if (!material) {
                             const { data, error } = await supabase.rpc('generate_material_code', { 
                               p_category: value 
                             });
                             if (!error && data) {
                               form.setValue('code', data);
-                              // Update any existing alternative unit codes
                               setUnitVariants(prev => prev.map((uv, idx) => ({
                                 ...uv,
                                 code: `${data}${String.fromCharCode(65 + idx)}`
@@ -902,7 +1033,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   )}
                 />
 
-                {/* Sub-Category - depends on selected category */}
+                {/* Sub-Category */}
                 <FormField
                   control={form.control}
                   name="sub_category"
@@ -934,11 +1065,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormDescription>
-                          {selectedCategory 
-                            ? `Sub-categories available for ${selectedCategory}` 
-                            : 'Select a category first to see sub-categories'}
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     );
@@ -951,15 +1077,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     name="code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Material Code</FormLabel>
+                        <FormLabel>Material Code *</FormLabel>
                         <FormControl>
-                          <Input {...field} readOnly className="bg-muted font-mono" />
+                          <Input {...field} readOnly className="font-mono bg-muted" />
                         </FormControl>
-                        <FormDescription>
-                          {form.watch('category') 
-                            ? 'Auto-generated based on category' 
-                            : 'Select a category to generate code'}
-                        </FormDescription>
+                        <FormDescription>Auto-generated based on category</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -969,9 +1091,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name *</FormLabel>
+                        <FormLabel>Material Name *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Material name" {...field} />
+                          <Input placeholder="Internal description" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -979,6 +1101,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   />
                 </div>
 
+                {/* Manufacturer & Item Number */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -988,33 +1111,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         <FormLabel>Manufacturer</FormLabel>
                         <Select 
                           onValueChange={(value) => {
-                            const selectedName = value === '__none__' ? '' : value;
-                            field.onChange(selectedName);
+                            const newValue = value === '__none__' ? '' : value;
+                            field.onChange(newValue);
                             
-                            // Auto-add manufacturer as supplier if they're a manufacturer or manufacturer_distributor
-                            if (selectedName) {
-                              const selectedManufacturer = manufacturers?.find(m => m.name === selectedName);
-                              if (selectedManufacturer && 
-                                  (selectedManufacturer.supplier_type === 'manufacturer' || 
-                                   selectedManufacturer.supplier_type === 'manufacturer_distributor')) {
-                                // Check if this manufacturer is already in the suppliers list
-                                const alreadyAdded = materialSuppliers.some(
-                                  ms => ms.supplier_id === selectedManufacturer.id
-                                );
-                                if (!alreadyAdded) {
-                                  // Auto-add as primary supplier with manufacturer flag
-                                  const isPrimary = materialSuppliers.length === 0;
-                                  setMaterialSuppliers(prev => [
-                                    ...prev.map(ms => isPrimary ? { ...ms, is_primary: false } : ms),
-                                    {
-                                      supplier_id: selectedManufacturer.id,
-                                      is_primary: isPrimary,
-                                      is_active: true,
-                                      is_manufacturer: true,
-                                      supplier_item_number: form.getValues('item_number') || undefined,
-                                    }
-                                  ]);
-                                }
+                            // Auto-populate suppliers if manufacturer is also distributor
+                            if (newValue) {
+                              const selectedManufacturer = manufacturers?.find(m => m.name === newValue);
+                              if (selectedManufacturer && selectedManufacturer.supplier_type === 'manufacturer_distributor') {
+                                autoPopulateSuppliersForManufacturer(selectedManufacturer.id, form.getValues('item_number'));
                               }
                             }
                           }} 
@@ -1038,7 +1142,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Selecting a manufacturer will automatically add them as an approved supplier
+                          Who makes this material
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1052,11 +1156,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         <FormLabel>Manufacturer Item Number</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Item/Part number" 
+                            placeholder="ID used on PO" 
                             {...field} 
                             onChange={(e) => {
                               field.onChange(e);
-                              // Sync item number to auto-added manufacturer supplier
+                              // Sync to manufacturer supplier entries
                               const manufacturerName = form.getValues('manufacturer');
                               if (manufacturerName && manufacturerName !== '__none__') {
                                 const selectedManufacturer = manufacturers?.find(m => m.name === manufacturerName);
@@ -1072,7 +1176,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           />
                         </FormControl>
                         <FormDescription>
-                          This number syncs to the manufacturer's supplier item number
+                          The ID that appears on Purchase Orders
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1162,7 +1266,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           </Button>
                         </div>
                         <FormDescription>
-                          Unit used when purchasing from suppliers and receiving inventory
+                          Unit used when purchasing from suppliers
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1251,66 +1355,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   />
                 </div>
 
-                {/* Cost Fields */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="cost_per_base_unit"
-                    render={({ field }) => {
-                      const purchaseUnitId = form.watch('base_unit_id');
-                      const purchaseUnit = units?.find(u => u.id === purchaseUnitId);
-                      return (
-                        <FormItem>
-                          <FormLabel>Cost Per Purchase Unit ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              step="0.01" 
-                              placeholder="0.00" 
-                              {...field} 
-                              value={field.value ?? ''} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {purchaseUnit ? `Cost per ${purchaseUnit.code}` : 'Cost per unit purchased'}
-                          </FormDescription>
-                        </FormItem>
-                      );
-                    }}
-                  />
-                  {/* Calculated Cost Per Usage Unit */}
-                  {(() => {
-                    const costPerPurchase = form.watch('cost_per_base_unit');
-                    const usageConversion = form.watch('usage_unit_conversion');
-                    const usageUnitId = form.watch('usage_unit_id');
-                    const usageUnit = units?.find(u => u.id === usageUnitId);
-                    
-                    const costPerUsage = costPerPurchase && usageConversion && usageConversion > 0
-                      ? (costPerPurchase / usageConversion)
-                      : null;
-                    
-                    if (!usageUnitId) return null;
-                    
-                    return (
-                      <FormItem>
-                        <FormLabel>Cost Per Usage Unit ($)</FormLabel>
-                        <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
-                          <span className="text-sm font-medium">
-                            {costPerUsage !== null 
-                              ? `$${costPerUsage.toFixed(4)}` 
-                              : '—'}
-                          </span>
-                        </div>
-                        <FormDescription>
-                          {usageUnit 
-                            ? `Calculated cost per ${usageUnit.code}` 
-                            : 'Set cost and conversion to calculate'}
-                        </FormDescription>
-                      </FormItem>
-                    );
-                  })()}
-                </div>
-
                 <FormField
                   control={form.control}
                   name="is_active"
@@ -1344,10 +1388,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   
                   return (
                     <>
-                      {/* Food-related fields: Ingredients, Direct Sale */}
                       {isFood && (
                         <>
-                          {/* Allergens */}
                           <FormField
                             control={form.control}
                             name="allergens"
@@ -1370,7 +1412,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                           if (checked) {
                                             field.onChange([...field.value, option.value]);
                                           } else {
-                                            field.onChange(field.value.filter((v: string) => v !== option.value));
+                                            field.onChange(field.value.filter(v => v !== option.value));
                                           }
                                         }}
                                         className="sr-only"
@@ -1379,27 +1421,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                     </label>
                                   ))}
                                 </div>
-                                {field.value.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-2">
-                                    {field.value.map((val: string) => {
-                                      const option = allergenOptions.find(o => o.value === val);
-                                      return (
-                                        <Badge key={val} variant="secondary" className="gap-1">
-                                          {option?.label || val}
-                                          <X
-                                            className="h-3 w-3 cursor-pointer"
-                                            onClick={() => field.onChange(field.value.filter((v: string) => v !== val))}
-                                          />
-                                        </Badge>
-                                      );
-                                    })}
-                                  </div>
-                                )}
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
 
-                          {/* Food Claims */}
                           <FormField
                             control={form.control}
                             name="food_claims"
@@ -1422,7 +1448,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                           if (checked) {
                                             field.onChange([...field.value, option.value]);
                                           } else {
-                                            field.onChange(field.value.filter((v: string) => v !== option.value));
+                                            field.onChange(field.value.filter(v => v !== option.value));
                                           }
                                         }}
                                         className="sr-only"
@@ -1431,106 +1457,107 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                     </label>
                                   ))}
                                 </div>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
 
-                          {/* Density for ingredients */}
-                          <FormField
-                            control={form.control}
-                            name="density"
-                            render={({ field }) => (
-                              <FormItem className="max-w-xs">
-                                <FormLabel>Density (g/mL)</FormLabel>
-                                <FormControl>
-                                  <Input type="number" step="0.001" placeholder="1.000" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                                <FormDescription>Used for volume to weight conversions</FormDescription>
-                              </FormItem>
-                            )}
-                          />
-
-                          {/* Label Copy */}
                           <FormField
                             control={form.control}
                             name="label_copy"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Label Copy / Ingredient Statement</FormLabel>
+                                <FormLabel>Label Copy</FormLabel>
                                 <FormControl>
-                                  <Textarea placeholder="Text as it appears on ingredient label..." {...field} />
+                                  <Textarea placeholder="Ingredient declaration text..." {...field} />
                                 </FormControl>
                               </FormItem>
                             )}
                           />
+
+                          <FormField
+                            control={form.control}
+                            name="density"
+                            render={({ field }) => (
+                              <FormItem className="max-w-xs">
+                                <FormLabel>Density (lbs/gal)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    step="0.01"
+                                    placeholder="e.g., 8.34"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <h4 className="font-medium text-sm">Receiving Temperature (°F)</h4>
+                              <div className="grid grid-cols-2 gap-2">
+                                <FormField
+                                  control={form.control}
+                                  name="receiving_temperature_min"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
+                                      <FormControl>
+                                        <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="receiving_temperature_max"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
+                                      <FormControl>
+                                        <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              <h4 className="font-medium text-sm">Storage Temperature (°F)</h4>
+                              <div className="grid grid-cols-2 gap-2">
+                                <FormField
+                                  control={form.control}
+                                  name="storage_temperature_min"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
+                                      <FormControl>
+                                        <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="storage_temperature_max"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
+                                      <FormControl>
+                                        <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </>
                       )}
 
-                      {/* Temperature Controls - Food and Packaging */}
-                      {(isFood || isPackaging) && (
-                        <div className="grid grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Receiving Temperature (°F)</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                              <FormField
-                                control={form.control}
-                                name="receiving_temperature_min"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="receiving_temperature_max"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Storage Temperature (°F)</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                              <FormField
-                                control={form.control}
-                                name="storage_temperature_min"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="storage_temperature_max"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Packaging-specific fields */}
                       {isPackaging && (
                         <div className="p-4 border rounded-md bg-muted/30">
                           <p className="text-sm text-muted-foreground">
@@ -1539,7 +1566,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         </div>
                       )}
 
-                      {/* Industrial/Chemical/Supplies fields */}
                       {isIndustrial && (
                         <div className="space-y-4">
                           <div className="p-4 border rounded-md bg-amber-500/10 border-amber-500/30">
@@ -1710,14 +1736,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                 </div>
               </TabsContent>
 
-              {/* Unit Variants Tab - Alternative Pack Sizes */}
+              {/* Unit Variants Tab */}
               <TabsContent value="unit-variants" className="space-y-6 mt-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">Unit Variants (Pack Sizes)</h4>
                       <p className="text-sm text-muted-foreground">
-                        Define alternative pack sizes for this material (e.g., 50lb bag, 2000lb tote)
+                        Different pack sizes/variants produced by the manufacturer
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={addUnitVariant}>
@@ -1725,11 +1751,12 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </Button>
                   </div>
 
-                  {/* Show default unit info */}
+                  {/* Default unit info */}
                   {(() => {
                     const baseUnitId = form.watch('base_unit_id');
                     const baseUnit = units?.find(u => u.id === baseUnitId);
                     const mainCode = form.watch('code');
+                    const mainItemNumber = form.watch('item_number');
                     const usageUnitId = form.watch('usage_unit_id');
                     const usageUnit = units?.find(u => u.id === usageUnitId);
                     const usageConversion = form.watch('usage_unit_conversion');
@@ -1750,6 +1777,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 </span>
                               )}
                             </p>
+                            {mainItemNumber && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Manufacturer Item #: {mainItemNumber}
+                              </p>
+                            )}
                           </div>
                           <span className="text-xs text-muted-foreground">From Basic Info</span>
                         </div>
@@ -1771,12 +1803,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         const baseUnitId = form.watch('base_unit_id');
                         const baseUnit = units?.find(u => u.id === baseUnitId);
                         const displayUnit = usageUnit || baseUnit;
+                        const photoStale = isPhotoStale(uv.photo_added_at);
                         
                         return (
                           <div key={index} className="p-4 border rounded-md bg-card space-y-3">
                             <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <div className="grid grid-cols-3 gap-3">
+                              <div className="flex-1 space-y-3">
+                                <div className="grid grid-cols-4 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Code
@@ -1786,6 +1819,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       onChange={(e) => updateUnitVariant(index, 'code', e.target.value)}
                                       placeholder="Material code"
                                       className="font-mono"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Manufacturer Item #
+                                    </label>
+                                    <Input
+                                      value={uv.item_number || ''}
+                                      onChange={(e) => updateUnitVariant(index, 'item_number', e.target.value)}
+                                      placeholder="Item number"
                                     />
                                   </div>
                                   <div>
@@ -1836,6 +1879,46 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                     />
                                   </div>
                                 </div>
+
+                                {/* Photo Upload Section */}
+                                <div className="flex items-center gap-4 pt-2 border-t">
+                                  <div className="flex-1">
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Product Photo
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleUnitVariantPhotoUpload(index, e.target.files?.[0])}
+                                        className="flex-1"
+                                      />
+                                      {uv.photo_file && (
+                                        <span className="text-xs text-green-600">New file selected</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {uv.photo_url && (
+                                    <div className="flex items-center gap-2">
+                                      <img 
+                                        src={uv.photo_url} 
+                                        alt="Product" 
+                                        className="h-12 w-12 rounded object-cover border"
+                                      />
+                                      {photoStale && (
+                                        <div className="flex items-center gap-1 text-amber-600">
+                                          <AlertTriangle className="h-4 w-4" />
+                                          <span className="text-xs">Review needed (10+ months)</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {!uv.photo_url && !uv.photo_file && (
+                                    <div className="h-12 w-12 rounded border border-dashed flex items-center justify-center text-muted-foreground">
+                                      <ImageIcon className="h-5 w-5" />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <Button
                                 type="button"
@@ -1847,42 +1930,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                            {selectedUnit && displayUnit && (
-                              <p className="text-xs text-muted-foreground">
-                                1 {selectedUnit.code} = {uv.conversion_to_base} {displayUnit.code}
-                              </p>
-                            )}
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </div>
-
-                <div className="pt-4 border-t">
-                  <FormField
-                    control={form.control}
-                    name="min_stock_level"
-                    render={({ field }) => {
-                      const usageUnitId = form.watch('usage_unit_id');
-                      const usageUnit = units?.find(u => u.id === usageUnitId);
-                      const baseUnitId = form.watch('base_unit_id');
-                      const baseUnit = units?.find(u => u.id === baseUnitId);
-                      const displayUnit = usageUnit || baseUnit;
-                      
-                      return (
-                        <FormItem className="max-w-xs">
-                          <FormLabel>Minimum Stock Level</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="0" {...field} value={field.value ?? ''} />
-                          </FormControl>
-                          <FormDescription>
-                            {displayUnit ? `Reorder point in ${displayUnit.code}` : 'Minimum quantity to maintain'}
-                          </FormDescription>
-                        </FormItem>
-                      );
-                    }}
-                  />
                 </div>
               </TabsContent>
 
@@ -1893,7 +1945,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     <div>
                       <h4 className="font-medium">Approved Suppliers</h4>
                       <p className="text-sm text-muted-foreground">
-                        Assign suppliers with their item numbers, pricing, and preferred unit variants
+                        Link this material to vendors with specific pricing
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={addMaterialSupplier}>
@@ -1903,95 +1955,71 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
                   {materialSuppliers.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
-                      <p>No suppliers linked to this material.</p>
-                      <p className="text-xs mt-1">
-                        {form.watch('manufacturer') 
-                          ? 'The manufacturer was auto-added. Click "Add Supplier" to add more.'
-                          : 'Click "Add Supplier" or select a manufacturer in Basic Info.'}
-                      </p>
+                      <p>No suppliers linked.</p>
+                      <p className="text-xs mt-1">Click "Add Supplier" to link approved vendors.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {materialSuppliers.map((ms, index) => {
                         const selectedSupplier = suppliers?.find(s => s.id === ms.supplier_id);
-                        const selectedUnit = units?.find(u => u.id === ms.unit_id);
                         const baseUnitId = form.watch('base_unit_id');
                         const baseUnit = units?.find(u => u.id === baseUnitId);
+                        const usageConversion = form.watch('usage_unit_conversion');
+                        const usageUnitId = form.watch('usage_unit_id');
+                        const usageUnit = units?.find(u => u.id === usageUnitId);
                         
-                        // Build unit options: Default + all unit variants
+                        // Build unit options: default + variants
                         const unitOptions = [
                           { id: '__default__', label: `Default (${baseUnit?.code || 'Base Unit'})` },
-                          ...unitVariants.map(uv => {
-                            const uvUnit = units?.find(u => u.id === uv.unit_id);
-                            return { id: uv.id || uv.code, label: `${uv.code} - ${uvUnit?.name || 'Unit'}` };
-                          })
+                          ...unitVariants.filter(uv => uv.id).map(uv => ({
+                            id: uv.id!,
+                            label: `${uv.code} - ${units?.find(u => u.id === uv.unit_id)?.code || 'Unit'}`
+                          }))
                         ];
+
+                        const calculatedUsageCost = getCalculatedUsageCost(ms.cost_per_unit, ms.purchase_unit_id);
                         
                         return (
-                          <div key={index} className={`p-4 border rounded-md bg-card space-y-4 ${ms.is_primary ? 'border-primary/50 bg-primary/5' : ''} ${ms.is_manufacturer ? 'ring-1 ring-blue-500/30' : ''}`}>
-                            <div className="flex items-start justify-between gap-3">
+                          <div key={index} className="p-4 border rounded-md bg-card space-y-4">
+                            <div className="flex items-start gap-3">
                               <div className="flex-1 space-y-4">
-                                {/* Header Row with Supplier & Primary Button */}
-                                <div className="flex items-center gap-3">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <label className="text-xs font-medium text-muted-foreground">
-                                        Supplier *
-                                      </label>
-                                      {ms.is_manufacturer && (
-                                        <Badge variant="secondary" className="text-xs">Manufacturer</Badge>
+                                {/* Supplier Selection Row */}
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="col-span-2">
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Supplier *
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      {ms.is_primary && (
+                                        <Star className="h-4 w-4 text-amber-500 shrink-0" />
+                                      )}
+                                      <Select
+                                        value={ms.supplier_id}
+                                        onValueChange={(value) => updateMaterialSupplier(index, 'supplier_id', value)}
+                                      >
+                                        <SelectTrigger className="flex-1">
+                                          <SelectValue placeholder="Select supplier" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {suppliers?.filter(s => s.approval_status === 'approved').map((supplier) => (
+                                            <SelectItem key={supplier.id} value={supplier.id}>
+                                              {supplier.name} ({supplier.code})
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {!ms.is_primary && materialSuppliers.length > 1 && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => updateMaterialSupplier(index, 'is_primary', true)}
+                                          className="shrink-0"
+                                        >
+                                          Set Primary
+                                        </Button>
                                       )}
                                     </div>
-                                    <Select
-                                      value={ms.supplier_id}
-                                      onValueChange={(value) => updateMaterialSupplier(index, 'supplier_id', value)}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select supplier" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {suppliers?.map((supplier) => (
-                                          <SelectItem key={supplier.id} value={supplier.id}>
-                                            {supplier.name} ({supplier.code})
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="flex items-center gap-2 pt-5">
-                                    <Button
-                                      type="button"
-                                      variant={ms.is_primary ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => updateMaterialSupplier(index, 'is_primary', true)}
-                                      className="gap-1"
-                                    >
-                                      <Star className={`h-3 w-3 ${ms.is_primary ? 'fill-current' : ''}`} />
-                                      {ms.is_primary ? 'Primary' : 'Set Primary'}
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive"
-                                      onClick={() => removeMaterialSupplier(index)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                {/* Item Number & Unit Variant Row */}
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Supplier Item Number (for PO)
-                                    </label>
-                                    <Input
-                                      value={ms.supplier_item_number || ''}
-                                      onChange={(e) => updateMaterialSupplier(index, 'supplier_item_number', e.target.value)}
-                                      placeholder="SUP-12345"
-                                    />
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -2015,11 +2043,21 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                 </div>
 
-                                {/* Pricing Row */}
+                                {/* Supplier Item Number Row */}
                                 <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Cost Per Unit ($)
+                                      Supplier Item Number
+                                    </label>
+                                    <Input
+                                      value={ms.supplier_item_number || ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'supplier_item_number', e.target.value)}
+                                      placeholder="Vendor's item #"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Cost Per Purchase Unit ($) *
                                     </label>
                                     <Input
                                       type="number"
@@ -2029,6 +2067,27 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       placeholder="0.00"
                                     />
                                   </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Cost Per Usage Unit ($)
+                                    </label>
+                                    <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
+                                      <span className="text-sm font-medium">
+                                        {calculatedUsageCost !== null 
+                                          ? `$${calculatedUsageCost.toFixed(4)}` 
+                                          : '—'}
+                                      </span>
+                                      {usageUnit && (
+                                        <span className="text-xs text-muted-foreground ml-1">
+                                          /{usageUnit.code}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Additional Fields Row */}
+                                <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Lead Time (Days)
@@ -2052,20 +2111,27 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       placeholder="1"
                                     />
                                   </div>
-                                </div>
-
-                                {/* Notes Row */}
-                                <div>
-                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                    Notes
-                                  </label>
-                                  <Input
-                                    value={ms.notes || ''}
-                                    onChange={(e) => updateMaterialSupplier(index, 'notes', e.target.value)}
-                                    placeholder="Special instructions, alternative item numbers..."
-                                  />
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Notes
+                                    </label>
+                                    <Input
+                                      value={ms.notes || ''}
+                                      onChange={(e) => updateMaterialSupplier(index, 'notes', e.target.value)}
+                                      placeholder="Special instructions..."
+                                    />
+                                  </div>
                                 </div>
                               </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive shrink-0"
+                                onClick={() => removeMaterialSupplier(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                             {selectedSupplier && (
                               <p className="text-xs text-muted-foreground border-t pt-2">
@@ -2120,7 +2186,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           <div key={index} className="p-4 border rounded-md bg-card space-y-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 space-y-4">
-                                {/* Document Name & Type Row */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -2155,7 +2220,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                 </div>
 
-                                {/* File Upload / Download Row */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -2198,7 +2262,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                 </div>
 
-                                {/* Dates Row */}
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -2243,7 +2306,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </div>
                   )}
 
-                  {/* Required documents checklist */}
                   {documentRequirements && documentRequirements.filter(r => r.is_required).length > 0 && (
                     <div className="pt-4 border-t">
                       <h5 className="text-sm font-medium mb-2">Required Documents</h5>

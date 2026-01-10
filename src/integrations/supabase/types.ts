@@ -689,6 +689,9 @@ export type Database = {
           is_default: boolean | null
           item_number: string | null
           material_id: string
+          photo_added_at: string | null
+          photo_path: string | null
+          photo_url: string | null
           unit_id: string
           updated_at: string
         }
@@ -702,6 +705,9 @@ export type Database = {
           is_default?: boolean | null
           item_number?: string | null
           material_id: string
+          photo_added_at?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
           unit_id: string
           updated_at?: string
         }
@@ -715,6 +721,9 @@ export type Database = {
           is_default?: boolean | null
           item_number?: string | null
           material_id?: string
+          photo_added_at?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
           unit_id?: string
           updated_at?: string
         }
@@ -779,6 +788,7 @@ export type Database = {
           material_id: string
           min_order_quantity: number | null
           notes: string | null
+          purchase_unit_id: string | null
           supplier_id: string
           supplier_item_number: string | null
           unit_id: string | null
@@ -794,6 +804,7 @@ export type Database = {
           material_id: string
           min_order_quantity?: number | null
           notes?: string | null
+          purchase_unit_id?: string | null
           supplier_id: string
           supplier_item_number?: string | null
           unit_id?: string | null
@@ -809,6 +820,7 @@ export type Database = {
           material_id?: string
           min_order_quantity?: number | null
           notes?: string | null
+          purchase_unit_id?: string | null
           supplier_id?: string
           supplier_item_number?: string | null
           unit_id?: string | null
@@ -820,6 +832,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_suppliers_purchase_unit_id_fkey"
+            columns: ["purchase_unit_id"]
+            isOneToOne: false
+            referencedRelation: "material_purchase_units"
             referencedColumns: ["id"]
           },
           {

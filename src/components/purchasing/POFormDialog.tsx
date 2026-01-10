@@ -123,7 +123,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
     },
   });
 
-  // Fetch materials linked to selected supplier
+  // Fetch materials linked to selected supplier (ONLY show supplier-linked materials)
   const { data: supplierMaterials } = useQuery({
     queryKey: ['supplier-materials', selectedSupplierId],
     queryFn: async () => {
@@ -132,8 +132,9 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         .from('material_suppliers')
         .select(`
           *,
-          material:materials(id, name, code, base_unit_id),
-          unit:units_of_measure(id, code, name)
+          material:materials(id, name, code, base_unit_id, base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name)),
+          unit:units_of_measure(id, code, name),
+          purchase_unit:material_purchase_units(id, code, unit_id, item_number)
         `)
         .eq('supplier_id', selectedSupplierId)
         .eq('is_active', true);
@@ -143,22 +144,19 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
     enabled: !!selectedSupplierId,
   });
 
-  // Fetch all materials for fallback
-  const { data: allMaterials } = useQuery({
-    queryKey: ['materials-all'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('materials')
-        .select(`
-          id, name, code, base_unit_id, cost_per_base_unit,
-          base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name)
-        `)
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Build filtered materials list from supplier links only
+  const availableMaterials = supplierMaterials?.map(sm => ({
+    id: sm.material?.id,
+    name: sm.material?.name,
+    code: sm.material?.code,
+    base_unit_id: sm.material?.base_unit_id,
+    base_unit: sm.material?.base_unit,
+    supplier_item_number: sm.supplier_item_number,
+    cost_per_unit: sm.cost_per_unit,
+    unit_id: sm.unit_id,
+    unit: sm.unit,
+    purchase_unit_id: sm.purchase_unit_id,
+  })).filter(m => m.id) || [];
 
   // Fetch units
   const { data: units } = useQuery({
@@ -265,27 +263,16 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       updated[index].line_total = updated[index].quantity_ordered * updated[index].unit_cost;
     }
     
-    // If material changed, update unit and cost
+    // If material changed, update unit and cost from supplier-linked data
     if (field === 'material_id') {
-      const material = allMaterials?.find(m => m.id === value);
-      if (material) {
-        updated[index].material_name = material.name;
-        updated[index].unit_id = material.base_unit_id;
-        updated[index].unit_code = material.base_unit?.code;
-        updated[index].unit_cost = Number(material.cost_per_base_unit) || 0;
+      const supplierMaterial = availableMaterials?.find(m => m.id === value);
+      if (supplierMaterial) {
+        updated[index].material_name = supplierMaterial.name;
+        updated[index].unit_id = supplierMaterial.unit_id || supplierMaterial.base_unit_id;
+        updated[index].unit_code = supplierMaterial.unit?.code || supplierMaterial.base_unit?.code;
+        updated[index].unit_cost = Number(supplierMaterial.cost_per_unit) || 0;
+        updated[index].supplier_item_number = supplierMaterial.supplier_item_number || undefined;
         updated[index].line_total = updated[index].quantity_ordered * updated[index].unit_cost;
-        
-        // Check supplier-specific pricing
-        const supplierMaterial = supplierMaterials?.find(sm => sm.material?.id === value);
-        if (supplierMaterial) {
-          updated[index].unit_cost = Number(supplierMaterial.cost_per_unit) || updated[index].unit_cost;
-          updated[index].supplier_item_number = supplierMaterial.supplier_item_number || undefined;
-          if (supplierMaterial.unit_id) {
-            updated[index].unit_id = supplierMaterial.unit_id;
-            updated[index].unit_code = supplierMaterial.unit?.code;
-          }
-          updated[index].line_total = updated[index].quantity_ordered * updated[index].unit_cost;
-        }
       }
     }
     
