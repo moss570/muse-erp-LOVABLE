@@ -33,6 +33,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { LabelPrintDialog } from '@/components/labels/LabelPrintDialog';
 import { useLabelTemplates } from '@/hooks/useLabelTemplates';
@@ -40,10 +45,10 @@ import {
   Search, 
   Printer, 
   ChevronDown, 
+  ChevronRight,
   RefreshCw, 
   Package,
   ExternalLink,
-  Filter,
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -86,6 +91,20 @@ interface InventoryLot {
   } | null;
 }
 
+interface MaterialGroup {
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  category: string | null;
+  minStockLevel: number | null;
+  usageUnit: { id: string; code: string; name: string } | null;
+  usageUnitConversion: number | null;
+  baseUnit: { id: string; code: string; name: string } | null;
+  totalOnHand: number;
+  lotCount: number;
+  lots: InventoryLot[];
+}
+
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Status' },
   { value: 'available', label: 'Available' },
@@ -102,6 +121,7 @@ export default function MaterialInventory() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showOnlyActive, setShowOnlyActive] = useState(true);
   const [selectedLots, setSelectedLots] = useState<Set<string>>(new Set());
+  const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   
@@ -211,23 +231,72 @@ export default function MaterialInventory() {
     });
   }, [lots, search, statusFilter, locationFilter, categoryFilter, showOnlyActive]);
 
-  // Pagination
-  const totalItems = filteredLots.length;
+  // Group lots by material
+  const materialGroups = useMemo(() => {
+    const groups = new Map<string, MaterialGroup>();
+    
+    filteredLots.forEach((lot) => {
+      if (!lot.material?.id) return;
+      
+      const materialId = lot.material.id;
+      const existing = groups.get(materialId);
+      
+      if (existing) {
+        existing.totalOnHand += lot.quantity_in_base_unit;
+        existing.lotCount += 1;
+        existing.lots.push(lot);
+      } else {
+        groups.set(materialId, {
+          materialId,
+          materialCode: lot.material.code,
+          materialName: lot.material.name,
+          category: lot.material.category,
+          minStockLevel: lot.material.min_stock_level,
+          usageUnit: lot.material.usage_unit,
+          usageUnitConversion: lot.material.usage_unit_conversion,
+          baseUnit: lot.unit,
+          totalOnHand: lot.quantity_in_base_unit,
+          lotCount: 1,
+          lots: [lot],
+        });
+      }
+    });
+    
+    // Sort groups by material name
+    return Array.from(groups.values()).sort((a, b) => 
+      a.materialName.localeCompare(b.materialName)
+    );
+  }, [filteredLots]);
+
+  // Pagination on material groups
+  const totalItems = materialGroups.length;
   const totalPages = Math.ceil(totalItems / pageSize);
-  const paginatedLots = filteredLots.slice(
+  const paginatedGroups = materialGroups.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  // Selection handlers
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedLots(new Set(paginatedLots.map((lot) => lot.id)));
+  // Toggle material expansion
+  const toggleMaterialExpansion = (materialId: string) => {
+    const newExpanded = new Set(expandedMaterials);
+    if (newExpanded.has(materialId)) {
+      newExpanded.delete(materialId);
     } else {
-      setSelectedLots(new Set());
+      newExpanded.add(materialId);
     }
+    setExpandedMaterials(newExpanded);
   };
 
+  // Expand/Collapse all
+  const expandAll = () => {
+    setExpandedMaterials(new Set(paginatedGroups.map(g => g.materialId)));
+  };
+
+  const collapseAll = () => {
+    setExpandedMaterials(new Set());
+  };
+
+  // Selection handlers
   const handleSelectLot = (lotId: string, checked: boolean) => {
     const newSelected = new Set(selectedLots);
     if (checked) {
@@ -238,8 +307,25 @@ export default function MaterialInventory() {
     setSelectedLots(newSelected);
   };
 
-  const isAllSelected = paginatedLots.length > 0 && 
-    paginatedLots.every((lot) => selectedLots.has(lot.id));
+  const handleSelectMaterialLots = (lots: InventoryLot[], checked: boolean) => {
+    const newSelected = new Set(selectedLots);
+    lots.forEach((lot) => {
+      if (checked) {
+        newSelected.add(lot.id);
+      } else {
+        newSelected.delete(lot.id);
+      }
+    });
+    setSelectedLots(newSelected);
+  };
+
+  const isMaterialFullySelected = (lots: InventoryLot[]) => {
+    return lots.length > 0 && lots.every((lot) => selectedLots.has(lot.id));
+  };
+
+  const isMaterialPartiallySelected = (lots: InventoryLot[]) => {
+    return lots.some((lot) => selectedLots.has(lot.id)) && !isMaterialFullySelected(lots);
+  };
 
   // Handle print for single or first selected lot
   const handlePrintLabel = (templateId?: string) => {
@@ -252,7 +338,6 @@ export default function MaterialInventory() {
 
   // Navigate to receiving record
   const handleViewReceiving = (lotId: string) => {
-    // Find the receiving session for this lot
     navigate(`/purchasing/receiving?lot=${lotId}`);
   };
 
@@ -276,10 +361,18 @@ export default function MaterialInventory() {
           <div>
             <h1 className="text-2xl font-bold">Material Inventory</h1>
             <p className="text-muted-foreground">
-              View on-hand inventory by lot
+              View on-hand inventory grouped by material
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Expand/Collapse buttons */}
+            <Button variant="outline" size="sm" onClick={expandAll}>
+              Expand All
+            </Button>
+            <Button variant="outline" size="sm" onClick={collapseAll}>
+              Collapse All
+            </Button>
+
             {/* Print Button */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -324,7 +417,7 @@ export default function MaterialInventory() {
         {/* Selection info */}
         {selectedLots.size > 0 && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{selectedLots.size} item(s) selected</span>
+            <span>{selectedLots.size} lot(s) selected</span>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -412,8 +505,7 @@ export default function MaterialInventory() {
 
         {/* Results count */}
         <div className="text-sm text-muted-foreground">
-          Showing {paginatedLots.length} of {filteredLots.length} lots
-          {lots && filteredLots.length !== lots.length && ` (${lots.length} total)`}
+          Showing {paginatedGroups.length} of {materialGroups.length} materials ({filteredLots.length} lots total)
         </div>
       </div>
 
@@ -426,163 +518,215 @@ export default function MaterialInventory() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Material</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Internal Lot #</TableHead>
-                  <TableHead>Supplier Lot #</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead className="text-right">On Hand</TableHead>
+                  <TableHead className="text-center">Lots</TableHead>
+                  <TableHead className="text-right">Total On Hand</TableHead>
                   <TableHead className="text-right">Par Level</TableHead>
                   <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedLots.length === 0 ? (
+                {paginatedGroups.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                       <Package className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No inventory found</p>
                       <p className="text-sm">Try adjusting your search or filters</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedLots.map((lot) => {
-                    const isLowStock = lot.material?.min_stock_level && 
-                      lot.quantity_in_base_unit < lot.material.min_stock_level;
+                  paginatedGroups.map((group) => {
+                    const isExpanded = expandedMaterials.has(group.materialId);
+                    const isLowStock = group.minStockLevel && group.totalOnHand < group.minStockLevel;
+                    const isFullySelected = isMaterialFullySelected(group.lots);
+                    const isPartiallySelected = isMaterialPartiallySelected(group.lots);
                     
                     return (
-                      <TableRow 
-                        key={lot.id}
-                        className={selectedLots.has(lot.id) ? 'bg-primary/5' : ''}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedLots.has(lot.id)}
-                            onCheckedChange={(checked) => handleSelectLot(lot.id, !!checked)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {lot.material?.category ? (
-                            <Badge variant="outline" className="font-normal">
-                              {lot.material.category}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {lot.material?.code}
-                            </span>
-                            <span className="font-medium truncate max-w-[200px]" title={lot.material?.name}>
-                              {lot.material?.name}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {lot.location?.name || (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <button
-                            className="font-mono text-primary hover:underline cursor-pointer"
-                            onClick={() => handleViewReceiving(lot.id)}
-                          >
-                            {lot.internal_lot_number}
-                          </button>
-                        </TableCell>
-                        <TableCell>
-                          {lot.supplier_lot_number || (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {lot.expiry_date ? (
-                            <span className={
-                              new Date(lot.expiry_date) < new Date() 
-                                ? 'text-destructive font-medium' 
-                                : ''
-                            }>
-                              {format(new Date(lot.expiry_date), 'MM/dd/yyyy')}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {lot.material?.usage_unit && lot.material?.usage_unit_conversion ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className={`cursor-help ${isLowStock ? 'text-destructive font-medium' : ''}`}>
+                      <Collapsible key={group.materialId} open={isExpanded} asChild>
+                        <>
+                          {/* Material Summary Row */}
+                          <TableRow className="bg-muted/30 hover:bg-muted/50 cursor-pointer">
+                            <TableCell>
+                              <CollapsibleTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => toggleMaterialExpansion(group.materialId)}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </CollapsibleTrigger>
+                            </TableCell>
+                            <TableCell>
+                              <Checkbox
+                                checked={isFullySelected}
+                                ref={(el) => {
+                                  if (el) {
+                                    (el as HTMLButtonElement).dataset.state = isPartiallySelected ? 'indeterminate' : (isFullySelected ? 'checked' : 'unchecked');
+                                  }
+                                }}
+                                onCheckedChange={(checked) => handleSelectMaterialLots(group.lots, !!checked)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {group.category ? (
+                                <Badge variant="outline" className="font-normal">
+                                  {group.category}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-mono text-xs text-muted-foreground">
+                                  {group.materialCode}
+                                </span>
+                                <span className="font-medium">
+                                  {group.materialName}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary">{group.lotCount}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {group.usageUnit && group.usageUnitConversion ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className={`cursor-help font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
+                                        {Number(group.totalOnHand).toLocaleString()}
+                                        <span className="text-muted-foreground ml-1 text-xs font-normal">
+                                          {group.baseUnit?.code}
+                                        </span>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        {(group.totalOnHand * group.usageUnitConversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {group.usageUnit.code}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
+                                  {Number(group.totalOnHand).toLocaleString()}
+                                  <span className="text-muted-foreground ml-1 text-xs font-normal">
+                                    {group.baseUnit?.code}
+                                  </span>
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {group.minStockLevel ? (
+                                <span className="text-muted-foreground">
+                                  {Number(group.minStockLevel).toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {isLowStock && (
+                                <Badge variant="destructive">Low Stock</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                          
+                          {/* Lot Detail Rows */}
+                          <CollapsibleContent asChild>
+                            <>
+                              {group.lots.map((lot) => (
+                                <TableRow 
+                                  key={lot.id}
+                                  className={`bg-background ${selectedLots.has(lot.id) ? 'bg-primary/5' : ''}`}
+                                >
+                                  <TableCell></TableCell>
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={selectedLots.has(lot.id)}
+                                      onCheckedChange={(checked) => handleSelectLot(lot.id, !!checked)}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="pl-8 text-muted-foreground text-sm">
+                                    {lot.location?.name || '-'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-4 text-sm">
+                                      <div>
+                                        <span className="text-muted-foreground">Internal: </span>
+                                        <button
+                                          className="font-mono text-primary hover:underline cursor-pointer"
+                                          onClick={() => handleViewReceiving(lot.id)}
+                                        >
+                                          {lot.internal_lot_number}
+                                        </button>
+                                      </div>
+                                      {lot.supplier_lot_number && (
+                                        <div>
+                                          <span className="text-muted-foreground">Supplier: </span>
+                                          <span className="font-mono">{lot.supplier_lot_number}</span>
+                                        </div>
+                                      )}
+                                      {lot.expiry_date && (
+                                        <div>
+                                          <span className="text-muted-foreground">Exp: </span>
+                                          <span className={
+                                            new Date(lot.expiry_date) < new Date() 
+                                              ? 'text-destructive font-medium' 
+                                              : ''
+                                          }>
+                                            {format(new Date(lot.expiry_date), 'MM/dd/yyyy')}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell className="text-right text-sm">
                                     {Number(lot.quantity_in_base_unit).toLocaleString()}
                                     <span className="text-muted-foreground ml-1 text-xs">
                                       {lot.unit?.code}
                                     </span>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>
-                                    {(lot.quantity_in_base_unit * lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {lot.material.usage_unit.code}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <>
-                              <span className={isLowStock ? 'text-destructive font-medium' : ''}>
-                                {Number(lot.quantity_in_base_unit).toLocaleString()}
-                              </span>
-                              <span className="text-muted-foreground ml-1 text-xs">
-                                {lot.unit?.code}
-                              </span>
+                                  </TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell className="text-center">
+                                    <Badge 
+                                      variant={
+                                        lot.status === 'available' ? 'default' :
+                                        lot.status === 'on_hold' ? 'secondary' :
+                                        lot.status === 'quarantine' ? 'destructive' :
+                                        'outline'
+                                      }
+                                      className="capitalize text-xs"
+                                    >
+                                      {lot.status?.replace('_', ' ') || 'Available'}
+                                    </Badge>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 ml-2"
+                                      onClick={() => handleViewReceiving(lot.id)}
+                                      title="View receiving record"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
                             </>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {lot.material?.min_stock_level ? (
-                            <span className="text-muted-foreground">
-                              {Number(lot.material.min_stock_level).toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge 
-                            variant={
-                              lot.status === 'available' ? 'default' :
-                              lot.status === 'on_hold' ? 'secondary' :
-                              lot.status === 'quarantine' ? 'destructive' :
-                              'outline'
-                            }
-                            className="capitalize"
-                          >
-                            {lot.status?.replace('_', ' ') || 'Available'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleViewReceiving(lot.id)}
-                            title="View receiving record"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                          </CollapsibleContent>
+                        </>
+                      </Collapsible>
                     );
                   })
                 )}
