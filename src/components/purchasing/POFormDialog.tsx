@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +39,9 @@ import { z } from 'zod';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
+import { useConcurrentEdit } from '@/hooks/useConcurrentEdit';
+import { EditPresenceIndicator } from '@/components/ui/edit-presence-indicator';
+import { ConflictDialog } from '@/components/ui/conflict-dialog';
 
 type PurchaseOrder = Tables<'purchase_orders'>;
 
@@ -90,6 +93,45 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
   const queryClient = useQueryClient();
   const [lineItems, setLineItems] = useState<POLineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Concurrent editing support
+  const {
+    otherEditors,
+    showConflictDialog,
+    setShowConflictDialog,
+    initializeEdit,
+    checkBeforeSave,
+    handleKeepLocal,
+    handleAcceptServer,
+    latestServerData,
+  } = useConcurrentEdit({
+    resourceType: 'purchase_order',
+    resourceId: purchaseOrder?.id,
+    tableName: 'purchase_orders',
+    resourceName: 'Purchase Order',
+    enabled: open && !!purchaseOrder?.id,
+    onDataRefresh: (data) => {
+      // Reload form with server data when user accepts server changes
+      form.reset({
+        supplier_id: data.supplier_id as string,
+        order_date: data.order_date as string,
+        expected_delivery_date: (data.expected_delivery_date as string) || '',
+        delivery_location_id: (data.delivery_location_id as string) || '',
+        shipping_method: (data.shipping_method as string) || '',
+        shipping_terms: (data.shipping_terms as string) || '',
+        notes: (data.notes as string) || '',
+        internal_notes: (data.internal_notes as string) || '',
+      });
+      queryClient.invalidateQueries({ queryKey: ['po-items', purchaseOrder?.id] });
+    },
+  });
+
+  // Initialize concurrent edit tracking when PO data loads
+  useEffect(() => {
+    if (purchaseOrder && open) {
+      initializeEdit(purchaseOrder as unknown as Record<string, unknown>);
+    }
+  }, [purchaseOrder, open, initializeEdit]);
 
   const form = useForm<POFormData>({
     resolver: zodResolver(poSchema),
@@ -543,6 +585,12 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       toast({ title: 'All line items must have a material selected', variant: 'destructive' });
       return;
     }
+
+    // Check for concurrent edit conflicts before saving
+    if (purchaseOrder) {
+      const { canSave } = await checkBeforeSave();
+      if (!canSave) return; // Conflict dialog will show
+    }
     
     setIsSubmitting(true);
     try {
@@ -560,11 +608,15 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
   const requiresApproval = total >= APPROVAL_THRESHOLD;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
             {purchaseOrder ? `Edit PO: ${purchaseOrder.po_number}` : 'Create Purchase Order'}
+            {otherEditors.length > 0 && (
+              <EditPresenceIndicator editors={otherEditors} />
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -898,5 +950,15 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         </Form>
       </DialogContent>
     </Dialog>
+    
+    <ConflictDialog
+      open={showConflictDialog}
+      onOpenChange={setShowConflictDialog}
+      resourceName="Purchase Order"
+      onKeepLocal={handleKeepLocal}
+      onAcceptServer={handleAcceptServer}
+      serverUpdatedAt={latestServerData?.updated_at as string | undefined}
+    />
+    </>
   );
 }

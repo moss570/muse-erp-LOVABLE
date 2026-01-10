@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_editors: {
+        Row: {
+          id: string
+          last_heartbeat: string
+          resource_id: string
+          resource_type: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_heartbeat?: string
+          resource_id: string
+          resource_type: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_heartbeat?: string
+          resource_id?: string
+          resource_type?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bills_of_lading: {
         Row: {
           bol_number: string
@@ -2685,6 +2712,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_stale_editors: { Args: never; Returns: undefined }
       generate_listed_material_code: { Args: never; Returns: string }
       generate_material_code: { Args: { p_category: string }; Returns: string }
       generate_pallet_number: {
