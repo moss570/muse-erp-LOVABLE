@@ -177,8 +177,8 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
     // Determine pack size (unit) - prefer purchase unit's unit, then supplier unit, then base unit
     const packUnit = purchaseUnit?.unit || supplierUnit || material?.base_unit;
     
-    // Our item number: from purchase_unit if variant, otherwise from material
-    const ourItemNumber = purchaseUnit?.item_number || material?.item_number;
+    // Our item number: always from the material (code or item_number)
+    const ourItemNumber = material?.item_number || material?.code;
     
     // Usage UOM info
     const usageUnit = material?.usage_unit;
