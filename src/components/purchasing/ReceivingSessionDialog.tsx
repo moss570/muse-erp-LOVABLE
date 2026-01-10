@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -24,13 +25,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { format } from 'date-fns';
-import { Loader2, Package, Truck } from 'lucide-react';
+import { Loader2, Package, Truck, Thermometer, Bug, Trash2 } from 'lucide-react';
 
 interface PendingPO {
   id: string;
   po_number: string;
   order_date: string;
   expected_delivery_date: string | null;
+  delivery_location_id: string | null;
+  delivery_location?: {
+    id: string;
+    name: string;
+    location_code: string;
+  } | null;
   supplier: {
     id: string;
     name: string;
@@ -66,6 +73,13 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
   const [driverName, setDriverName] = useState('');
   const [sealNumber, setSealNumber] = useState('');
   const [sealIntact, setSealIntact] = useState(true);
+  
+  // Truck inspection fields
+  const [truckTempType, setTruckTempType] = useState<string>('refrigerated');
+  const [truckTempSetting, setTruckTempSetting] = useState<string>('');
+  const [inspectionPestFree, setInspectionPestFree] = useState<boolean | null>(null);
+  const [inspectionDebrisFree, setInspectionDebrisFree] = useState<boolean | null>(null);
+  
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -86,8 +100,20 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
 
   const selectedPOData = pendingPOs.find(po => po.id === selectedPO);
 
+  // Auto-set location when PO is selected
+  useEffect(() => {
+    if (selectedPOData?.delivery_location_id) {
+      setLocationId(selectedPOData.delivery_location_id);
+    }
+  }, [selectedPOData]);
+
   const handleSubmit = async () => {
     if (!selectedPO) return;
+
+    // Validate truck inspection
+    if (inspectionPestFree === null || inspectionDebrisFree === null) {
+      return; // Form validation will show required
+    }
 
     setIsSubmitting(true);
     try {
@@ -101,6 +127,10 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
         driver_name: driverName || undefined,
         seal_number: sealNumber || undefined,
         seal_intact: sealIntact,
+        truck_temperature_type: truckTempType,
+        truck_temperature_setting: truckTempType === 'refrigerated' && truckTempSetting ? parseFloat(truckTempSetting) : undefined,
+        inspection_pest_free: inspectionPestFree,
+        inspection_debris_free: inspectionDebrisFree,
         notes: notes || undefined,
       });
       
@@ -121,6 +151,10 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
     setDriverName('');
     setSealNumber('');
     setSealIntact(true);
+    setTruckTempType('refrigerated');
+    setTruckTempSetting('');
+    setInspectionPestFree(null);
+    setInspectionDebrisFree(null);
     setNotes('');
   };
 
@@ -221,6 +255,9 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
                   ))}
                 </SelectContent>
               </Select>
+              {selectedPOData?.delivery_location && locationId === selectedPOData.delivery_location_id && (
+                <p className="text-xs text-muted-foreground">From PO delivery location</p>
+              )}
             </div>
           </div>
 
@@ -284,6 +321,99 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
             </div>
           </div>
 
+          {/* Truck Temperature */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Thermometer className="h-4 w-4" />
+              Truck Temperature
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Truck Type *</Label>
+                <Select value={truckTempType} onValueChange={setTruckTempType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="refrigerated">Refrigerated</SelectItem>
+                    <SelectItem value="ambient">Ambient (Not Refrigerated)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {truckTempType === 'refrigerated' && (
+                <div className="space-y-2">
+                  <Label>Temperature Setting (°F)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={truckTempSetting}
+                    onChange={(e) => setTruckTempSetting(e.target.value)}
+                    placeholder="e.g., 35"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Truck Inspection */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Bug className="h-4 w-4" />
+              Truck Inspection
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Free of Pests, Insects, or Rodents *</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={inspectionPestFree === true ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setInspectionPestFree(true)}
+                    className={inspectionPestFree === true ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    Pass
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={inspectionPestFree === false ? 'destructive' : 'outline'}
+                    size="sm"
+                    onClick={() => setInspectionPestFree(false)}
+                  >
+                    Fail
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Free of Spilled Ingredients or Trash *</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={inspectionDebrisFree === true ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setInspectionDebrisFree(true)}
+                    className={inspectionDebrisFree === true ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    Pass
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={inspectionDebrisFree === false ? 'destructive' : 'outline'}
+                    size="sm"
+                    onClick={() => setInspectionDebrisFree(false)}
+                  >
+                    Fail
+                  </Button>
+                </div>
+              </div>
+            </div>
+            {(inspectionPestFree === false || inspectionDebrisFree === false) && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                ⚠️ Truck inspection failed. Consider rejecting this delivery or documenting in notes.
+              </div>
+            )}
+          </div>
+
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notes</Label>
@@ -300,7 +430,10 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!selectedPO || isSubmitting}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!selectedPO || inspectionPestFree === null || inspectionDebrisFree === null || isSubmitting}
+          >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Start Receiving
           </Button>

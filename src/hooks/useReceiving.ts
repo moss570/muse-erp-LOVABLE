@@ -92,6 +92,10 @@ export interface CreateReceivingSessionData {
   driver_name?: string;
   seal_number?: string;
   seal_intact?: boolean;
+  truck_temperature_type?: string;
+  truck_temperature_setting?: number;
+  inspection_pest_free?: boolean;
+  inspection_debris_free?: boolean;
   notes?: string;
 }
 
@@ -249,11 +253,28 @@ export function useReceiving() {
         .select()
         .single();
       if (error) throw error;
+
+      // Update PO item quantity_received
+      const { data: poItem, error: poItemError } = await supabase
+        .from('purchase_order_items')
+        .select('quantity_received')
+        .eq('id', data.po_item_id)
+        .single();
+      if (poItemError) throw poItemError;
+
+      const newQtyReceived = Number(poItem.quantity_received) + data.quantity_received;
+      const { error: updateError } = await supabase
+        .from('purchase_order_items')
+        .update({ quantity_received: newQtyReceived })
+        .eq('id', data.po_item_id);
+      if (updateError) throw updateError;
+
       return item;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['receiving-items', variables.receiving_session_id] });
       queryClient.invalidateQueries({ queryKey: ['po-items'] });
+      queryClient.invalidateQueries({ queryKey: ['po-items-for-receiving'] });
       toast({ title: 'Item received' });
     },
     onError: (error: Error) => {
@@ -285,15 +306,41 @@ export function useReceiving() {
   // Delete receiving item
   const deleteItem = useMutation({
     mutationFn: async ({ id, sessionId }: { id: string; sessionId: string }) => {
+      // First get the item to know how much to subtract from PO item
+      const { data: recItem, error: recItemError } = await supabase
+        .from('po_receiving_items')
+        .select('quantity_received, po_item_id')
+        .eq('id', id)
+        .single();
+      if (recItemError) throw recItemError;
+
+      // Delete the receiving item
       const { error } = await supabase
         .from('po_receiving_items')
         .delete()
         .eq('id', id);
       if (error) throw error;
+
+      // Update PO item quantity_received (subtract back)
+      const { data: poItem, error: poItemError } = await supabase
+        .from('purchase_order_items')
+        .select('quantity_received')
+        .eq('id', recItem.po_item_id)
+        .single();
+      if (poItemError) throw poItemError;
+
+      const newQtyReceived = Math.max(0, Number(poItem.quantity_received) - Number(recItem.quantity_received));
+      const { error: updateError } = await supabase
+        .from('purchase_order_items')
+        .update({ quantity_received: newQtyReceived })
+        .eq('id', recItem.po_item_id);
+      if (updateError) throw updateError;
+
       return { sessionId };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['receiving-items', result.sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['po-items-for-receiving'] });
       toast({ title: 'Item removed' });
     },
     onError: (error: Error) => {
