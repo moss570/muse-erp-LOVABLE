@@ -447,29 +447,21 @@ function DocumentRequirementsContent() {
                         {DOCUMENT_AREAS.map((area) => {
                           const isChecked = field.value.includes(area.value);
                           return (
-                            <div 
+                            <button
                               key={area.value}
-                              className="flex items-center space-x-2 rounded-md border p-2 hover:bg-muted/50 cursor-pointer"
+                              type="button"
+                              className="flex items-center space-x-2 rounded-md border p-2 text-left hover:bg-muted/50"
                               onClick={() => {
                                 if (isChecked) {
-                                  field.onChange(field.value.filter(a => a !== area.value));
+                                  field.onChange(field.value.filter((a) => a !== area.value));
                                 } else {
                                   field.onChange([...field.value, area.value]);
                                 }
                               }}
                             >
-                              <Checkbox 
-                                checked={isChecked}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...field.value, area.value]);
-                                  } else {
-                                    field.onChange(field.value.filter(a => a !== area.value));
-                                  }
-                                }}
-                              />
+                              <Checkbox checked={isChecked} className="pointer-events-none" />
                               <span className="text-sm">{area.label}</span>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
