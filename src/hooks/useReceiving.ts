@@ -254,21 +254,8 @@ export function useReceiving() {
         .single();
       if (error) throw error;
 
-      // Update PO item quantity_received
-      const { data: poItem, error: poItemError } = await supabase
-        .from('purchase_order_items')
-        .select('quantity_received')
-        .eq('id', data.po_item_id)
-        .single();
-      if (poItemError) throw poItemError;
-
-      const newQtyReceived = Number(poItem.quantity_received) + data.quantity_received;
-      const { error: updateError } = await supabase
-        .from('purchase_order_items')
-        .update({ quantity_received: newQtyReceived })
-        .eq('id', data.po_item_id);
-      if (updateError) throw updateError;
-
+      // Note: quantity_received on purchase_order_items is maintained by a DB trigger
+      // (based on sum(po_receiving_items.quantity_received)). Do not update it here.
       return item;
     },
     onSuccess: (_, variables) => {
@@ -309,14 +296,6 @@ export function useReceiving() {
   // Delete receiving item
   const deleteItem = useMutation({
     mutationFn: async ({ id, sessionId }: { id: string; sessionId: string }) => {
-      // First get the item to know how much to subtract from PO item
-      const { data: recItem, error: recItemError } = await supabase
-        .from('po_receiving_items')
-        .select('quantity_received, po_item_id')
-        .eq('id', id)
-        .single();
-      if (recItemError) throw recItemError;
-
       // Delete the receiving item
       const { error } = await supabase
         .from('po_receiving_items')
@@ -324,20 +303,8 @@ export function useReceiving() {
         .eq('id', id);
       if (error) throw error;
 
-      // Update PO item quantity_received (subtract back)
-      const { data: poItem, error: poItemError } = await supabase
-        .from('purchase_order_items')
-        .select('quantity_received')
-        .eq('id', recItem.po_item_id)
-        .single();
-      if (poItemError) throw poItemError;
-
-      const newQtyReceived = Math.max(0, Number(poItem.quantity_received) - Number(recItem.quantity_received));
-      const { error: updateError } = await supabase
-        .from('purchase_order_items')
-        .update({ quantity_received: newQtyReceived })
-        .eq('id', recItem.po_item_id);
-      if (updateError) throw updateError;
+      // Note: purchase_order_items.quantity_received is maintained by a DB trigger
+      // so removing a receiving item will automatically recalc totals.
 
       return { sessionId };
     },

@@ -122,30 +122,26 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
   const isLoading = sessionLoading || itemsLoading;
 
   // Calculate remaining quantities for PO items
-  // Note: quantity_received from DB is updated in real-time when items are added
-  // But the poItems query may be stale, so we also need to account for what's in the current session
   const getItemsWithRemaining = () => {
     if (!poItems) return [];
-    return poItems.map(item => {
-      // Calculate how much was received in THIS session (from the items we've added)
-      const receivedInSession = items?.filter(ri => ri.po_item_id === item.id)
-        .reduce((sum, ri) => sum + Number(ri.quantity_received), 0) || 0;
-      
-      // The actual remaining should be: ordered - (what DB says was received)
-      // But since DB is updated immediately and our poItems query might be stale,
-      // we use quantity_remaining if available, otherwise calculate from ordered - received
-      const dbRemaining = item.quantity_remaining ?? (item.quantity_ordered - item.quantity_received);
-      
-      // Subtract what we've received in this session (if DB is stale)
-      // To avoid double-counting: if the session items aren't yet reflected in quantity_received
-      const remaining = Math.max(0, dbRemaining);
-      
-      return {
-        ...item,
-        remaining,
-        receivedInSession,
-      };
-    }).filter(item => item.remaining > 0 || item.receivedInSession > 0);
+
+    return poItems
+      .map((item) => {
+        const receivedInSession =
+          items
+            ?.filter((ri) => ri.po_item_id === item.id)
+            .reduce((sum, ri) => sum + Number(ri.quantity_received), 0) || 0;
+
+        // Source of truth: quantity_received maintained in DB
+        const remaining = Math.max(0, Number(item.quantity_ordered) - Number(item.quantity_received));
+
+        return {
+          ...item,
+          remaining,
+          receivedInSession,
+        };
+      })
+      .filter((item) => item.remaining > 0 || item.receivedInSession > 0);
   };
 
   return (
