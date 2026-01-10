@@ -11,7 +11,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
@@ -112,16 +111,14 @@ export function StatusIndicator({
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Icon className={cn(iconSize, config.className, 'cursor-help')} />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{displayLabel}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Icon className={cn(iconSize, config.className, 'cursor-help')} />
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{displayLabel}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -138,23 +135,21 @@ export function WorkflowStatus({ statuses }: WorkflowStatusProps) {
   return (
     <div className="flex items-center gap-0.5">
       {statuses.map((status) => (
-        <TooltipProvider key={status.key}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div
-                className={cn(
-                  'h-2 w-2 rounded-full transition-colors',
-                  status.completed 
-                    ? 'bg-emerald-500' 
-                    : 'bg-muted-foreground/30'
-                )}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{status.label}: {status.completed ? 'Complete' : 'Pending'}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip key={status.key}>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                'h-2 w-2 rounded-full transition-colors',
+                status.completed ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+              )}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {status.label}: {status.completed ? 'Complete' : 'Pending'}
+            </p>
+          </TooltipContent>
+        </Tooltip>
       ))}
     </div>
   );
