@@ -117,7 +117,26 @@ export default function PurchaseOrderDetail() {
         .eq('purchase_order_id', id)
         .order('sort_order');
       if (error) throw error;
-      return data;
+      
+      // Fetch variant codes from material_purchase_units based on unit_id
+      const itemsWithVariantCodes = await Promise.all(
+        data.map(async (item) => {
+          // Look up if there's a purchase unit variant for this material + unit combination
+          const { data: purchaseUnit } = await supabase
+            .from('material_purchase_units')
+            .select('code')
+            .eq('material_id', item.material_id)
+            .eq('unit_id', item.unit_id)
+            .maybeSingle();
+          
+          return {
+            ...item,
+            variant_code: purchaseUnit?.code || null,
+          };
+        })
+      );
+      
+      return itemsWithVariantCodes;
     },
     enabled: !!id,
   });
@@ -493,7 +512,7 @@ export default function PurchaseOrderDetail() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{item.material?.code}</TableCell>
+                  <TableCell className="font-mono text-sm">{item.variant_code || item.material?.code}</TableCell>
                   <TableCell className="text-muted-foreground">{item.supplier_item_number || '-'}</TableCell>
                   <TableCell className="text-right">{item.quantity_ordered}</TableCell>
                   <TableCell className="text-right">
