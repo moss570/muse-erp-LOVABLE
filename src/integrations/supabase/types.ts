@@ -314,6 +314,7 @@ export type Database = {
       }
       listed_material_names: {
         Row: {
+          code: string | null
           created_at: string
           description: string | null
           id: string
@@ -322,6 +323,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -330,6 +332,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1723,6 +1726,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      generate_listed_material_code: { Args: never; Returns: string }
       generate_material_code: { Args: { p_category: string }; Returns: string }
       generate_pallet_number: {
         Args: { p_build_date?: string }

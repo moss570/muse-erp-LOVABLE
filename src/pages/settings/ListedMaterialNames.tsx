@@ -40,6 +40,7 @@ import { LinkedMaterialsDialog } from '@/components/materials/LinkedMaterialsDia
 import type { Tables } from '@/integrations/supabase/types';
 
 const materialNameSchema = z.object({
+  code: z.string().min(1, 'Code is required'),
   name: z.string().min(1, 'Name is required').max(200, 'Name must be 200 characters or less'),
   description: z.string().max(500, 'Description must be 500 characters or less').optional(),
   is_active: z.boolean().default(true),
@@ -69,11 +70,22 @@ export default function ListedMaterialNames() {
   const form = useForm<MaterialNameFormData>({
     resolver: zodResolver(materialNameSchema),
     defaultValues: {
+      code: '',
       name: '',
       description: '',
       is_active: true,
     },
   });
+
+  // Generate code for new listed materials
+  const generateCode = async () => {
+    const { data, error } = await supabase.rpc('generate_listed_material_code');
+    if (error) {
+      console.error('Error generating code:', error);
+      return 'LM-00001';
+    }
+    return data as string;
+  };
 
   // Fetch listed material names with linked material counts
   const { data: materialNames, isLoading, refetch } = useQuery({
@@ -112,6 +124,7 @@ export default function ListedMaterialNames() {
   const createMutation = useMutation({
     mutationFn: async (data: MaterialNameFormData) => {
       const { error } = await supabase.from('listed_material_names').insert([{
+        code: data.code,
         name: data.name,
         description: data.description || null,
         is_active: data.is_active,
@@ -133,6 +146,7 @@ export default function ListedMaterialNames() {
       const { error } = await supabase
         .from('listed_material_names')
         .update({
+          code: data.code,
           name: data.name,
           description: data.description || null,
           is_active: data.is_active,
@@ -164,17 +178,20 @@ export default function ListedMaterialNames() {
     },
   });
 
-  const handleOpenDialog = (materialName?: ListedMaterialName) => {
+  const handleOpenDialog = async (materialName?: ListedMaterialName) => {
     if (materialName) {
       setEditingName(materialName);
       form.reset({
+        code: (materialName as any).code || '',
         name: materialName.name,
         description: materialName.description || '',
         is_active: materialName.is_active ?? true,
       });
     } else {
       setEditingName(null);
+      const newCode = await generateCode();
       form.reset({
+        code: newCode,
         name: '',
         description: '',
         is_active: true,
@@ -253,6 +270,7 @@ export default function ListedMaterialNames() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-[50px]">Status</TableHead>
+                  <TableHead className="w-[100px]">Code</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-center">Linked Materials</TableHead>
@@ -262,7 +280,7 @@ export default function ListedMaterialNames() {
               <TableBody>
                 {paginatedNames?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       <Tags className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No material names found</p>
                       <p className="text-sm">Try adjusting your search or filter</p>
@@ -280,6 +298,7 @@ export default function ListedMaterialNames() {
                         <TableCell>
                           <StatusIndicator status={materialName.is_active ? 'active' : 'inactive'} />
                         </TableCell>
+                        <TableCell className="font-mono text-sm">{(materialName as any).code || '-'}</TableCell>
                         <TableCell className="font-medium">{materialName.name}</TableCell>
                         <TableCell className="text-muted-foreground max-w-md truncate">
                           {materialName.description || '-'}
@@ -371,6 +390,25 @@ export default function ListedMaterialNames() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Code *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="LM-00001" 
+                        {...field} 
+                        className="font-mono"
+                        readOnly={!!editingName}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="name"
