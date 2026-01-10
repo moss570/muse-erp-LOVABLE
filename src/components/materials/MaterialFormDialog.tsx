@@ -105,15 +105,12 @@ const materialFormSchema = z.object({
 
 type MaterialFormData = z.infer<typeof materialFormSchema>;
 
-interface PurchaseUnit {
+interface UnitVariant {
   id?: string;
   code: string;
   unit_id: string;
   conversion_to_base: number;
   is_default: boolean;
-  input_qty?: number;
-  item_number?: string;
-  cost_per_unit?: number;
 }
 
 interface MaterialSupplier {
@@ -123,10 +120,12 @@ interface MaterialSupplier {
   supplier_item_number?: string;
   cost_per_unit?: number;
   unit_id?: string;
+  purchase_unit_id?: string; // Links to specific unit variant
   lead_time_days?: number;
   min_order_quantity?: number;
   notes?: string;
   is_active: boolean;
+  is_manufacturer?: boolean; // Flag to identify auto-added manufacturer
 }
 
 interface DocumentUpload {
@@ -149,7 +148,7 @@ interface MaterialFormDialogProps {
 
 export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFormDialogProps) {
   const [activeTab, setActiveTab] = useState('basic');
-  const [purchaseUnits, setPurchaseUnits] = useState<PurchaseUnit[]>([]);
+  const [unitVariants, setUnitVariants] = useState<UnitVariant[]>([]);
   const [materialSuppliers, setMaterialSuppliers] = useState<MaterialSupplier[]>([]);
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -389,24 +388,22 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         code: '', // Will be generated when category is selected
         category: '',
       } as MaterialFormData);
-      setPurchaseUnits([]);
+      setUnitVariants([]);
       setMaterialSuppliers([]);
       setDocuments([]);
     }
     setActiveTab('basic');
   }, [material, form, open]);
 
-  // Load existing purchase units
+  // Load existing unit variants (purchase units)
   useEffect(() => {
     if (existingPurchaseUnits) {
-      setPurchaseUnits(existingPurchaseUnits.map(pu => ({
+      setUnitVariants(existingPurchaseUnits.map(pu => ({
         id: pu.id,
         code: (pu as { code?: string }).code || '',
         unit_id: pu.unit_id,
         conversion_to_base: Number(pu.conversion_to_base),
         is_default: pu.is_default ?? false,
-        item_number: (pu as { item_number?: string }).item_number || '',
-        cost_per_unit: (pu as { cost_per_unit?: number }).cost_per_unit ?? undefined,
       })));
     }
   }, [existingPurchaseUnits]);
@@ -484,18 +481,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         .single();
       if (error) throw error;
       
-      // Insert purchase units
-      if (purchaseUnits.length > 0 && newMaterial) {
+      // Insert unit variants (purchase units)
+      if (unitVariants.length > 0 && newMaterial) {
         const { error: puError } = await supabase
           .from('material_purchase_units')
-          .insert(purchaseUnits.map(pu => ({
+          .insert(unitVariants.map(uv => ({
             material_id: newMaterial.id,
-            code: pu.code,
-            unit_id: pu.unit_id,
-            conversion_to_base: pu.conversion_to_base,
-            is_default: pu.is_default,
-            item_number: pu.item_number || null,
-            cost_per_unit: pu.cost_per_unit ?? null,
+            code: uv.code,
+            unit_id: uv.unit_id,
+            conversion_to_base: uv.conversion_to_base,
+            is_default: uv.is_default,
           })));
         if (puError) throw puError;
       }
@@ -577,34 +572,30 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         .eq('id', material.id);
       if (error) throw error;
       
-      // Update purchase units - delete removed, insert new, update existing
+      // Update unit variants - delete removed, insert new, update existing
       const existingIds = existingPurchaseUnits?.map(pu => pu.id) || [];
-      const currentIds = purchaseUnits.filter(pu => pu.id).map(pu => pu.id!);
+      const currentIds = unitVariants.filter(uv => uv.id).map(uv => uv.id!);
       const toDelete = existingIds.filter(id => !currentIds.includes(id));
       
       if (toDelete.length > 0) {
         await supabase.from('material_purchase_units').delete().in('id', toDelete);
       }
       
-      for (const pu of purchaseUnits) {
-        if (pu.id) {
+      for (const uv of unitVariants) {
+        if (uv.id) {
           await supabase.from('material_purchase_units').update({
-            code: pu.code,
-            unit_id: pu.unit_id,
-            conversion_to_base: pu.conversion_to_base,
-            is_default: pu.is_default,
-            item_number: pu.item_number || null,
-            cost_per_unit: pu.cost_per_unit ?? null,
-          }).eq('id', pu.id);
+            code: uv.code,
+            unit_id: uv.unit_id,
+            conversion_to_base: uv.conversion_to_base,
+            is_default: uv.is_default,
+          }).eq('id', uv.id);
         } else {
           await supabase.from('material_purchase_units').insert({
             material_id: material.id,
-            code: pu.code,
-            unit_id: pu.unit_id,
-            conversion_to_base: pu.conversion_to_base,
-            is_default: pu.is_default,
-            item_number: pu.item_number || null,
-            cost_per_unit: pu.cost_per_unit ?? null,
+            code: uv.code,
+            unit_id: uv.unit_id,
+            conversion_to_base: uv.conversion_to_base,
+            is_default: uv.is_default,
           });
         }
       }
@@ -671,21 +662,21 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     }
   };
 
-  const addPurchaseUnit = () => {
+  const addUnitVariant = () => {
     const baseCode = form.getValues('code');
     // Use A, B, C, D... for alternative unit suffixes
-    const suffixLetter = String.fromCharCode(65 + purchaseUnits.length); // A=65, B=66, etc.
+    const suffixLetter = String.fromCharCode(65 + unitVariants.length); // A=65, B=66, etc.
     const newCode = `${baseCode}${suffixLetter}`;
-    setPurchaseUnits([...purchaseUnits, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false, item_number: '', cost_per_unit: undefined }]);
+    setUnitVariants([...unitVariants, { code: newCode, unit_id: '', conversion_to_base: 1, is_default: false }]);
   };
 
-  const removePurchaseUnit = (index: number) => {
-    setPurchaseUnits(purchaseUnits.filter((_, i) => i !== index));
+  const removeUnitVariant = (index: number) => {
+    setUnitVariants(unitVariants.filter((_, i) => i !== index));
   };
 
-  const updatePurchaseUnit = (index: number, field: keyof PurchaseUnit, value: string | number | boolean) => {
-    setPurchaseUnits(purchaseUnits.map((pu, i) => 
-      i === index ? { ...pu, [field]: value } : pu
+  const updateUnitVariant = (index: number, field: keyof UnitVariant, value: string | number | boolean) => {
+    setUnitVariants(unitVariants.map((uv, i) => 
+      i === index ? { ...uv, [field]: value } : uv
     ));
   };
 
@@ -854,7 +845,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="specifications">Specifications</TabsTrigger>
                 <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
-                <TabsTrigger value="purchasing">Purchasing</TabsTrigger>
+                <TabsTrigger value="unit-variants">Unit Variants</TabsTrigger>
                 <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
@@ -881,8 +872,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                             if (!error && data) {
                               form.setValue('code', data);
                               // Update any existing alternative unit codes
-                              setPurchaseUnits(prev => prev.map((pu, idx) => ({
-                                ...pu,
+                              setUnitVariants(prev => prev.map((uv, idx) => ({
+                                ...uv,
                                 code: `${data}${String.fromCharCode(65 + idx)}`
                               })));
                             }
@@ -996,7 +987,37 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       <FormItem>
                         <FormLabel>Manufacturer</FormLabel>
                         <Select 
-                          onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                          onValueChange={(value) => {
+                            const selectedName = value === '__none__' ? '' : value;
+                            field.onChange(selectedName);
+                            
+                            // Auto-add manufacturer as supplier if they're a manufacturer or manufacturer_distributor
+                            if (selectedName) {
+                              const selectedManufacturer = manufacturers?.find(m => m.name === selectedName);
+                              if (selectedManufacturer && 
+                                  (selectedManufacturer.supplier_type === 'manufacturer' || 
+                                   selectedManufacturer.supplier_type === 'manufacturer_distributor')) {
+                                // Check if this manufacturer is already in the suppliers list
+                                const alreadyAdded = materialSuppliers.some(
+                                  ms => ms.supplier_id === selectedManufacturer.id
+                                );
+                                if (!alreadyAdded) {
+                                  // Auto-add as primary supplier with manufacturer flag
+                                  const isPrimary = materialSuppliers.length === 0;
+                                  setMaterialSuppliers(prev => [
+                                    ...prev.map(ms => isPrimary ? { ...ms, is_primary: false } : ms),
+                                    {
+                                      supplier_id: selectedManufacturer.id,
+                                      is_primary: isPrimary,
+                                      is_active: true,
+                                      is_manufacturer: true,
+                                      supplier_item_number: form.getValues('item_number') || undefined,
+                                    }
+                                  ]);
+                                }
+                              }
+                            }
+                          }} 
                           value={field.value || '__none__'}
                         >
                           <FormControl>
@@ -1017,7 +1038,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Only suppliers marked as Manufacturer or Manufacturer & Distributor
+                          Selecting a manufacturer will automatically add them as an approved supplier
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1668,18 +1689,18 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                 </div>
               </TabsContent>
 
-              {/* Purchasing Tab - Alternative Purchase Units */}
-              <TabsContent value="purchasing" className="space-y-6 mt-4">
+              {/* Unit Variants Tab - Alternative Pack Sizes */}
+              <TabsContent value="unit-variants" className="space-y-6 mt-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium">Alternative Purchase Units</h4>
+                      <h4 className="font-medium">Unit Variants (Pack Sizes)</h4>
                       <p className="text-sm text-muted-foreground">
-                        Define additional ways this material can be purchased (e.g., different package sizes)
+                        Define alternative pack sizes for this material (e.g., 50lb bag, 2000lb tote)
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addPurchaseUnit}>
-                      <Plus className="h-4 w-4 mr-1" /> Add Alternative Unit
+                    <Button type="button" variant="outline" size="sm" onClick={addUnitVariant}>
+                      <Plus className="h-4 w-4 mr-1" /> Add Variant
                     </Button>
                   </div>
 
@@ -1715,15 +1736,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     );
                   })()}
 
-                  {purchaseUnits.length === 0 ? (
+                  {unitVariants.length === 0 ? (
                     <div className="text-center py-6 text-muted-foreground border rounded-md bg-muted/20">
-                      <p>No alternative purchase units defined.</p>
-                      <p className="text-xs mt-1">Click "Add Alternative Unit" to add different package sizes.</p>
+                      <p>No alternative pack sizes defined.</p>
+                      <p className="text-xs mt-1">Click "Add Variant" to add different pack sizes.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {purchaseUnits.map((pu, index) => {
-                        const selectedUnit = units?.find(u => u.id === pu.unit_id);
+                      {unitVariants.map((uv, index) => {
+                        const selectedUnit = units?.find(u => u.id === uv.unit_id);
                         const usageUnitId = form.watch('usage_unit_id');
                         const usageUnit = units?.find(u => u.id === usageUnitId);
                         const baseUnitId = form.watch('base_unit_id');
@@ -1733,27 +1754,27 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         return (
                           <div key={index} className="p-4 border rounded-md bg-card space-y-3">
                             <div className="flex items-start gap-3">
-                              <div className="flex-1 space-y-3">
+                              <div className="flex-1">
                                 <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Code
                                     </label>
                                     <Input
-                                      value={pu.code}
-                                      onChange={(e) => updatePurchaseUnit(index, 'code', e.target.value)}
+                                      value={uv.code}
+                                      onChange={(e) => updateUnitVariant(index, 'code', e.target.value)}
                                       placeholder="Material code"
                                       className="font-mono"
                                     />
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Purchase Unit
+                                      Pack Size / Unit
                                     </label>
                                     <div className="flex gap-1">
                                       <Select
-                                        value={pu.unit_id}
-                                        onValueChange={(value) => updatePurchaseUnit(index, 'unit_id', value)}
+                                        value={uv.unit_id}
+                                        onValueChange={(value) => updateUnitVariant(index, 'unit_id', value)}
                                       >
                                         <SelectTrigger className="flex-1">
                                           <SelectValue placeholder="Select unit" />
@@ -1783,38 +1804,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      {displayUnit ? `${displayUnit.code} per unit` : 'Conversion'}
+                                      {displayUnit ? `${displayUnit.code} per pack` : 'Conversion'}
                                     </label>
                                     <Input
                                       type="number"
                                       step="0.01"
-                                      value={pu.conversion_to_base}
-                                      onChange={(e) => updatePurchaseUnit(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
-                                      placeholder="e.g., 3.785"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Manufacturer Item Number
-                                    </label>
-                                    <Input
-                                      value={pu.item_number || ''}
-                                      onChange={(e) => updatePurchaseUnit(index, 'item_number', e.target.value)}
-                                      placeholder="MFR-12345"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Cost Per Purchase Unit ($)
-                                    </label>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      value={pu.cost_per_unit ?? ''}
-                                      onChange={(e) => updatePurchaseUnit(index, 'cost_per_unit', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                      placeholder="0.00"
+                                      value={uv.conversion_to_base}
+                                      onChange={(e) => updateUnitVariant(index, 'conversion_to_base', parseFloat(e.target.value) || 0)}
+                                      placeholder="e.g., 22.68"
                                     />
                                   </div>
                                 </div>
@@ -1824,14 +1821,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive shrink-0 mt-5"
-                                onClick={() => removePurchaseUnit(index)}
+                                onClick={() => removeUnitVariant(index)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                             {selectedUnit && displayUnit && (
                               <p className="text-xs text-muted-foreground">
-                                1 {selectedUnit.code} = {pu.conversion_to_base} {displayUnit.code}
+                                1 {selectedUnit.code} = {uv.conversion_to_base} {displayUnit.code}
                               </p>
                             )}
                           </div>
@@ -1875,7 +1872,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     <div>
                       <h4 className="font-medium">Approved Suppliers</h4>
                       <p className="text-sm text-muted-foreground">
-                        Link approved suppliers with pricing and lead time information
+                        Assign suppliers with their item numbers, pricing, and preferred unit variants
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={addMaterialSupplier}>
@@ -1886,24 +1883,44 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   {materialSuppliers.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
                       <p>No suppliers linked to this material.</p>
-                      <p className="text-xs mt-1">Click "Add Supplier" to link approved suppliers.</p>
+                      <p className="text-xs mt-1">
+                        {form.watch('manufacturer') 
+                          ? 'The manufacturer was auto-added. Click "Add Supplier" to add more.'
+                          : 'Click "Add Supplier" or select a manufacturer in Basic Info.'}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {materialSuppliers.map((ms, index) => {
                         const selectedSupplier = suppliers?.find(s => s.id === ms.supplier_id);
                         const selectedUnit = units?.find(u => u.id === ms.unit_id);
+                        const baseUnitId = form.watch('base_unit_id');
+                        const baseUnit = units?.find(u => u.id === baseUnitId);
+                        
+                        // Build unit options: Default + all unit variants
+                        const unitOptions = [
+                          { id: '__default__', label: `Default (${baseUnit?.code || 'Base Unit'})` },
+                          ...unitVariants.map(uv => {
+                            const uvUnit = units?.find(u => u.id === uv.unit_id);
+                            return { id: uv.id || uv.code, label: `${uv.code} - ${uvUnit?.name || 'Unit'}` };
+                          })
+                        ];
                         
                         return (
-                          <div key={index} className={`p-4 border rounded-md bg-card space-y-4 ${ms.is_primary ? 'border-primary/50 bg-primary/5' : ''}`}>
+                          <div key={index} className={`p-4 border rounded-md bg-card space-y-4 ${ms.is_primary ? 'border-primary/50 bg-primary/5' : ''} ${ms.is_manufacturer ? 'ring-1 ring-blue-500/30' : ''}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 space-y-4">
-                                {/* Header Row */}
+                                {/* Header Row with Supplier & Primary Button */}
                                 <div className="flex items-center gap-3">
                                   <div className="flex-1">
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Supplier *
-                                    </label>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <label className="text-xs font-medium text-muted-foreground">
+                                        Supplier *
+                                      </label>
+                                      {ms.is_manufacturer && (
+                                        <Badge variant="secondary" className="text-xs">Manufacturer</Badge>
+                                      )}
+                                    </div>
                                     <Select
                                       value={ms.supplier_id}
                                       onValueChange={(value) => updateMaterialSupplier(index, 'supplier_id', value)}
@@ -1943,11 +1960,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                   </div>
                                 </div>
 
-                                {/* Pricing Row */}
-                                <div className="grid grid-cols-3 gap-3">
+                                {/* Item Number & Unit Variant Row */}
+                                <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Supplier Item Number
+                                      Supplier Item Number (for PO)
                                     </label>
                                     <Input
                                       value={ms.supplier_item_number || ''}
@@ -1955,6 +1972,30 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       placeholder="SUP-12345"
                                     />
                                   </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                      Unit Variant
+                                    </label>
+                                    <Select
+                                      value={ms.purchase_unit_id || '__default__'}
+                                      onValueChange={(value) => updateMaterialSupplier(index, 'purchase_unit_id', value === '__default__' ? undefined : value)}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select unit variant" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {unitOptions.map((opt) => (
+                                          <SelectItem key={opt.id} value={opt.id}>
+                                            {opt.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                {/* Pricing Row */}
+                                <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Cost Per Unit ($)
@@ -1967,47 +2008,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       placeholder="0.00"
                                     />
                                   </div>
-                                  <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Pricing Unit
-                                    </label>
-                                    <div className="flex gap-1">
-                                      <Select
-                                        value={ms.unit_id || '__none__'}
-                                        onValueChange={(value) => updateMaterialSupplier(index, 'unit_id', value === '__none__' ? undefined : value)}
-                                      >
-                                        <SelectTrigger className="flex-1">
-                                          <SelectValue placeholder="Select unit" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="__none__">Use Base Unit</SelectItem>
-                                          {units?.map((unit) => (
-                                            <SelectItem key={unit.id} value={unit.id}>
-                                              {unit.name} ({unit.code})
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        className="shrink-0"
-                                        onClick={() => {
-                                          setPendingUnitField('supplier');
-                                          setPendingSupplierIndex(index);
-                                          setCreateUnitOpen(true);
-                                        }}
-                                        title="Create custom unit"
-                                      >
-                                        <PlusCircle className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Lead Time & MOQ Row */}
-                                <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Lead Time (Days)
@@ -2031,21 +2031,23 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                       placeholder="1"
                                     />
                                   </div>
-                                  <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                                      Notes
-                                    </label>
-                                    <Input
-                                      value={ms.notes || ''}
-                                      onChange={(e) => updateMaterialSupplier(index, 'notes', e.target.value)}
-                                      placeholder="Special instructions..."
-                                    />
-                                  </div>
+                                </div>
+
+                                {/* Notes Row */}
+                                <div>
+                                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                                    Notes
+                                  </label>
+                                  <Input
+                                    value={ms.notes || ''}
+                                    onChange={(e) => updateMaterialSupplier(index, 'notes', e.target.value)}
+                                    placeholder="Special instructions, alternative item numbers..."
+                                  />
                                 </div>
                               </div>
                             </div>
                             {selectedSupplier && (
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground border-t pt-2">
                                 {selectedSupplier.contact_name && <span>Contact: {selectedSupplier.contact_name}</span>}
                                 {selectedSupplier.email && <span className="ml-3">Email: {selectedSupplier.email}</span>}
                                 {selectedSupplier.phone && <span className="ml-3">Phone: {selectedSupplier.phone}</span>}
@@ -2270,7 +2272,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
               updateMaterialSupplier(pendingSupplierIndex, 'unit_id', unitId);
               setPendingSupplierIndex(null);
             } else if (typeof pendingUnitField === 'number') {
-              updatePurchaseUnit(pendingUnitField, 'unit_id', unitId);
+              updateUnitVariant(pendingUnitField, 'unit_id', unitId);
             }
             setPendingUnitField(null);
           }}
