@@ -274,7 +274,10 @@ export function useReceiving() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['receiving-items', variables.receiving_session_id] });
       queryClient.invalidateQueries({ queryKey: ['po-items'] });
-      queryClient.invalidateQueries({ queryKey: ['po-items-for-receiving'] });
+      // Invalidate all po-items-for-receiving queries (regardless of poId)
+      queryClient.invalidateQueries({ predicate: (query) => 
+        query.queryKey[0] === 'po-items-for-receiving'
+      });
       toast({ title: 'Item received' });
     },
     onError: (error: Error) => {
@@ -340,7 +343,10 @@ export function useReceiving() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['receiving-items', result.sessionId] });
-      queryClient.invalidateQueries({ queryKey: ['po-items-for-receiving'] });
+      // Invalidate all po-items-for-receiving queries (regardless of poId)
+      queryClient.invalidateQueries({ predicate: (query) => 
+        query.queryKey[0] === 'po-items-for-receiving'
+      });
       toast({ title: 'Item removed' });
     },
     onError: (error: Error) => {
