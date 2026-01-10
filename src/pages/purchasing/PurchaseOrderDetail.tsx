@@ -38,7 +38,9 @@ import {
   FileText,
   DollarSign,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Printer,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermission';
@@ -285,8 +287,127 @@ export default function PurchaseOrderDetail() {
 
   const canSubmitForApproval = purchaseOrder.status === 'draft' && purchaseOrder.requires_approval;
   const canApproveReject = purchaseOrder.status === 'pending_approval' && canApprove;
-  const canSend = (purchaseOrder.status === 'approved' || (purchaseOrder.status === 'draft' && !purchaseOrder.requires_approval));
+  const canSend = (purchaseOrder.status === 'approved' || (purchaseOrder.status === 'draft' && !purchaseOrder.requires_approval)) && canEdit;
   const canReceive = ['sent', 'partially_received'].includes(purchaseOrder.status);
+  
+  // Print/Download PO as PDF
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({ title: 'Please allow popups to print', variant: 'destructive' });
+      return;
+    }
+    
+    const lineItemsHtml = lineItems?.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.material?.name || ''}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${item.variant_code || item.material?.code || ''}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.supplier_item_number || '-'}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.quantity_ordered}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.unit?.code || ''}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${Number(item.unit_cost).toFixed(2)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">$${Number(item.line_total).toFixed(2)}</td>
+      </tr>
+    `).join('') || '';
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Purchase Order - ${purchaseOrder.po_number}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          h1 { margin-bottom: 5px; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .header-left h1 { font-size: 24px; margin: 0; }
+          .header-left p { color: #666; margin: 5px 0 0 0; }
+          .header-right { text-align: right; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+          .info-box h3 { font-size: 14px; color: #666; margin: 0 0 10px 0; text-transform: uppercase; }
+          .info-box p { margin: 3px 0; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th { background: #f3f4f6; padding: 10px 8px; text-align: left; font-size: 12px; text-transform: uppercase; }
+          th:nth-child(4), th:nth-child(6), th:nth-child(7) { text-align: right; }
+          .totals { text-align: right; margin-top: 20px; }
+          .totals p { margin: 5px 0; }
+          .totals .total { font-size: 18px; font-weight: bold; }
+          .notes { margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 8px; }
+          .notes h4 { margin: 0 0 10px 0; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-left">
+            <h1>PURCHASE ORDER</h1>
+            <p>${purchaseOrder.po_number}</p>
+          </div>
+          <div class="header-right">
+            <p><strong>Order Date:</strong> ${format(new Date(purchaseOrder.order_date), 'MMM d, yyyy')}</p>
+            ${purchaseOrder.expected_delivery_date ? `<p><strong>Expected Delivery:</strong> ${format(new Date(purchaseOrder.expected_delivery_date), 'MMM d, yyyy')}</p>` : ''}
+          </div>
+        </div>
+        
+        <div class="info-grid">
+          <div class="info-box">
+            <h3>Supplier</h3>
+            <p><strong>${purchaseOrder.supplier?.name || ''}</strong></p>
+            <p>${purchaseOrder.supplier?.code || ''}</p>
+            ${purchaseOrder.supplier?.address ? `<p>${purchaseOrder.supplier.address}</p>` : ''}
+            ${purchaseOrder.supplier?.city ? `<p>${purchaseOrder.supplier.city}, ${purchaseOrder.supplier?.state || ''} ${purchaseOrder.supplier?.zip || ''}</p>` : ''}
+            ${purchaseOrder.supplier?.phone ? `<p>Phone: ${purchaseOrder.supplier.phone}</p>` : ''}
+            ${purchaseOrder.supplier?.email ? `<p>Email: ${purchaseOrder.supplier.email}</p>` : ''}
+          </div>
+          <div class="info-box">
+            <h3>Ship To</h3>
+            ${purchaseOrder.delivery_location ? `
+              <p><strong>${purchaseOrder.delivery_location.name}</strong></p>
+              <p>${purchaseOrder.delivery_location.location_code}</p>
+            ` : '<p>Not specified</p>'}
+            ${purchaseOrder.shipping_method ? `<p><strong>Method:</strong> ${purchaseOrder.shipping_method}</p>` : ''}
+            ${purchaseOrder.shipping_terms ? `<p><strong>Terms:</strong> ${purchaseOrder.shipping_terms}</p>` : ''}
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Code</th>
+              <th>Supplier Item #</th>
+              <th>Qty</th>
+              <th>Unit</th>
+              <th>Unit Cost</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lineItemsHtml}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <p><strong>Subtotal:</strong> $${Number(purchaseOrder.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          ${purchaseOrder.shipping_amount ? `<p><strong>Shipping:</strong> $${Number(purchaseOrder.shipping_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>` : ''}
+          ${purchaseOrder.tax_amount ? `<p><strong>Tax:</strong> $${Number(purchaseOrder.tax_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>` : ''}
+          <p class="total"><strong>Total:</strong> $${Number(purchaseOrder.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+        </div>
+        
+        ${purchaseOrder.notes ? `
+          <div class="notes">
+            <h4>Notes</h4>
+            <p>${purchaseOrder.notes}</p>
+          </div>
+        ` : ''}
+        
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
 
   return (
     <div className="space-y-6">
@@ -355,6 +476,12 @@ export default function PurchaseOrderDetail() {
               Receive Items
             </Button>
           )}
+          
+          {/* Print/Download Button - always available */}
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print / PDF
+          </Button>
         </div>
       </div>
 
