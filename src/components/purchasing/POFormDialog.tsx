@@ -23,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -49,6 +55,9 @@ interface POLineItem {
   our_item_number?: string; // material_purchase_units.item_number or materials.item_number
   supplier_item_number?: string; // material_suppliers.supplier_item_number
   manufacturer_item_number?: string; // materials.item_number (from manufacturer)
+  usage_uom?: string; // Usage unit name/code
+  usage_unit_conversion?: number; // Conversion factor from pack unit to usage unit
+  pack_to_base_conversion?: number; // Conversion from pack unit to base unit
   quantity_ordered: number;
   unit_cost: number;
   line_total: number;
@@ -142,10 +151,13 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
             code, 
             item_number,
             base_unit_id, 
-            base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name)
+            base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name),
+            usage_unit_id,
+            usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name),
+            usage_unit_conversion
           ),
           unit:units_of_measure(id, code, name),
-          purchase_unit:material_purchase_units(id, code, unit_id, item_number, unit:units_of_measure(id, code, name))
+          purchase_unit:material_purchase_units(id, code, unit_id, item_number, conversion_to_base, unit:units_of_measure(id, code, name))
         `)
         .eq('supplier_id', selectedSupplierId)
         .eq('is_active', true);
@@ -168,6 +180,13 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
     // Our item number: from purchase_unit if variant, otherwise from material
     const ourItemNumber = purchaseUnit?.item_number || material?.item_number;
     
+    // Usage UOM info
+    const usageUnit = material?.usage_unit;
+    const usageUnitConversion = material?.usage_unit_conversion;
+    
+    // Pack to base conversion (from purchase unit, or 1 if it's the base unit)
+    const packToBaseConversion = purchaseUnit?.conversion_to_base || 1;
+    
     return {
       material_supplier_id: sm.id, // Use material_suppliers.id as the unique key
       material_id: material?.id,
@@ -183,6 +202,10 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       our_item_number: ourItemNumber || '',
       supplier_item_number: sm.supplier_item_number || '',
       manufacturer_item_number: material?.item_number || '',
+      // Usage UOM
+      usage_uom: usageUnit?.name || usageUnit?.code || material?.base_unit?.name || material?.base_unit?.code || '',
+      usage_unit_conversion: usageUnitConversion || 1,
+      pack_to_base_conversion: packToBaseConversion,
       // Cost
       cost_per_unit: sm.cost_per_unit,
       // Purchase unit info
@@ -287,6 +310,9 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         our_item_number: '',
         supplier_item_number: '',
         manufacturer_item_number: '',
+        usage_uom: '',
+        usage_unit_conversion: 1,
+        pack_to_base_conversion: 1,
         quantity_ordered: 1,
         unit_cost: 0,
         line_total: 0,
@@ -316,6 +342,9 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         updated[index].our_item_number = supplierMaterial.our_item_number;
         updated[index].supplier_item_number = supplierMaterial.supplier_item_number;
         updated[index].manufacturer_item_number = supplierMaterial.manufacturer_item_number;
+        updated[index].usage_uom = supplierMaterial.usage_uom;
+        updated[index].usage_unit_conversion = supplierMaterial.usage_unit_conversion;
+        updated[index].pack_to_base_conversion = supplierMaterial.pack_to_base_conversion;
         updated[index].unit_cost = Number(supplierMaterial.cost_per_unit) || 0;
         updated[index].line_total = updated[index].quantity_ordered * updated[index].unit_cost;
       }
@@ -658,6 +687,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                     <tr className="border-b bg-muted/50">
                       <th className="p-2 text-left min-w-[200px]">Material</th>
                       <th className="p-2 text-left min-w-[80px]">Pack Size</th>
+                      <th className="p-2 text-left min-w-[80px]">Usage UOM</th>
                       <th className="p-2 text-left min-w-[100px]">Our Item #</th>
                       <th className="p-2 text-left min-w-[100px]">Supplier Item #</th>
                       <th className="p-2 text-left min-w-[100px]">Mfg Item #</th>
@@ -670,7 +700,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   <tbody>
                     {lineItems.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="p-4 text-center text-muted-foreground">
+                        <td colSpan={10} className="p-4 text-center text-muted-foreground">
                           No items added. Click "Add Item" to begin.
                         </td>
                       </tr>
@@ -699,6 +729,9 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                           <td className="p-2 text-muted-foreground">
                             {item.pack_size || item.unit_code || '-'}
                           </td>
+                          <td className="p-2 text-muted-foreground">
+                            {item.usage_uom || '-'}
+                          </td>
                           <td className="p-2 text-muted-foreground font-mono text-xs">
                             {item.our_item_number || '-'}
                           </td>
@@ -709,14 +742,36 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                             {item.manufacturer_item_number || '-'}
                           </td>
                           <td className="p-2">
-                            <Input
-                              type="number"
-                              className="h-8 text-right w-20"
-                              value={item.quantity_ordered}
-                              onChange={(e) => updateLineItem(index, 'quantity_ordered', parseFloat(e.target.value) || 0)}
-                              min="0"
-                              step="0.01"
-                            />
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Input
+                                    type="number"
+                                    className="h-8 text-right w-20 cursor-help"
+                                    value={item.quantity_ordered}
+                                    onChange={(e) => updateLineItem(index, 'quantity_ordered', parseFloat(e.target.value) || 0)}
+                                    min="0"
+                                    step="0.01"
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  {item.usage_uom && item.pack_to_base_conversion && item.usage_unit_conversion ? (
+                                    <div className="text-sm">
+                                      <p className="font-medium mb-1">Usage Calculation:</p>
+                                      <p>
+                                        {item.quantity_ordered} × {item.pack_size || 'unit'} = {' '}
+                                        <span className="font-bold">
+                                          {(item.quantity_ordered * (item.pack_to_base_conversion || 1) * (item.usage_unit_conversion || 1)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                        </span>
+                                        {' '}{item.usage_uom}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">No usage conversion set</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </td>
                           <td className="p-2">
                             <Input
@@ -749,7 +804,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   {lineItems.length > 0 && (
                     <tfoot>
                       <tr className="bg-muted/50">
-                        <td colSpan={7} className="p-2 text-right font-medium">
+                        <td colSpan={8} className="p-2 text-right font-medium">
                           Subtotal:
                         </td>
                         <td className="p-2 text-right font-bold">
