@@ -533,7 +533,7 @@ export default function MaterialInventory() {
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>
-                                    {(lot.quantity_in_base_unit / lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {lot.material.usage_unit.code}
+                                    {(lot.quantity_in_base_unit * lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {lot.material.usage_unit.code}
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
