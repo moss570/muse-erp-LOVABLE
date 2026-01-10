@@ -14,8 +14,10 @@ interface SendPOEmailRequest {
   poId: string;
   toEmails: string[];
   ccEmails?: string[];
-  subject: string;
-  message: string;
+  bccEmails?: string[];
+  subject?: string;
+  message?: string;
+  templateId?: string; // Optional template ID to use
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -27,9 +29,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { poId, toEmails, ccEmails, subject, message }: SendPOEmailRequest = await req.json();
+    const { poId, toEmails, ccEmails, bccEmails, subject, message, templateId }: SendPOEmailRequest = await req.json();
     
-    console.log("Request data:", { poId, toEmails, ccEmails, subject });
+    console.log("Request data:", { poId, toEmails, ccEmails, subject, templateId });
 
     if (!poId || !toEmails || toEmails.length === 0) {
       console.error("Missing required fields");
@@ -44,13 +46,30 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch PO details
+    // Fetch company settings
+    const { data: companySettings } = await supabase
+      .from("company_settings")
+      .select("*")
+      .limit(1)
+      .single();
+
+    const company = companySettings || {
+      company_name: "Company",
+      phone: "",
+      website: "",
+      address_line1: "",
+      city: "",
+      state: "",
+      zip: "",
+    };
+
+    // Fetch PO details with location address
     const { data: po, error: poError } = await supabase
       .from("purchase_orders")
       .select(`
         *,
         supplier:suppliers(name, email, address, city, state, zip, phone),
-        delivery_location:locations(name, location_code),
+        delivery_location:locations(name, location_code, address_line1, address_line2, city, state, zip, country, contact_name, contact_phone),
         created_by_profile:profiles!purchase_orders_created_by_fkey(first_name, last_name, email)
       `)
       .eq("id", poId)
@@ -83,6 +102,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Line items fetched:", lineItems?.length);
 
+    // Fetch template if specified, otherwise use default PO template
+    let template = null;
+    if (templateId) {
+      const { data: t } = await supabase
+        .from("document_templates")
+        .select("*")
+        .eq("id", templateId)
+        .single();
+      template = t;
+    } else {
+      // Get default purchase template
+      const { data: t } = await supabase
+        .from("document_templates")
+        .select("*")
+        .eq("category", "purchase")
+        .eq("is_default", true)
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+      template = t;
+    }
+
     // Build line items HTML
     const lineItemsHtml = (lineItems || []).map((item, index) => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
@@ -106,8 +147,64 @@ const handler = async (req: Request): Promise<Response> => {
         })
       : 'TBD';
 
-    // Build email HTML
-    const emailHtml = `
+    // Build ship-to address
+    const location = po.delivery_location as any;
+    const shipToAddress = location ? [
+      location.name,
+      location.address_line1,
+      location.address_line2,
+      [location.city, location.state, location.zip].filter(Boolean).join(', ')
+    ].filter(Boolean).join('<br>') : '';
+
+    // Build company address
+    const companyAddress = [
+      company.address_line1,
+      company.address_line2,
+      [company.city, company.state, company.zip].filter(Boolean).join(', ')
+    ].filter(Boolean).join(', ');
+
+    // Merge field replacements
+    const mergeFields: Record<string, string> = {
+      '{{PO_NUMBER}}': po.po_number || '',
+      '{{ORDER_DATE}}': orderDate,
+      '{{EXPECTED_DATE}}': expectedDate,
+      '{{SUPPLIER_NAME}}': po.supplier?.name || '',
+      '{{SUPPLIER_ADDRESS}}': [po.supplier?.address, [po.supplier?.city, po.supplier?.state, po.supplier?.zip].filter(Boolean).join(', ')].filter(Boolean).join('<br>'),
+      '{{SUPPLIER_PHONE}}': po.supplier?.phone || '',
+      '{{COMPANY_NAME}}': company.company_name || '',
+      '{{COMPANY_ADDRESS}}': companyAddress,
+      '{{COMPANY_PHONE}}': company.phone || '',
+      '{{COMPANY_WEBSITE}}': company.website || '',
+      '{{SHIP_TO_LOCATION}}': location?.name || '',
+      '{{SHIP_TO_ADDRESS}}': shipToAddress,
+      '{{LINE_ITEMS}}': lineItemsHtml,
+      '{{SUBTOTAL}}': `$${Number(po.subtotal || 0).toFixed(2)}`,
+      '{{TAX_AMOUNT}}': po.tax_amount ? `$${Number(po.tax_amount).toFixed(2)}` : '$0.00',
+      '{{SHIPPING_AMOUNT}}': po.shipping_amount ? `$${Number(po.shipping_amount).toFixed(2)}` : '$0.00',
+      '{{TOTAL_AMOUNT}}': `$${Number(po.total_amount || 0).toFixed(2)}`,
+      '{{NOTES}}': po.notes || '',
+      '{{MESSAGE}}': message || '',
+    };
+
+    // Build email HTML - use template or default
+    let emailHtml: string;
+    let emailSubject = subject || `Purchase Order ${po.po_number}`;
+
+    if (template?.email_html) {
+      // Replace merge fields in template
+      emailHtml = template.email_html;
+      for (const [key, value] of Object.entries(mergeFields)) {
+        emailHtml = emailHtml.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
+      }
+      if (template.email_subject) {
+        emailSubject = template.email_subject;
+        for (const [key, value] of Object.entries(mergeFields)) {
+          emailSubject = emailSubject.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
+        }
+      }
+    } else {
+      // Default HTML template
+      emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -116,8 +213,20 @@ const handler = async (req: Request): Promise<Response> => {
       </head>
       <body style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #374151;">
         <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 28px;">Purchase Order</h1>
-          <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600;">${po.po_number}</p>
+          <table style="width: 100%;">
+            <tr>
+              <td style="vertical-align: top;">
+                <h1 style="margin: 0; font-size: 28px;">Purchase Order</h1>
+                <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600;">${po.po_number}</p>
+              </td>
+              <td style="text-align: right; vertical-align: top; color: rgba(255,255,255,0.9);">
+                <p style="margin: 0; font-weight: 600;">${company.company_name}</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">${company.address_line1 || ''}</p>
+                <p style="margin: 0; font-size: 14px;">${[company.city, company.state, company.zip].filter(Boolean).join(', ')}</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">${company.phone || ''}</p>
+              </td>
+            </tr>
+          </table>
         </div>
         
         <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
@@ -135,21 +244,27 @@ const handler = async (req: Request): Promise<Response> => {
           </table>
         </div>
 
-        <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
-          <h3 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; text-transform: uppercase;">Supplier</h3>
-          <p style="margin: 0; font-size: 16px; font-weight: 600;">${po.supplier?.name || 'N/A'}</p>
-          ${po.supplier?.address ? `<p style="margin: 5px 0 0 0; color: #6b7280;">${po.supplier.address}</p>` : ''}
-          ${po.supplier?.city ? `<p style="margin: 0; color: #6b7280;">${po.supplier.city}, ${po.supplier.state || ''} ${po.supplier.zip || ''}</p>` : ''}
-          ${po.supplier?.phone ? `<p style="margin: 5px 0 0 0; color: #6b7280;">Phone: ${po.supplier.phone}</p>` : ''}
+        <div style="display: flex; border: 1px solid #e5e7eb; border-top: none;">
+          <div style="flex: 1; padding: 20px; border-right: 1px solid #e5e7eb;">
+            <h3 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; text-transform: uppercase;">Supplier</h3>
+            <p style="margin: 0; font-size: 16px; font-weight: 600;">${po.supplier?.name || 'N/A'}</p>
+            ${po.supplier?.address ? `<p style="margin: 5px 0 0 0; color: #6b7280;">${po.supplier.address}</p>` : ''}
+            ${po.supplier?.city ? `<p style="margin: 0; color: #6b7280;">${po.supplier.city}, ${po.supplier.state || ''} ${po.supplier.zip || ''}</p>` : ''}
+            ${po.supplier?.phone ? `<p style="margin: 5px 0 0 0; color: #6b7280;">Phone: ${po.supplier.phone}</p>` : ''}
+          </div>
+          ${location ? `
+          <div style="flex: 1; padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; text-transform: uppercase;">Ship To</h3>
+            <p style="margin: 0; font-size: 16px; font-weight: 600;">${company.company_name}</p>
+            <p style="margin: 5px 0 0 0; color: #374151; font-weight: 500;">${location.name}</p>
+            ${location.address_line1 ? `<p style="margin: 2px 0 0 0; color: #6b7280;">${location.address_line1}</p>` : ''}
+            ${location.address_line2 ? `<p style="margin: 0; color: #6b7280;">${location.address_line2}</p>` : ''}
+            ${location.city ? `<p style="margin: 0; color: #6b7280;">${location.city}, ${location.state || ''} ${location.zip || ''}</p>` : ''}
+            ${location.contact_name ? `<p style="margin: 5px 0 0 0; color: #6b7280;">Attn: ${location.contact_name}</p>` : ''}
+            ${location.contact_phone ? `<p style="margin: 0; color: #6b7280;">Phone: ${location.contact_phone}</p>` : ''}
+          </div>
+          ` : ''}
         </div>
-
-        ${po.delivery_location ? `
-        <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
-          <h3 style="margin: 0 0 10px 0; color: #6b7280; font-size: 12px; text-transform: uppercase;">Deliver To</h3>
-          <p style="margin: 0; font-size: 16px; font-weight: 600;">${po.delivery_location.name}</p>
-          <p style="margin: 5px 0 0 0; color: #6b7280;">Location Code: ${po.delivery_location.location_code}</p>
-        </div>
-        ` : ''}
 
         ${message ? `
         <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; background: #fef3c7;">
@@ -219,21 +334,26 @@ const handler = async (req: Request): Promise<Response> => {
         ` : ''}
 
         <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; background: #f9fafb; text-align: center; color: #6b7280; font-size: 12px;">
-          <p style="margin: 0;">This purchase order was generated automatically.</p>
+          <p style="margin: 0;">${company.company_name} | ${company.phone || ''} | ${company.website || ''}</p>
           <p style="margin: 5px 0 0 0;">Please contact us if you have any questions.</p>
         </div>
       </body>
       </html>
     `;
+    }
 
     console.log("Sending email to:", toEmails);
 
+    // Determine BCC addresses
+    const finalBcc = [...(bccEmails || []), ...(template?.bcc_addresses || [])].filter(Boolean);
+
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "Purchase Orders <onboarding@resend.dev>",
+      from: `${company.company_name} <onboarding@resend.dev>`,
       to: toEmails,
       cc: ccEmails && ccEmails.length > 0 ? ccEmails : undefined,
-      subject: subject || `Purchase Order ${po.po_number}`,
+      bcc: finalBcc.length > 0 ? finalBcc : undefined,
+      subject: emailSubject,
       html: emailHtml,
     });
 

@@ -164,19 +164,23 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
     },
   });
 
-  // Fetch locations
+  // Fetch locations with address info
   const { data: locations } = useQuery({
     queryKey: ['locations-active'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('locations')
-        .select('id, name, location_code')
+        .select('id, name, location_code, address_line1, address_line2, city, state, zip, country, contact_name, contact_phone')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
       return data;
     },
   });
+
+  // Get selected location for ship-to display
+  const selectedLocationId = form.watch('delivery_location_id');
+  const selectedLocation = locations?.find(l => l.id === selectedLocationId);
 
   // Fetch materials linked to selected supplier (ONLY show supplier-linked materials)
   const { data: supplierMaterials } = useQuery({
@@ -701,6 +705,31 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   </FormItem>
                 )}
               />
+
+              {/* Ship-To Address Display */}
+              {selectedLocation && selectedLocation.address_line1 && (
+                <div className="p-3 rounded-lg bg-muted/50 border text-sm col-span-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-muted-foreground font-medium shrink-0">Ship To:</span>
+                    <div className="text-foreground">
+                      <p className="font-medium">{selectedLocation.name}</p>
+                      <p>{selectedLocation.address_line1}</p>
+                      {selectedLocation.address_line2 && <p>{selectedLocation.address_line2}</p>}
+                      <p>
+                        {[selectedLocation.city, selectedLocation.state, selectedLocation.zip]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      {selectedLocation.contact_name && (
+                        <p className="mt-1 text-muted-foreground">
+                          Attn: {selectedLocation.contact_name}
+                          {selectedLocation.contact_phone && ` • ${selectedLocation.contact_phone}`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <FormField
                 control={form.control}

@@ -72,6 +72,16 @@ const locationSchema = z.object({
   target_temperature_min: z.coerce.number().optional(),
   target_temperature_max: z.coerce.number().optional(),
   is_active: z.boolean().default(true),
+  // Address fields
+  address_line1: z.string().optional(),
+  address_line2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
+  country: z.string().optional(),
+  contact_name: z.string().optional(),
+  contact_phone: z.string().optional(),
+  contact_email: z.string().email().optional().or(z.literal('')),
 }).refine(
   (data) => {
     if (data.temperature_controlled) {
@@ -126,6 +136,15 @@ function LocationsContent() {
       target_temperature_min: undefined,
       target_temperature_max: undefined,
       is_active: true,
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      state: '',
+      zip: '',
+      country: 'USA',
+      contact_name: '',
+      contact_phone: '',
+      contact_email: '',
     },
   });
 
@@ -173,6 +192,15 @@ function LocationsContent() {
         target_temperature_min: data.temperature_controlled ? data.target_temperature_min : null,
         target_temperature_max: data.temperature_controlled ? data.target_temperature_max : null,
         is_active: data.is_active,
+        address_line1: data.address_line1 || null,
+        address_line2: data.address_line2 || null,
+        city: data.city || null,
+        state: data.state || null,
+        zip: data.zip || null,
+        country: data.country || null,
+        contact_name: data.contact_name || null,
+        contact_phone: data.contact_phone || null,
+        contact_email: data.contact_email || null,
       }]);
       if (error) throw error;
     },
@@ -201,6 +229,15 @@ function LocationsContent() {
           target_temperature_min: rest.temperature_controlled ? rest.target_temperature_min : null,
           target_temperature_max: rest.temperature_controlled ? rest.target_temperature_max : null,
           is_active: rest.is_active,
+          address_line1: rest.address_line1 || null,
+          address_line2: rest.address_line2 || null,
+          city: rest.city || null,
+          state: rest.state || null,
+          zip: rest.zip || null,
+          country: rest.country || null,
+          contact_name: rest.contact_name || null,
+          contact_phone: rest.contact_phone || null,
+          contact_email: rest.contact_email || null,
         })
         .eq('id', id);
       if (error) throw error;
@@ -242,6 +279,15 @@ function LocationsContent() {
         target_temperature_min: location.target_temperature_min ?? undefined,
         target_temperature_max: location.target_temperature_max ?? undefined,
         is_active: location.is_active,
+        address_line1: (location as any).address_line1 || '',
+        address_line2: (location as any).address_line2 || '',
+        city: (location as any).city || '',
+        state: (location as any).state || '',
+        zip: (location as any).zip || '',
+        country: (location as any).country || 'USA',
+        contact_name: (location as any).contact_name || '',
+        contact_phone: (location as any).contact_phone || '',
+        contact_email: (location as any).contact_email || '',
       });
     } else {
       setEditingLocation(null);
@@ -567,6 +613,130 @@ function LocationsContent() {
                   />
                 </div>
               )}
+
+              {/* Address Section */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Ship-To Address
+                </h4>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="address_line1"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address Line 1</FormLabel>
+                        <FormControl>
+                          <Input placeholder="123 Main Street" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address_line2"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address Line 2</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Suite 100" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Orlando" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input placeholder="FL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="zip"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ZIP</FormLabel>
+                          <FormControl>
+                            <Input placeholder="32819" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Section */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3">Contact Information</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="contact_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="contact_phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(555) 123-4567" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="contact_email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="contact@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
               <FormField
                 control={form.control}
                 name="is_active"
