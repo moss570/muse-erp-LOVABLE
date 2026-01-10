@@ -181,10 +181,12 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
     
     // Usage UOM info
     const usageUnit = material?.usage_unit;
-    const usageUnitConversion = material?.usage_unit_conversion;
+    const usageUnitConversion = material?.usage_unit_conversion || 1;
     
-    // Pack to base conversion (from purchase unit, or 1 if it's the base unit)
-    const packToBaseConversion = purchaseUnit?.conversion_to_base || 1;
+    // Pack to base/usage conversion:
+    // - For variants (with purchase_unit): use purchase_unit.conversion_to_base (e.g., 3 KG for Liter)
+    // - For default (no purchase_unit): use material.usage_unit_conversion (e.g., 45 KG for 5 Gallon Bag)
+    const packToUsageConversion = purchaseUnit?.conversion_to_base || usageUnitConversion;
     
     return {
       material_supplier_id: sm.id, // Use material_suppliers.id as the unique key
@@ -203,8 +205,8 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       manufacturer_item_number: material?.item_number || '',
       // Usage UOM
       usage_uom: usageUnit?.name || usageUnit?.code || material?.base_unit?.name || material?.base_unit?.code || '',
-      usage_unit_conversion: usageUnitConversion || 1,
-      pack_to_base_conversion: packToBaseConversion,
+      usage_unit_conversion: 1, // Not used in new calculation
+      pack_to_base_conversion: packToUsageConversion,
       // Cost
       cost_per_unit: sm.cost_per_unit,
       // Purchase unit info
@@ -778,7 +780,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                                       <p>
                                         {item.quantity_ordered} × {item.pack_size || 'unit'} = {' '}
                                         <span className="font-bold">
-                                          {((item.quantity_ordered * (item.pack_to_base_conversion || 1)) / (item.usage_unit_conversion || 1)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                          {(item.quantity_ordered * item.pack_to_base_conversion).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                         </span>
                                         {' '}{item.usage_uom}
                                       </p>
