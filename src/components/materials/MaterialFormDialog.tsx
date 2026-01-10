@@ -1051,8 +1051,29 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       <FormItem>
                         <FormLabel>Manufacturer Item Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Item/Part number" {...field} />
+                          <Input 
+                            placeholder="Item/Part number" 
+                            {...field} 
+                            onChange={(e) => {
+                              field.onChange(e);
+                              // Sync item number to auto-added manufacturer supplier
+                              const manufacturerName = form.getValues('manufacturer');
+                              if (manufacturerName && manufacturerName !== '__none__') {
+                                const selectedManufacturer = manufacturers?.find(m => m.name === manufacturerName);
+                                if (selectedManufacturer) {
+                                  setMaterialSuppliers(prev => prev.map(ms => 
+                                    ms.supplier_id === selectedManufacturer.id && ms.is_manufacturer
+                                      ? { ...ms, supplier_item_number: e.target.value || undefined }
+                                      : ms
+                                  ));
+                                }
+                              }
+                            }}
+                          />
                         </FormControl>
+                        <FormDescription>
+                          This number syncs to the manufacturer's supplier item number
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
