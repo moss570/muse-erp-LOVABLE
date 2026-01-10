@@ -21,6 +21,8 @@ import {
   Upload,
   Shield,
   FileStack,
+  Building2,
+  Tag,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -134,6 +136,13 @@ const settingsCategories: SettingCategory[] = [
     color: 'bg-purple-500/10 text-purple-500',
     items: [
       {
+        title: 'Company Settings',
+        description: 'Configure company name, address, and contact information',
+        href: '/settings/company',
+        icon: Building2,
+        status: 'active',
+      },
+      {
         title: 'User Management',
         description: 'Manage user accounts and permissions',
         href: '/settings/users',
@@ -148,18 +157,18 @@ const settingsCategories: SettingCategory[] = [
         status: 'active',
       },
       {
+        title: 'Label Templates',
+        description: 'Configure label layouts for receiving, production, and shipping',
+        href: '/settings/labels',
+        icon: Tag,
+        status: 'active',
+      },
+      {
         title: 'Import / Export',
         description: 'Import and export data from CSV files',
         href: '/settings/import-export',
         icon: Upload,
         status: 'active',
-      },
-      {
-        title: 'Dropdown Options',
-        description: 'Configure dropdown values used throughout the system',
-        href: '/settings/dropdowns',
-        icon: Layers,
-        status: 'coming-soon',
       },
     ],
   },

@@ -162,6 +162,63 @@ export type Database = {
           },
         ]
       }
+      company_settings: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          company_name: string
+          country: string | null
+          created_at: string
+          email: string | null
+          fax: string | null
+          id: string
+          logo_path: string | null
+          logo_url: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          fax?: string | null
+          id?: string
+          logo_path?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_name?: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          fax?: string | null
+          id?: string
+          logo_path?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -530,6 +587,69 @@ export type Database = {
           },
         ]
       }
+      label_templates: {
+        Row: {
+          barcode_field: string | null
+          barcode_type: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fields_config: Json | null
+          height_inches: number
+          id: string
+          include_barcode: boolean | null
+          is_active: boolean | null
+          is_default: boolean | null
+          label_format: string
+          label_type: string
+          name: string
+          sort_order: number | null
+          template_html: string | null
+          updated_at: string
+          width_inches: number
+        }
+        Insert: {
+          barcode_field?: string | null
+          barcode_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields_config?: Json | null
+          height_inches?: number
+          id?: string
+          include_barcode?: boolean | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          label_format?: string
+          label_type: string
+          name: string
+          sort_order?: number | null
+          template_html?: string | null
+          updated_at?: string
+          width_inches?: number
+        }
+        Update: {
+          barcode_field?: string | null
+          barcode_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields_config?: Json | null
+          height_inches?: number
+          id?: string
+          include_barcode?: boolean | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          label_format?: string
+          label_type?: string
+          name?: string
+          sort_order?: number | null
+          template_html?: string | null
+          updated_at?: string
+          width_inches?: number
+        }
+        Relationships: []
+      }
       landed_cost_allocations: {
         Row: {
           calculated_at: string
@@ -629,6 +749,13 @@ export type Database = {
       }
       locations: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          country: string | null
           created_at: string
           description: string | null
           id: string
@@ -637,12 +764,21 @@ export type Database = {
           location_code: string
           location_type: string
           name: string
+          state: string | null
           target_temperature_max: number | null
           target_temperature_min: number | null
           temperature_controlled: boolean | null
           updated_at: string
+          zip: string | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -651,12 +787,21 @@ export type Database = {
           location_code: string
           location_type: string
           name: string
+          state?: string | null
           target_temperature_max?: number | null
           target_temperature_min?: number | null
           temperature_controlled?: boolean | null
           updated_at?: string
+          zip?: string | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -665,10 +810,12 @@ export type Database = {
           location_code?: string
           location_type?: string
           name?: string
+          state?: string | null
           target_temperature_max?: number | null
           target_temperature_min?: number | null
           temperature_controlled?: boolean | null
           updated_at?: string
+          zip?: string | null
         }
         Relationships: []
       }
@@ -2866,6 +3013,7 @@ export type Database = {
         | "admin"
         | "maintenance"
         | "hr"
+      label_format: "3x2" | "3x5" | "4x6" | "2x1" | "custom"
       template_category:
         | "purchase"
         | "sale"
@@ -3013,6 +3161,7 @@ export const Constants = {
         "maintenance",
         "hr",
       ],
+      label_format: ["3x2", "3x5", "4x6", "2x1", "custom"],
       template_category: [
         "purchase",
         "sale",
