@@ -1460,10 +1460,13 @@ export default function Suppliers() {
                     <FormField
                       control={form.control}
                       name="food_safety_certification"
-                      render={({ field }) => (
+                        render={({ field }) => (
                         <FormItem>
                           <FormLabel>Food Safety Certification</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <Select 
+                            onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} 
+                            value={field.value || 'none'}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select certification" />
