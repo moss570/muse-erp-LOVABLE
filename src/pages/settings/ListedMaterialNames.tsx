@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -31,10 +32,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Trash2, Tags } from 'lucide-react';
+import { Pencil, Trash2, Tags, Link, Package } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
+import { LinkedMaterialsDialog } from '@/components/materials/LinkedMaterialsDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 const materialNameSchema = z.object({
@@ -56,7 +58,9 @@ export default function ListedMaterialNames() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLinkedDialogOpen, setIsLinkedDialogOpen] = useState(false);
   const [editingName, setEditingName] = useState<ListedMaterialName | null>(null);
+  const [selectedForLinking, setSelectedForLinking] = useState<ListedMaterialName | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { toast } = useToast();
@@ -71,6 +75,7 @@ export default function ListedMaterialNames() {
     },
   });
 
+  // Fetch listed material names with linked material counts
   const { data: materialNames, isLoading, refetch } = useQuery({
     queryKey: ['listed-material-names'],
     queryFn: async () => {
@@ -80,6 +85,27 @@ export default function ListedMaterialNames() {
         .order('name');
       if (error) throw error;
       return data as ListedMaterialName[];
+    },
+  });
+
+  // Fetch material counts per listed name
+  const { data: materialCounts } = useQuery({
+    queryKey: ['listed-material-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('listed_material_id')
+        .not('listed_material_id', 'is', null);
+      if (error) throw error;
+      
+      // Count materials per listed_material_id
+      const counts: Record<string, number> = {};
+      data.forEach(m => {
+        if (m.listed_material_id) {
+          counts[m.listed_material_id] = (counts[m.listed_material_id] || 0) + 1;
+        }
+      });
+      return counts;
     },
   });
 
@@ -229,60 +255,94 @@ export default function ListedMaterialNames() {
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead className="w-[100px] text-right">Actions</TableHead>
+                  <TableHead className="text-center">Linked Materials</TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedNames?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                       <Tags className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No material names found</p>
                       <p className="text-sm">Try adjusting your search or filter</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedNames?.map((materialName) => (
-                    <TableRow 
-                      key={materialName.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleOpenDialog(materialName)}
-                    >
-                      <TableCell>
-                        <StatusIndicator status={materialName.is_active ? 'active' : 'inactive'} />
-                      </TableCell>
-                      <TableCell className="font-medium">{materialName.name}</TableCell>
-                      <TableCell className="text-muted-foreground max-w-md truncate">
-                        {materialName.description || '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                  paginatedNames?.map((materialName) => {
+                    const linkedCount = materialCounts?.[materialName.id] || 0;
+                    return (
+                      <TableRow 
+                        key={materialName.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleOpenDialog(materialName)}
+                      >
+                        <TableCell>
+                          <StatusIndicator status={materialName.is_active ? 'active' : 'inactive'} />
+                        </TableCell>
+                        <TableCell className="font-medium">{materialName.name}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-md truncate">
+                          {materialName.description || '-'}
+                        </TableCell>
+                        <TableCell className="text-center">
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
+                            className="h-7 gap-1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenDialog(materialName);
+                              setSelectedForLinking(materialName);
+                              setIsLinkedDialogOpen(true);
                             }}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Package className="h-3.5 w-3.5" />
+                            <Badge variant={linkedCount > 0 ? "default" : "secondary"} className="h-5 min-w-[20px]">
+                              {linkedCount}
+                            </Badge>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteMutation.mutate(materialName.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedForLinking(materialName);
+                                setIsLinkedDialogOpen(true);
+                              }}
+                              title="Manage linked materials"
+                            >
+                              <Link className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDialog(materialName);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteMutation.mutate(materialName.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -374,6 +434,12 @@ export default function ListedMaterialNames() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <LinkedMaterialsDialog
+        open={isLinkedDialogOpen}
+        onOpenChange={setIsLinkedDialogOpen}
+        listedMaterial={selectedForLinking}
+      />
     </div>
   );
 }

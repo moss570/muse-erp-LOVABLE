@@ -33,6 +33,7 @@ interface DataTableHeaderProps {
   actions?: ReactNode;
   totalCount?: number;
   filteredCount?: number;
+  children?: ReactNode; // Additional filter controls
 }
 
 export function DataTableHeader({
@@ -53,6 +54,7 @@ export function DataTableHeader({
   actions,
   totalCount,
   filteredCount,
+  children,
 }: DataTableHeaderProps) {
   return (
     <div className="space-y-4">
@@ -101,6 +103,8 @@ export function DataTableHeader({
             </SelectContent>
           </Select>
         )}
+
+        {children}
 
         <div className="flex items-center gap-1 ml-auto">
           {onRefresh && (

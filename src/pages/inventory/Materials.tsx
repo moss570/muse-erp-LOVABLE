@@ -11,6 +11,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, Package } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
@@ -32,6 +39,7 @@ const STATUS_FILTER_OPTIONS = [
 export default function Materials() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [listedNameFilter, setListedNameFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,10 +57,33 @@ export default function Materials() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('materials')
-        .select('*, purchase_unit:units_of_measure!materials_base_unit_id_fkey(*), usage_unit:units_of_measure!materials_usage_unit_id_fkey(*)')
+        .select(`
+          *, 
+          purchase_unit:units_of_measure!materials_base_unit_id_fkey(*), 
+          usage_unit:units_of_measure!materials_usage_unit_id_fkey(*),
+          listed_material:listed_material_names(id, name)
+        `)
         .order('name');
       if (error) throw error;
-      return data as (Material & { purchase_unit: Unit | null; usage_unit: Unit | null })[];
+      return data as (Material & { 
+        purchase_unit: Unit | null; 
+        usage_unit: Unit | null;
+        listed_material: { id: string; name: string } | null;
+      })[];
+    },
+  });
+
+  // Fetch listed material names for filtering
+  const { data: listedMaterialNames } = useQuery({
+    queryKey: ['listed-material-names-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('listed_material_names')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -84,11 +115,16 @@ export default function Materials() {
   const filteredMaterials = materials?.filter((m) => {
     const matchesSearch = 
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.code.toLowerCase().includes(search.toLowerCase());
+      m.code.toLowerCase().includes(search.toLowerCase()) ||
+      (m.listed_material?.name?.toLowerCase().includes(search.toLowerCase()) ?? false);
     const materialStatus = m.material_status || 'pending_setup';
     const matchesStatus = 
       statusFilter === 'all' || materialStatus === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesListedName = 
+      listedNameFilter === 'all' ||
+      (listedNameFilter === 'unlinked' && !m.listed_material_id) ||
+      m.listed_material_id === listedNameFilter;
+    return matchesSearch && matchesStatus && matchesListedName;
   });
 
   const totalItems = filteredMaterials?.length || 0;
@@ -122,7 +158,29 @@ export default function Materials() {
         isLoading={isLoading}
         totalCount={materials?.length}
         filteredCount={filteredMaterials?.length}
-      />
+      >
+        {/* Additional filter for Listed Material Name */}
+        <Select 
+          value={listedNameFilter} 
+          onValueChange={(value) => {
+            setListedNameFilter(value);
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Listed Name" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Listed Names</SelectItem>
+            <SelectItem value="unlinked">Not Linked</SelectItem>
+            {listedMaterialNames?.map((lm) => (
+              <SelectItem key={lm.id} value={lm.id}>
+                {lm.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </DataTableHeader>
 
       <div className="rounded-md border bg-card">
         {isLoading ? (
@@ -135,10 +193,10 @@ export default function Materials() {
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead>Code</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Listed Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Unit</TableHead>
                   <TableHead className="text-right">Cost/Unit</TableHead>
-                  <TableHead className="text-right">Min Stock</TableHead>
                   <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -166,6 +224,15 @@ export default function Materials() {
                       <TableCell className="font-mono font-medium">{material.code}</TableCell>
                       <TableCell className="font-medium">{material.name}</TableCell>
                       <TableCell>
+                        {material.listed_material?.name ? (
+                          <Badge variant="secondary" className="font-normal">
+                            {material.listed_material.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">Not linked</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {material.category ? (
                           <Badge variant="outline" className="font-normal">
                             {material.category}
@@ -180,7 +247,6 @@ export default function Materials() {
                           ? `$${Number(material.cost_per_base_unit).toFixed(2)}`
                           : '-'}
                       </TableCell>
-                      <TableCell className="text-right">{material.min_stock_level || '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {canEdit && (
