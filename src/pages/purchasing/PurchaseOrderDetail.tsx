@@ -303,7 +303,8 @@ export default function PurchaseOrderDetail() {
 
   const canSubmitForApproval = purchaseOrder.status === 'draft' && purchaseOrder.requires_approval;
   const canApproveReject = purchaseOrder.status === 'pending_approval' && canApprove;
-  const canSend = (purchaseOrder.status === 'approved' || (purchaseOrder.status === 'draft' && !purchaseOrder.requires_approval)) && canEdit;
+  const canSend = ['draft', 'approved', 'sent', 'partially_received'].includes(purchaseOrder.status) && 
+    (purchaseOrder.status !== 'draft' || !purchaseOrder.requires_approval) && canEdit;
   const canReceive = ['sent', 'partially_received'].includes(purchaseOrder.status);
   
   // Print/Download PO as PDF
