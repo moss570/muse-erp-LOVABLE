@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -224,13 +225,11 @@ export function Sidebar() {
                           <NavLink
                             key={child.href}
                             to={child.href}
-                            className={({ isActive }) =>
-                              cn(
-                                'block rounded-lg px-3 py-2 text-sm transition-colors',
-                                'hover:bg-accent hover:text-accent-foreground',
-                                isActive && 'bg-primary/10 text-primary font-medium'
-                              )
-                            }
+                            className={cn(
+                              'block rounded-lg px-3 py-2 text-sm transition-colors',
+                              'hover:bg-accent hover:text-accent-foreground'
+                            )}
+                            activeClassName="bg-primary/10 text-primary font-medium"
                           >
                             {child.title}
                           </NavLink>
@@ -241,13 +240,11 @@ export function Sidebar() {
                 ) : (
                   <NavLink
                     to={item.href}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                        'hover:bg-accent hover:text-accent-foreground',
-                        isActive && 'bg-accent text-accent-foreground font-medium'
-                      )
-                    }
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                      'hover:bg-accent hover:text-accent-foreground'
+                    )}
+                    activeClassName="bg-accent text-accent-foreground font-medium"
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span>{item.title}</span>}
