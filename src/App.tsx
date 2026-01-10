@@ -56,6 +56,7 @@ const App = () => (
             <Route path="/purchasing/orders" element={<AppLayout><PurchaseOrders /></AppLayout>} />
             <Route path="/purchasing/orders/:id" element={<AppLayout><PurchaseOrderDetail /></AppLayout>} />
             <Route path="/purchasing/receiving" element={<AppLayout><Receiving /></AppLayout>} />
+            <Route path="/purchasing/receiving/new" element={<AppLayout><Receiving /></AppLayout>} />
             <Route path="/purchasing/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Purchasing Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
             {/* Settings routes */}

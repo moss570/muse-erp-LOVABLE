@@ -59,9 +59,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pendingPOs: PendingPO[];
+  preSelectedPOId?: string | null;
 }
 
-export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props) {
+export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs, preSelectedPOId }: Props) {
   const navigate = useNavigate();
   const { createSession } = useReceiving();
   const [selectedPO, setSelectedPO] = useState<string>('');
@@ -82,6 +83,16 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
   
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-select PO when preSelectedPOId is provided
+  useEffect(() => {
+    if (preSelectedPOId && pendingPOs.length > 0) {
+      const poExists = pendingPOs.find(po => po.id === preSelectedPOId);
+      if (poExists) {
+        setSelectedPO(preSelectedPOId);
+      }
+    }
+  }, [preSelectedPOId, pendingPOs]);
 
   // Fetch locations
   const { data: locations } = useQuery({
