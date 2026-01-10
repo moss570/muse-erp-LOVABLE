@@ -13,6 +13,7 @@ import Products from "./pages/inventory/Products";
 import Suppliers from "./pages/purchasing/Suppliers";
 import PurchaseOrders from "./pages/purchasing/PurchaseOrders";
 import PurchaseOrderDetail from "./pages/purchasing/PurchaseOrderDetail";
+import Receiving from "./pages/purchasing/Receiving";
 import Customers from "./pages/sales/Customers";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/purchasing/suppliers" element={<AppLayout><Suppliers /></AppLayout>} />
             <Route path="/purchasing/orders" element={<AppLayout><PurchaseOrders /></AppLayout>} />
             <Route path="/purchasing/orders/:id" element={<AppLayout><PurchaseOrderDetail /></AppLayout>} />
+            <Route path="/purchasing/receiving" element={<AppLayout><Receiving /></AppLayout>} />
             <Route path="/purchasing/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Purchasing Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
             {/* Settings routes */}
