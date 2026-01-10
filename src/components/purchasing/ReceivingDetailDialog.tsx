@@ -48,9 +48,11 @@ import {
   CheckCircle, 
   AlertTriangle,
   Clock,
-  Tag
+  Tag,
+  Printer
 } from 'lucide-react';
 import { ReceivingItemDialog } from './ReceivingItemDialog';
+import { LabelPrintDialog } from '@/components/labels/LabelPrintDialog';
 
 interface Props {
   sessionId: string;
@@ -67,6 +69,7 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
   const [inspectionPassed, setInspectionPassed] = useState(true);
   const [inspectionNotes, setInspectionNotes] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
+  const [printLotId, setPrintLotId] = useState<string | null>(null);
 
   // Get PO id from session
   const poId = (session?.purchase_order as { id?: string } | undefined)?.id;
@@ -224,7 +227,7 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead>Temp</TableHead>
                       <TableHead>Status</TableHead>
-                      {isInProgress && <TableHead className="w-[50px]"></TableHead>}
+                      <TableHead className="w-[80px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -266,17 +269,29 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
                             {item.inspection_status || 'pending'}
                           </Badge>
                         </TableCell>
-                        {isInProgress && (
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteItem(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        )}
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {item.receiving_lot_id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setPrintLotId(item.receiving_lot_id)}
+                                title="Print Label"
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {isInProgress && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteItem(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -340,6 +355,16 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
             sessionId={sessionId}
             poItems={getItemsWithRemaining()}
             existingItems={items || []}
+          />
+        )}
+
+        {/* Label Print Dialog */}
+        {printLotId && (
+          <LabelPrintDialog
+            open={!!printLotId}
+            onOpenChange={(open) => !open && setPrintLotId(null)}
+            lotId={printLotId}
+            lotType="receiving"
           />
         )}
       </DialogContent>

@@ -45,6 +45,7 @@ import {
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermission';
 import { POFormDialog } from '@/components/purchasing/POFormDialog';
+import { InvoiceListCard } from '@/components/purchasing/InvoiceListCard';
 
 const APPROVAL_THRESHOLD = 5000;
 
@@ -726,6 +727,9 @@ export default function PurchaseOrderDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Invoices */}
+      <InvoiceListCard purchaseOrderId={id!} supplierId={purchaseOrder.supplier_id} canEdit={canEdit} />
 
       {/* Notes */}
       {(purchaseOrder.notes || purchaseOrder.internal_notes) && (
