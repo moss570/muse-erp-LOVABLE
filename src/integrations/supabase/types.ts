@@ -312,6 +312,192 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_additional_costs: {
+        Row: {
+          allocated_to_item_id: string | null
+          allocation_method: string | null
+          amount: number
+          cost_type: string
+          created_at: string
+          description: string | null
+          id: string
+          invoice_id: string
+          xero_account_code: string | null
+        }
+        Insert: {
+          allocated_to_item_id?: string | null
+          allocation_method?: string | null
+          amount: number
+          cost_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id: string
+          xero_account_code?: string | null
+        }
+        Update: {
+          allocated_to_item_id?: string | null
+          allocation_method?: string | null
+          amount?: number
+          cost_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string
+          xero_account_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_additional_costs_allocated_to_item_id_fkey"
+            columns: ["allocated_to_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_additional_costs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_line_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number | null
+          material_id: string | null
+          po_item_id: string | null
+          quantity: number
+          receiving_item_id: string | null
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number | null
+          material_id?: string | null
+          po_item_id?: string | null
+          quantity: number
+          receiving_item_id?: string | null
+          unit_cost: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number | null
+          material_id?: string | null
+          po_item_id?: string | null
+          quantity?: number
+          receiving_item_id?: string | null
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_po_item_id_fkey"
+            columns: ["po_item_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_receiving_item_id_fkey"
+            columns: ["receiving_item_id"]
+            isOneToOne: false
+            referencedRelation: "po_receiving_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      landed_cost_allocations: {
+        Row: {
+          calculated_at: string
+          calculated_by: string | null
+          cost_per_base_unit: number
+          duty_allocated: number | null
+          freight_allocated: number | null
+          id: string
+          invoice_id: string
+          material_cost: number
+          other_costs_allocated: number | null
+          quantity_in_base_unit: number
+          receiving_lot_id: string
+          total_landed_cost: number
+        }
+        Insert: {
+          calculated_at?: string
+          calculated_by?: string | null
+          cost_per_base_unit: number
+          duty_allocated?: number | null
+          freight_allocated?: number | null
+          id?: string
+          invoice_id: string
+          material_cost: number
+          other_costs_allocated?: number | null
+          quantity_in_base_unit: number
+          receiving_lot_id: string
+          total_landed_cost: number
+        }
+        Update: {
+          calculated_at?: string
+          calculated_by?: string | null
+          cost_per_base_unit?: number
+          duty_allocated?: number | null
+          freight_allocated?: number | null
+          id?: string
+          invoice_id?: string
+          material_cost?: number
+          other_costs_allocated?: number | null
+          quantity_in_base_unit?: number
+          receiving_lot_id?: string
+          total_landed_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landed_cost_allocations_calculated_by_fkey"
+            columns: ["calculated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landed_cost_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landed_cost_allocations_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listed_material_names: {
         Row: {
           code: string | null
@@ -1016,6 +1202,189 @@ export type Database = {
         }
         Relationships: []
       }
+      po_receiving_items: {
+        Row: {
+          created_at: string
+          expiry_date: string | null
+          id: string
+          inspection_status: string | null
+          internal_lot_number: string
+          manufacture_date: string | null
+          notes: string | null
+          po_item_id: string
+          quantity_in_base_unit: number
+          quantity_received: number
+          receiving_lot_id: string | null
+          receiving_session_id: string
+          rejection_reason: string | null
+          supplier_lot_number: string | null
+          temperature_in_range: boolean | null
+          temperature_reading: number | null
+          temperature_unit: string | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          inspection_status?: string | null
+          internal_lot_number: string
+          manufacture_date?: string | null
+          notes?: string | null
+          po_item_id: string
+          quantity_in_base_unit: number
+          quantity_received: number
+          receiving_lot_id?: string | null
+          receiving_session_id: string
+          rejection_reason?: string | null
+          supplier_lot_number?: string | null
+          temperature_in_range?: boolean | null
+          temperature_reading?: number | null
+          temperature_unit?: string | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          inspection_status?: string | null
+          internal_lot_number?: string
+          manufacture_date?: string | null
+          notes?: string | null
+          po_item_id?: string
+          quantity_in_base_unit?: number
+          quantity_received?: number
+          receiving_lot_id?: string | null
+          receiving_session_id?: string
+          rejection_reason?: string | null
+          supplier_lot_number?: string | null
+          temperature_in_range?: boolean | null
+          temperature_reading?: number | null
+          temperature_unit?: string | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_receiving_items_po_item_id_fkey"
+            columns: ["po_item_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_items_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_items_receiving_session_id_fkey"
+            columns: ["receiving_session_id"]
+            isOneToOne: false
+            referencedRelation: "po_receiving_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      po_receiving_sessions: {
+        Row: {
+          carrier_name: string | null
+          completed_at: string | null
+          created_at: string
+          driver_name: string | null
+          id: string
+          inspection_notes: string | null
+          inspection_passed: boolean | null
+          location_id: string | null
+          notes: string | null
+          purchase_order_id: string
+          received_by: string | null
+          received_date: string
+          receiving_number: string
+          seal_intact: boolean | null
+          seal_number: string | null
+          status: string
+          trailer_number: string | null
+          truck_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          carrier_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          inspection_notes?: string | null
+          inspection_passed?: boolean | null
+          location_id?: string | null
+          notes?: string | null
+          purchase_order_id: string
+          received_by?: string | null
+          received_date?: string
+          receiving_number: string
+          seal_intact?: boolean | null
+          seal_number?: string | null
+          status?: string
+          trailer_number?: string | null
+          truck_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carrier_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          inspection_notes?: string | null
+          inspection_passed?: boolean | null
+          location_id?: string | null
+          notes?: string | null
+          purchase_order_id?: string
+          received_by?: string | null
+          received_date?: string
+          receiving_number?: string
+          seal_intact?: boolean | null
+          seal_number?: string | null
+          status?: string
+          trailer_number?: string | null
+          truck_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_receiving_sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_sessions_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_sessions_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_lot_materials: {
         Row: {
           created_at: string
@@ -1236,6 +1605,537 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_invoices: {
+        Row: {
+          amount_paid: number | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          notes: string | null
+          payment_date: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          purchase_order_id: string
+          subtotal: number
+          supplier_id: string
+          tax_amount: number | null
+          total_amount: number
+          updated_at: string
+          xero_invoice_id: string | null
+          xero_sync_error: string | null
+          xero_sync_status: string | null
+          xero_synced_at: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          purchase_order_id: string
+          subtotal?: number
+          supplier_id: string
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string
+          xero_invoice_id?: string | null
+          xero_sync_error?: string | null
+          xero_sync_status?: string | null
+          xero_synced_at?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          purchase_order_id?: string
+          subtotal?: number
+          supplier_id?: string
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string
+          xero_invoice_id?: string | null
+          xero_sync_error?: string | null
+          xero_sync_status?: string | null
+          xero_synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_invoices_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_fully_received: boolean | null
+          line_total: number | null
+          material_id: string
+          notes: string | null
+          purchase_order_id: string
+          quantity_ordered: number
+          quantity_received: number
+          quantity_remaining: number | null
+          sort_order: number | null
+          supplier_item_number: string | null
+          unit_cost: number
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_fully_received?: boolean | null
+          line_total?: number | null
+          material_id: string
+          notes?: string | null
+          purchase_order_id: string
+          quantity_ordered: number
+          quantity_received?: number
+          quantity_remaining?: number | null
+          sort_order?: number | null
+          supplier_item_number?: string | null
+          unit_cost: number
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_fully_received?: boolean | null
+          line_total?: number | null
+          material_id?: string
+          notes?: string | null
+          purchase_order_id?: string
+          quantity_ordered?: number
+          quantity_received?: number
+          quantity_remaining?: number | null
+          sort_order?: number | null
+          supplier_item_number?: string | null
+          unit_cost?: number
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          delivery_location_id: string | null
+          expected_delivery_date: string | null
+          id: string
+          internal_notes: string | null
+          notes: string | null
+          order_date: string
+          po_number: string
+          requires_approval: boolean
+          sent_at: string | null
+          sent_by: string | null
+          sent_to_emails: string[] | null
+          shipping_amount: number | null
+          shipping_method: string | null
+          shipping_terms: string | null
+          status: string
+          subtotal: number | null
+          supplier_id: string
+          tax_amount: number | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_location_id?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_date?: string
+          po_number: string
+          requires_approval?: boolean
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to_emails?: string[] | null
+          shipping_amount?: number | null
+          shipping_method?: string | null
+          shipping_terms?: string | null
+          status?: string
+          subtotal?: number | null
+          supplier_id: string
+          tax_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_location_id?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          notes?: string | null
+          order_date?: string
+          po_number?: string
+          requires_approval?: boolean
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to_emails?: string[] | null
+          shipping_amount?: number | null
+          shipping_method?: string | null
+          shipping_terms?: string | null
+          status?: string
+          subtotal?: number | null
+          supplier_id?: string
+          tax_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_delivery_location_id_fkey"
+            columns: ["delivery_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recall_affected_lots: {
+        Row: {
+          bol_id: string | null
+          created_at: string
+          current_location_id: string | null
+          customer_id: string | null
+          id: string
+          notes: string | null
+          production_lot_id: string | null
+          quantity_affected: number | null
+          quantity_destroyed: number | null
+          quantity_recovered: number | null
+          recall_id: string
+          receiving_lot_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bol_id?: string | null
+          created_at?: string
+          current_location_id?: string | null
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          production_lot_id?: string | null
+          quantity_affected?: number | null
+          quantity_destroyed?: number | null
+          quantity_recovered?: number | null
+          recall_id: string
+          receiving_lot_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bol_id?: string | null
+          created_at?: string
+          current_location_id?: string | null
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          production_lot_id?: string | null
+          quantity_affected?: number | null
+          quantity_destroyed?: number | null
+          quantity_recovered?: number | null
+          recall_id?: string
+          receiving_lot_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recall_affected_lots_bol_id_fkey"
+            columns: ["bol_id"]
+            isOneToOne: false
+            referencedRelation: "bills_of_lading"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recall_affected_lots_current_location_id_fkey"
+            columns: ["current_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recall_affected_lots_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recall_affected_lots_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recall_affected_lots_recall_id_fkey"
+            columns: ["recall_id"]
+            isOneToOne: false
+            referencedRelation: "recall_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recall_affected_lots_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recall_events: {
+        Row: {
+          actual_affected_quantity: number | null
+          completed_date: string | null
+          corrective_actions: string | null
+          created_at: string
+          created_by: string | null
+          estimated_affected_quantity: number | null
+          id: string
+          initiated_date: string
+          notes: string | null
+          preventive_actions: string | null
+          reason: string
+          recall_class: string | null
+          recall_number: string
+          recall_type: string
+          regulatory_notification_date: string | null
+          regulatory_notified: boolean | null
+          regulatory_reference: string | null
+          source_supplier_id: string | null
+          source_supplier_lot: string | null
+          source_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_affected_quantity?: number | null
+          completed_date?: string | null
+          corrective_actions?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_affected_quantity?: number | null
+          id?: string
+          initiated_date?: string
+          notes?: string | null
+          preventive_actions?: string | null
+          reason: string
+          recall_class?: string | null
+          recall_number: string
+          recall_type: string
+          regulatory_notification_date?: string | null
+          regulatory_notified?: boolean | null
+          regulatory_reference?: string | null
+          source_supplier_id?: string | null
+          source_supplier_lot?: string | null
+          source_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_affected_quantity?: number | null
+          completed_date?: string | null
+          corrective_actions?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_affected_quantity?: number | null
+          id?: string
+          initiated_date?: string
+          notes?: string | null
+          preventive_actions?: string | null
+          reason?: string
+          recall_class?: string | null
+          recall_number?: string
+          recall_type?: string
+          regulatory_notification_date?: string | null
+          regulatory_notified?: boolean | null
+          regulatory_reference?: string | null
+          source_supplier_id?: string | null
+          source_supplier_lot?: string | null
+          source_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recall_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recall_events_source_supplier_id_fkey"
+            columns: ["source_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receiving_inspections: {
+        Row: {
+          actual_value: string | null
+          check_name: string
+          check_type: string
+          created_at: string
+          expected_value: string | null
+          id: string
+          inspected_at: string
+          inspected_by: string | null
+          notes: string | null
+          passed: boolean | null
+          receiving_item_id: string
+        }
+        Insert: {
+          actual_value?: string | null
+          check_name: string
+          check_type: string
+          created_at?: string
+          expected_value?: string | null
+          id?: string
+          inspected_at?: string
+          inspected_by?: string | null
+          notes?: string | null
+          passed?: boolean | null
+          receiving_item_id: string
+        }
+        Update: {
+          actual_value?: string | null
+          check_name?: string
+          check_type?: string
+          created_at?: string
+          expected_value?: string | null
+          id?: string
+          inspected_at?: string
+          inspected_by?: string | null
+          notes?: string | null
+          passed?: boolean | null
+          receiving_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_inspections_inspected_by_fkey"
+            columns: ["inspected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_inspections_receiving_item_id_fkey"
+            columns: ["receiving_item_id"]
+            isOneToOne: false
+            referencedRelation: "po_receiving_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1601,6 +2501,33 @@ export type Database = {
           },
         ]
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       unit_conversions: {
         Row: {
           conversion_factor: number
@@ -1718,6 +2645,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_landed_costs: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
       check_permission: {
         Args: {
           _required_level?: string
@@ -1732,11 +2663,17 @@ export type Database = {
         Args: { p_build_date?: string }
         Returns: string
       }
+      generate_po_number: { Args: { p_order_date?: string }; Returns: string }
       generate_production_lot_number: {
         Args: { p_machine_id: string; p_production_date?: string }
         Returns: string
       }
+      generate_recall_number: { Args: never; Returns: string }
       generate_receiving_lot_number: {
+        Args: { p_received_date?: string }
+        Returns: string
+      }
+      generate_receiving_number: {
         Args: { p_received_date?: string }
         Returns: string
       }
