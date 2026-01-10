@@ -1736,6 +1736,7 @@ export type Database = {
         Args: { p_received_date?: string }
         Returns: string
       }
+      generate_supplier_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { usePermissions } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -118,7 +119,7 @@ const PAYMENT_TERMS = [
 ] as const;
 
 const supplierSchema = z.object({
-  code: z.string().min(1, 'Code is required'),
+  code: z.string().optional(), // Auto-generated
   name: z.string().min(1, 'Name is required'),
   supplier_type: z.string().default('manufacturer'),
   categories: z.array(z.string()).default([]),
@@ -204,6 +205,12 @@ export default function Suppliers() {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Permission checks
+  const { checkPermission, isLoading: permissionsLoading } = usePermissions();
+  const canCreate = checkPermission('purchasing.suppliers', 'full');
+  const canEdit = checkPermission('purchasing.suppliers', 'full');
+  const canDelete = checkPermission('purchasing.suppliers', 'full');
 
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
@@ -332,10 +339,16 @@ export default function Suppliers() {
 
   const createMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
+      // Generate supplier code
+      const { data: generatedCode, error: codeError } = await supabase
+        .rpc('generate_supplier_code');
+      if (codeError) throw codeError;
+      
       const { data: newSupplier, error } = await supabase.from('suppliers').insert([{
-        code: data.code,
+        code: generatedCode,
         name: data.name,
         supplier_type: data.supplier_type,
+        categories: data.categories.length > 0 ? data.categories : null,
         country: data.country,
         is_active: data.is_active,
         contact_name: data.contact_name || null,
@@ -387,9 +400,9 @@ export default function Suppliers() {
       const { error } = await supabase
         .from('suppliers')
         .update({
-          code: rest.code,
           name: rest.name,
           supplier_type: rest.supplier_type,
+          categories: rest.categories.length > 0 ? rest.categories : null,
           country: rest.country,
           is_active: rest.is_active,
           contact_name: rest.contact_name || null,
@@ -427,7 +440,6 @@ export default function Suppliers() {
       queryClient.invalidateQueries({ queryKey: ['supplier-documents'] });
       queryClient.invalidateQueries({ queryKey: ['supplier-contacts'] });
       toast({ title: 'Supplier updated successfully' });
-      handleCloseDialog();
       handleCloseDialog();
     },
     onError: (error: Error) => {
@@ -769,10 +781,10 @@ export default function Suppliers() {
         }}
         filterOptions={STATUS_FILTER_OPTIONS}
         filterPlaceholder="All Status"
-        onAdd={() => handleOpenDialog()}
+        onAdd={canCreate ? () => handleOpenDialog() : undefined}
         addLabel="Add Supplier"
         onRefresh={() => refetch()}
-        isLoading={isLoading}
+        isLoading={isLoading || permissionsLoading}
         totalCount={suppliers?.length}
         filteredCount={filteredSuppliers?.length}
       />
@@ -844,28 +856,32 @@ export default function Suppliers() {
                       <TableCell className="text-muted-foreground">{supplier.contact_name || '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDialog(supplier);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteMutation.mutate(supplier.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDialog(supplier);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteMutation.mutate(supplier.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -911,19 +927,27 @@ export default function Suppliers() {
                 {/* General Tab */}
                 <TabsContent value="general" className="space-y-4 mt-4">
                   <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Supplier Code *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="SUP-001" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {editingSupplier && (
+                      <FormField
+                        control={form.control}
+                        name="code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Supplier Code</FormLabel>
+                            <FormControl>
+                              <Input {...field} value={editingSupplier.code} disabled className="bg-muted" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {!editingSupplier && (
+                      <FormItem>
+                        <FormLabel>Supplier Code</FormLabel>
+                        <Input value="Auto-generated" disabled className="bg-muted text-muted-foreground" />
+                      </FormItem>
+                    )}
                     <FormField
                       control={form.control}
                       name="name"
@@ -1518,13 +1542,17 @@ export default function Suppliers() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Payment Terms</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <Select 
+                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                            value={field.value || '__none__'}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select terms" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
+                              <SelectItem value="__none__">None</SelectItem>
                               {PAYMENT_TERMS.map((term) => (
                                 <SelectItem key={term.value} value={term.value}>
                                   {term.label}
@@ -1601,13 +1629,14 @@ export default function Suppliers() {
                           <div>
                             <label className="text-sm font-medium">Document Type</label>
                             <Select 
-                              value={doc.requirement_id || ''} 
-                              onValueChange={(v) => updateDocument(doc.id, 'requirement_id', v)}
+                              value={doc.requirement_id || '__none__'} 
+                              onValueChange={(v) => updateDocument(doc.id, 'requirement_id', v === '__none__' ? '' : v)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="__none__">None</SelectItem>
                                 {documentRequirements?.map((req) => (
                                   <SelectItem key={req.id} value={req.id}>
                                     {req.document_name}
