@@ -144,6 +144,19 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
       .filter((item) => item.remaining > 0 || item.receivedInSession > 0);
   };
 
+  // Calculate total items remaining to receive across all PO items
+  const getTotalItemsRemaining = () => {
+    if (!poItems) return 0;
+    
+    return poItems.reduce((count, item) => {
+      const remaining = Math.max(0, Number(item.quantity_ordered) - Number(item.quantity_received));
+      return remaining > 0 ? count + 1 : count;
+    }, 0);
+  };
+
+  const itemsRemaining = getTotalItemsRemaining();
+  const canAddItems = itemsRemaining > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -208,10 +221,26 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Received Items</h3>
                 {isInProgress && (
-                  <Button size="sm" onClick={() => setIsAddItemOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    {itemsRemaining > 0 ? (
+                      <span className="text-sm text-muted-foreground">
+                        {itemsRemaining} item{itemsRemaining !== 1 ? 's' : ''} remaining
+                      </span>
+                    ) : (
+                      <Badge variant="default" className="bg-green-600">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        All items received
+                      </Badge>
+                    )}
+                    <Button 
+                      size="sm" 
+                      onClick={() => setIsAddItemOpen(true)}
+                      disabled={!canAddItems}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -219,7 +248,7 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
                 <div className="text-center py-8 border rounded-lg bg-muted/50">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No items received yet</p>
-                  {isInProgress && (
+                  {isInProgress && canAddItems && (
                     <Button variant="outline" size="sm" className="mt-2" onClick={() => setIsAddItemOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add First Item
