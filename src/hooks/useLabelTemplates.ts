@@ -48,6 +48,7 @@ export interface CreateLabelTemplateInput {
   include_barcode?: boolean;
   barcode_field?: string;
   is_default?: boolean;
+  fields_config?: string;
 }
 
 export interface UpdateLabelTemplateInput extends Partial<CreateLabelTemplateInput> {
@@ -94,6 +95,7 @@ export function useCreateLabelTemplate() {
           include_barcode: input.include_barcode,
           barcode_field: input.barcode_field,
           is_default: input.is_default,
+          fields_config: input.fields_config ? JSON.parse(input.fields_config) : null,
           created_by: user?.id,
         })
         .select()
@@ -116,10 +118,15 @@ export function useUpdateLabelTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...input }: UpdateLabelTemplateInput) => {
+    mutationFn: async ({ id, fields_config, ...rest }: UpdateLabelTemplateInput) => {
+      const updateData: Record<string, unknown> = { ...rest };
+      if (fields_config !== undefined) {
+        updateData.fields_config = JSON.parse(fields_config);
+      }
+      
       const { data, error } = await supabase
         .from('label_templates')
-        .update(input)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

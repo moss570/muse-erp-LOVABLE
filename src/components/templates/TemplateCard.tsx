@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DocumentTemplate } from '@/hooks/useDocumentTemplates';
+import { toast } from 'sonner';
 
 interface TemplateCardProps {
   template: DocumentTemplate;
@@ -20,6 +21,42 @@ interface TemplateCardProps {
 
 export function TemplateCard({ template, onEdit, onDelete, onSetDefault }: TemplateCardProps) {
   const isDocument = template.template_type === 'document';
+  
+  const handleDownloadHtml = (type: 'document' | 'email') => {
+    const html = type === 'document' ? template.document_html : template.email_html;
+    if (!html) {
+      toast.error(`No ${type} content to download`);
+      return;
+    }
+
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${template.name} - ${type}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+    const blob = new Blob([fullHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${template.name.replace(/\s+/g, '_')}_${type}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Template downloaded');
+  };
   
   return (
     <Card className="group relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30">
@@ -92,12 +129,16 @@ export function TemplateCard({ template, onEdit, onDelete, onSetDefault }: Templ
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Template
               </DropdownMenuItem>
-              {template.document_file_url && (
-                <DropdownMenuItem asChild>
-                  <a href={template.document_file_url} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </a>
+              {template.document_html && (
+                <DropdownMenuItem onClick={() => handleDownloadHtml('document')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Document HTML
+                </DropdownMenuItem>
+              )}
+              {template.email_html && (
+                <DropdownMenuItem onClick={() => handleDownloadHtml('email')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Email HTML
                 </DropdownMenuItem>
               )}
               {onSetDefault && !template.is_default && (
