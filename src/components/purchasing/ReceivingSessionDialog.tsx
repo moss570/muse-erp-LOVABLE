@@ -91,7 +91,7 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs }: Props
         .from('locations')
         .select('id, name, location_code, location_type')
         .eq('is_active', true)
-        .in('location_type', ['warehouse', 'receiving'])
+        .in('location_type', ['warehouse', 'receiving', 'receiving_dock', 'cooler', 'freezer'])
         .order('name');
       if (error) throw error;
       return data;
