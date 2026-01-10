@@ -27,6 +27,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { LabelPrintDialog } from '@/components/labels/LabelPrintDialog';
 import { useLabelTemplates } from '@/hooks/useLabelTemplates';
@@ -58,7 +64,10 @@ interface InventoryLot {
     name: string;
     category: string | null;
     min_stock_level: number | null;
+    usage_unit_id: string | null;
+    usage_unit_conversion: number | null;
     listed_material: { name: string } | null;
+    usage_unit: { id: string; code: string; name: string } | null;
   };
   unit: {
     id: string;
@@ -125,7 +134,10 @@ export default function MaterialInventory() {
             name, 
             category, 
             min_stock_level,
-            listed_material:listed_material_names(name)
+            usage_unit_id,
+            usage_unit_conversion,
+            listed_material:listed_material_names(name),
+            usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name)
           ),
           unit:units_of_measure(id, code, name),
           location:locations(id, name, location_code),
@@ -508,12 +520,34 @@ export default function MaterialInventory() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={isLowStock ? 'text-destructive font-medium' : ''}>
-                            {Number(lot.quantity_in_base_unit).toLocaleString()}
-                          </span>
-                          <span className="text-muted-foreground ml-1 text-xs">
-                            {lot.unit?.code}
-                          </span>
+                          {lot.material?.usage_unit && lot.material?.usage_unit_conversion ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`cursor-help ${isLowStock ? 'text-destructive font-medium' : ''}`}>
+                                    {Number(lot.quantity_in_base_unit).toLocaleString()}
+                                    <span className="text-muted-foreground ml-1 text-xs">
+                                      {lot.unit?.code}
+                                    </span>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {(lot.quantity_in_base_unit / lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {lot.material.usage_unit.code}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <>
+                              <span className={isLowStock ? 'text-destructive font-medium' : ''}>
+                                {Number(lot.quantity_in_base_unit).toLocaleString()}
+                              </span>
+                              <span className="text-muted-foreground ml-1 text-xs">
+                                {lot.unit?.code}
+                              </span>
+                            </>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {lot.material?.min_stock_level ? (
