@@ -772,13 +772,13 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                                   />
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs">
-                                  {item.usage_uom && item.pack_to_base_conversion && item.usage_unit_conversion ? (
+                                  {item.usage_uom && item.pack_to_base_conversion ? (
                                     <div className="text-sm">
                                       <p className="font-medium mb-1">Usage Calculation:</p>
                                       <p>
                                         {item.quantity_ordered} × {item.pack_size || 'unit'} = {' '}
                                         <span className="font-bold">
-                                          {(item.quantity_ordered * (item.pack_to_base_conversion || 1) * (item.usage_unit_conversion || 1)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                          {((item.quantity_ordered * (item.pack_to_base_conversion || 1)) / (item.usage_unit_conversion || 1)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                         </span>
                                         {' '}{item.usage_uom}
                                       </p>
