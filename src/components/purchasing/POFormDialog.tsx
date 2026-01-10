@@ -157,7 +157,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
             usage_unit_conversion
           ),
           unit:units_of_measure(id, code, name),
-          purchase_unit:material_purchase_units(id, code, unit_id, item_number, conversion_to_base, unit:units_of_measure(id, code, name))
+          purchase_unit:material_purchase_units!material_suppliers_purchase_unit_id_fkey(id, code, unit_id, item_number, conversion_to_base, unit:units_of_measure(id, code, name))
         `)
         .eq('supplier_id', selectedSupplierId)
         .eq('is_active', true);
