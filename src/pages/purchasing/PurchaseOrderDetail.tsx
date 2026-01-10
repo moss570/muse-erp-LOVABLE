@@ -224,22 +224,38 @@ export default function PurchaseOrderDetail() {
   // Send to supplier mutation
   const sendToSupplierMutation = useMutation({
     mutationFn: async () => {
-      // TODO: Implement email sending via edge function
-      const { error } = await supabase
-        .from('purchase_orders')
-        .update({ 
-          status: 'sent',
-          sent_at: new Date().toISOString(),
-          sent_by: user?.id,
-        })
-        .eq('id', id);
-      if (error) throw error;
+      // Get supplier email
+      const supplierEmail = purchaseOrder?.supplier?.email;
+      if (!supplierEmail) {
+        throw new Error('Supplier does not have an email address configured');
+      }
+
+      // Call edge function to send email
+      const { data, error } = await supabase.functions.invoke('send-po-email', {
+        body: {
+          poId: id,
+          toEmails: [supplierEmail],
+          subject: `Purchase Order ${purchaseOrder?.po_number}`,
+          message: purchaseOrder?.notes || '',
+        },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', id] });
       toast({ 
         title: 'PO Sent',
-        description: 'The purchase order has been sent to the supplier.'
+        description: 'The purchase order has been emailed to the supplier.'
       });
     },
     onError: (error: Error) => {
