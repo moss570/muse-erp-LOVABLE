@@ -64,7 +64,7 @@ export function ReceivingItemDialog({ open, onOpenChange, sessionId, poItems, ex
   const [expiryDate, setExpiryDate] = useState('');
   const [temperatureReading, setTemperatureReading] = useState<string>('');
   const [temperatureUnit, setTemperatureUnit] = useState('F');
-  const [inspectionStatus, setInspectionStatus] = useState<string>('approved');
+  const [inspectionStatus, setInspectionStatus] = useState<string>('hold'); // Default to hold for QA workflow
   const [rejectionReason, setRejectionReason] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,7 +146,7 @@ export function ReceivingItemDialog({ open, onOpenChange, sessionId, poItems, ex
     setExpiryDate('');
     setTemperatureReading('');
     setTemperatureUnit('F');
-    setInspectionStatus('approved');
+    setInspectionStatus('hold'); // Default to hold for QA workflow
     setRejectionReason('');
     setNotes('');
   };
@@ -303,11 +303,14 @@ export function ReceivingItemDialog({ open, onOpenChange, sessionId, poItems, ex
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="hold">On Hold</SelectItem>
+                <SelectItem value="hold">Receiving Hold (Pending QA)</SelectItem>
+                <SelectItem value="approved">Approved (Skip QA)</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Items placed on hold require QA approval before they can be used.
+            </p>
           </div>
 
           {inspectionStatus === 'rejected' && (

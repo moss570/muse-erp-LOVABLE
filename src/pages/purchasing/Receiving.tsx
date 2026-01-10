@@ -73,6 +73,8 @@ export default function Receiving() {
           po_number,
           order_date,
           expected_delivery_date,
+          delivery_location_id,
+          delivery_location:locations(id, name, location_code),
           supplier:suppliers(id, name, code),
           items:purchase_order_items(
             id,

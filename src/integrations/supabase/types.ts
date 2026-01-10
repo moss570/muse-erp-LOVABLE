@@ -1578,8 +1578,10 @@ export type Database = {
           created_at: string
           driver_name: string | null
           id: string
+          inspection_debris_free: boolean | null
           inspection_notes: string | null
           inspection_passed: boolean | null
+          inspection_pest_free: boolean | null
           location_id: string | null
           notes: string | null
           purchase_order_id: string
@@ -1591,6 +1593,8 @@ export type Database = {
           status: string
           trailer_number: string | null
           truck_number: string | null
+          truck_temperature_setting: number | null
+          truck_temperature_type: string | null
           updated_at: string
         }
         Insert: {
@@ -1599,8 +1603,10 @@ export type Database = {
           created_at?: string
           driver_name?: string | null
           id?: string
+          inspection_debris_free?: boolean | null
           inspection_notes?: string | null
           inspection_passed?: boolean | null
+          inspection_pest_free?: boolean | null
           location_id?: string | null
           notes?: string | null
           purchase_order_id: string
@@ -1612,6 +1618,8 @@ export type Database = {
           status?: string
           trailer_number?: string | null
           truck_number?: string | null
+          truck_temperature_setting?: number | null
+          truck_temperature_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -1620,8 +1628,10 @@ export type Database = {
           created_at?: string
           driver_name?: string | null
           id?: string
+          inspection_debris_free?: boolean | null
           inspection_notes?: string | null
           inspection_passed?: boolean | null
+          inspection_pest_free?: boolean | null
           location_id?: string | null
           notes?: string | null
           purchase_order_id?: string
@@ -1633,6 +1643,8 @@ export type Database = {
           status?: string
           trailer_number?: string | null
           truck_number?: string | null
+          truck_temperature_setting?: number | null
+          truck_temperature_type?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2357,6 +2369,57 @@ export type Database = {
           },
         ]
       }
+      receiving_hold_log: {
+        Row: {
+          action: string
+          id: string
+          new_status: string | null
+          notes: string | null
+          performed_at: string
+          performed_by: string | null
+          previous_status: string | null
+          reason: string | null
+          receiving_lot_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          new_status?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          previous_status?: string | null
+          reason?: string | null
+          receiving_lot_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          new_status?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          previous_status?: string | null
+          reason?: string | null
+          receiving_lot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_hold_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_hold_log_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receiving_inspections: {
         Row: {
           actual_value: string | null
@@ -2425,6 +2488,10 @@ export type Database = {
           location_id: string | null
           material_id: string
           notes: string | null
+          qa_approved_at: string | null
+          qa_approved_by: string | null
+          qa_notes: string | null
+          qa_status: string | null
           quantity_in_base_unit: number
           quantity_received: number
           received_by: string | null
@@ -2445,6 +2512,10 @@ export type Database = {
           location_id?: string | null
           material_id: string
           notes?: string | null
+          qa_approved_at?: string | null
+          qa_approved_by?: string | null
+          qa_notes?: string | null
+          qa_status?: string | null
           quantity_in_base_unit: number
           quantity_received: number
           received_by?: string | null
@@ -2465,6 +2536,10 @@ export type Database = {
           location_id?: string | null
           material_id?: string
           notes?: string | null
+          qa_approved_at?: string | null
+          qa_approved_by?: string | null
+          qa_notes?: string | null
+          qa_status?: string | null
           quantity_in_base_unit?: number
           quantity_received?: number
           received_by?: string | null
@@ -2488,6 +2563,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_qa_approved_by_fkey"
+            columns: ["qa_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
