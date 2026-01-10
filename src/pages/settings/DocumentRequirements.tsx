@@ -447,21 +447,26 @@ function DocumentRequirementsContent() {
                         {DOCUMENT_AREAS.map((area) => {
                           const isChecked = field.value.includes(area.value);
                           return (
-                            <button
+                            <label
                               key={area.value}
-                              type="button"
-                              className="flex items-center space-x-2 rounded-md border p-2 text-left hover:bg-muted/50"
-                              onClick={() => {
-                                if (isChecked) {
-                                  field.onChange(field.value.filter((a) => a !== area.value));
-                                } else {
-                                  field.onChange([...field.value, area.value]);
-                                }
-                              }}
+                              className="flex cursor-pointer items-center space-x-2 rounded-md border p-2 hover:bg-muted/50"
                             >
-                              <Checkbox checked={isChecked} className="pointer-events-none" />
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  const nextChecked = checked === true;
+                                  if (nextChecked) {
+                                    // de-dupe
+                                    if (!field.value.includes(area.value)) {
+                                      field.onChange([...field.value, area.value]);
+                                    }
+                                  } else {
+                                    field.onChange(field.value.filter((a) => a !== area.value));
+                                  }
+                                }}
+                              />
                               <span className="text-sm">{area.label}</span>
-                            </button>
+                            </label>
                           );
                         })}
                       </div>
