@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useReceiving, ReceivingSession } from '@/hooks/useReceiving';
@@ -50,11 +50,24 @@ const getStatusBadge = (status: string) => {
 
 export default function Receiving() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { useSessions, cancelSession } = useReceiving();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [preSelectedPOId, setPreSelectedPOId] = useState<string | null>(null);
+
+  // Check for ?po= query parameter to auto-open dialog
+  useEffect(() => {
+    const poId = searchParams.get('po');
+    if (poId) {
+      setPreSelectedPOId(poId);
+      setIsNewSessionOpen(true);
+      // Clear the query param from URL
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch sessions with filters
   const { data: sessions, isLoading } = useSessions({
@@ -251,8 +264,12 @@ export default function Receiving() {
       {/* New Session Dialog */}
       <ReceivingSessionDialog
         open={isNewSessionOpen}
-        onOpenChange={setIsNewSessionOpen}
+        onOpenChange={(open) => {
+          setIsNewSessionOpen(open);
+          if (!open) setPreSelectedPOId(null);
+        }}
         pendingPOs={pendingPOs || []}
+        preSelectedPOId={preSelectedPOId}
       />
 
       {/* Session Detail Dialog */}
