@@ -42,12 +42,16 @@ interface POLineItem {
   id: string;
   material_id: string;
   material_name?: string;
+  material_supplier_id?: string; // The material_suppliers record ID
   unit_id: string;
   unit_code?: string;
+  pack_size?: string; // Unit name/code for display
+  our_item_number?: string; // material_purchase_units.item_number or materials.item_number
+  supplier_item_number?: string; // material_suppliers.supplier_item_number
+  manufacturer_item_number?: string; // materials.item_number (from manufacturer)
   quantity_ordered: number;
   unit_cost: number;
   line_total: number;
-  supplier_item_number?: string;
   notes?: string;
   isNew: boolean;
 }
@@ -132,9 +136,16 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         .from('material_suppliers')
         .select(`
           *,
-          material:materials(id, name, code, base_unit_id, base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name)),
+          material:materials(
+            id, 
+            name, 
+            code, 
+            item_number,
+            base_unit_id, 
+            base_unit:units_of_measure!materials_base_unit_id_fkey(id, code, name)
+          ),
           unit:units_of_measure(id, code, name),
-          purchase_unit:material_purchase_units(id, code, unit_id, item_number)
+          purchase_unit:material_purchase_units(id, code, unit_id, item_number, unit:units_of_measure(id, code, name))
         `)
         .eq('supplier_id', selectedSupplierId)
         .eq('is_active', true);
@@ -145,18 +156,40 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
   });
 
   // Build filtered materials list from supplier links only
-  const availableMaterials = supplierMaterials?.map(sm => ({
-    id: sm.material?.id,
-    name: sm.material?.name,
-    code: sm.material?.code,
-    base_unit_id: sm.material?.base_unit_id,
-    base_unit: sm.material?.base_unit,
-    supplier_item_number: sm.supplier_item_number,
-    cost_per_unit: sm.cost_per_unit,
-    unit_id: sm.unit_id,
-    unit: sm.unit,
-    purchase_unit_id: sm.purchase_unit_id,
-  })).filter(m => m.id) || [];
+  // Each material_suppliers row represents a purchasable item (could be base unit or a variant)
+  const availableMaterials = supplierMaterials?.map(sm => {
+    const purchaseUnit = sm.purchase_unit as any;
+    const material = sm.material as any;
+    const supplierUnit = sm.unit as any;
+    
+    // Determine pack size (unit) - prefer purchase unit's unit, then supplier unit, then base unit
+    const packUnit = purchaseUnit?.unit || supplierUnit || material?.base_unit;
+    
+    // Our item number: from purchase_unit if variant, otherwise from material
+    const ourItemNumber = purchaseUnit?.item_number || material?.item_number;
+    
+    return {
+      material_supplier_id: sm.id, // Use material_suppliers.id as the unique key
+      material_id: material?.id,
+      material_name: material?.name,
+      material_code: material?.code,
+      base_unit_id: material?.base_unit_id,
+      base_unit: material?.base_unit,
+      // Pack size info
+      pack_size: packUnit?.name || packUnit?.code || '',
+      pack_unit_id: packUnit?.id || sm.unit_id || material?.base_unit_id,
+      pack_unit_code: packUnit?.code || '',
+      // Item numbers
+      our_item_number: ourItemNumber || '',
+      supplier_item_number: sm.supplier_item_number || '',
+      manufacturer_item_number: material?.item_number || '',
+      // Cost
+      cost_per_unit: sm.cost_per_unit,
+      // Purchase unit info
+      purchase_unit_id: sm.purchase_unit_id,
+      purchase_unit_code: purchaseUnit?.code || '',
+    };
+  }).filter(m => m.material_id) || [];
 
   // Fetch units
   const { data: units } = useQuery({
@@ -181,7 +214,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
         .from('purchase_order_items')
         .select(`
           *,
-          material:materials(id, name, code),
+          material:materials(id, name, code, item_number),
           unit:units_of_measure(id, code, name)
         `)
         .eq('purchase_order_id', purchaseOrder.id)
@@ -226,13 +259,16 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       setLineItems(existingItems.map(item => ({
         id: item.id,
         material_id: item.material_id,
-        material_name: item.material?.name,
+        material_name: (item.material as any)?.name,
         unit_id: item.unit_id,
-        unit_code: item.unit?.code,
+        unit_code: (item.unit as any)?.code,
+        pack_size: (item.unit as any)?.name || (item.unit as any)?.code,
+        our_item_number: (item.material as any)?.item_number || '',
+        supplier_item_number: item.supplier_item_number || '',
+        manufacturer_item_number: (item.material as any)?.item_number || '',
         quantity_ordered: item.quantity_ordered,
         unit_cost: item.unit_cost,
         line_total: item.line_total || 0,
-        supplier_item_number: item.supplier_item_number || undefined,
         notes: item.notes || undefined,
         isNew: false,
       })));
@@ -245,7 +281,12 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       {
         id: `new-${Date.now()}`,
         material_id: '',
+        material_supplier_id: '',
         unit_id: '',
+        pack_size: '',
+        our_item_number: '',
+        supplier_item_number: '',
+        manufacturer_item_number: '',
         quantity_ordered: 1,
         unit_cost: 0,
         line_total: 0,
@@ -263,15 +304,19 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       updated[index].line_total = updated[index].quantity_ordered * updated[index].unit_cost;
     }
     
-    // If material changed, update unit and cost from supplier-linked data
-    if (field === 'material_id') {
-      const supplierMaterial = availableMaterials?.find(m => m.id === value);
+    // If material_supplier selection changed, populate all fields from the supplier-linked data
+    if (field === 'material_supplier_id') {
+      const supplierMaterial = availableMaterials?.find(m => m.material_supplier_id === value);
       if (supplierMaterial) {
-        updated[index].material_name = supplierMaterial.name;
-        updated[index].unit_id = supplierMaterial.unit_id || supplierMaterial.base_unit_id;
-        updated[index].unit_code = supplierMaterial.unit?.code || supplierMaterial.base_unit?.code;
+        updated[index].material_id = supplierMaterial.material_id;
+        updated[index].material_name = supplierMaterial.material_name;
+        updated[index].unit_id = supplierMaterial.pack_unit_id;
+        updated[index].unit_code = supplierMaterial.pack_unit_code;
+        updated[index].pack_size = supplierMaterial.pack_size;
+        updated[index].our_item_number = supplierMaterial.our_item_number;
+        updated[index].supplier_item_number = supplierMaterial.supplier_item_number;
+        updated[index].manufacturer_item_number = supplierMaterial.manufacturer_item_number;
         updated[index].unit_cost = Number(supplierMaterial.cost_per_unit) || 0;
-        updated[index].supplier_item_number = supplierMaterial.supplier_item_number || undefined;
         updated[index].line_total = updated[index].quantity_ordered * updated[index].unit_cost;
       }
     }
@@ -468,7 +513,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {purchaseOrder ? `Edit PO: ${purchaseOrder.po_number}` : 'Create Purchase Order'}
@@ -607,22 +652,25 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                 </Button>
               </div>
 
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50">
-                      <th className="p-2 text-left w-[35%]">Material</th>
-                      <th className="p-2 text-left w-[10%]">Unit</th>
-                      <th className="p-2 text-right w-[12%]">Qty</th>
-                      <th className="p-2 text-right w-[15%]">Unit Cost</th>
-                      <th className="p-2 text-right w-[15%]">Line Total</th>
-                      <th className="p-2 w-[8%]"></th>
+                      <th className="p-2 text-left min-w-[200px]">Material</th>
+                      <th className="p-2 text-left min-w-[80px]">Pack Size</th>
+                      <th className="p-2 text-left min-w-[100px]">Our Item #</th>
+                      <th className="p-2 text-left min-w-[100px]">Supplier Item #</th>
+                      <th className="p-2 text-left min-w-[100px]">Mfg Item #</th>
+                      <th className="p-2 text-right min-w-[80px]">Qty</th>
+                      <th className="p-2 text-right min-w-[100px]">Unit Cost</th>
+                      <th className="p-2 text-right min-w-[100px]">Line Total</th>
+                      <th className="p-2 w-[50px]"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {lineItems.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                        <td colSpan={9} className="p-4 text-center text-muted-foreground">
                           No items added. Click "Add Item" to begin.
                         </td>
                       </tr>
@@ -631,42 +679,39 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                         <tr key={item.id} className="border-b last:border-0">
                           <td className="p-2">
                             <Select
-                              value={item.material_id}
-                              onValueChange={(val) => updateLineItem(index, 'material_id', val)}
+                              value={item.material_supplier_id || ''}
+                              onValueChange={(val) => updateLineItem(index, 'material_supplier_id', val)}
                             >
                               <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Select material" />
+                                <SelectValue placeholder="Select product">
+                                  {item.material_name || 'Select product'}
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {availableMaterials?.map((m) => (
-                                  <SelectItem key={m.id} value={m.id!}>
-                                    {m.name} ({m.code})
+                                  <SelectItem key={m.material_supplier_id} value={m.material_supplier_id}>
+                                    {m.material_name} {m.purchase_unit_code ? `(${m.purchase_unit_code})` : ''} - {m.pack_size}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </td>
-                          <td className="p-2">
-                            <Select
-                              value={item.unit_id}
-                              onValueChange={(val) => updateLineItem(index, 'unit_id', val)}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Unit" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {units?.map((u) => (
-                                  <SelectItem key={u.id} value={u.id}>
-                                    {u.code}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <td className="p-2 text-muted-foreground">
+                            {item.pack_size || item.unit_code || '-'}
+                          </td>
+                          <td className="p-2 text-muted-foreground font-mono text-xs">
+                            {item.our_item_number || '-'}
+                          </td>
+                          <td className="p-2 text-muted-foreground font-mono text-xs">
+                            {item.supplier_item_number || '-'}
+                          </td>
+                          <td className="p-2 text-muted-foreground font-mono text-xs">
+                            {item.manufacturer_item_number || '-'}
                           </td>
                           <td className="p-2">
                             <Input
                               type="number"
-                              className="h-8 text-right"
+                              className="h-8 text-right w-20"
                               value={item.quantity_ordered}
                               onChange={(e) => updateLineItem(index, 'quantity_ordered', parseFloat(e.target.value) || 0)}
                               min="0"
@@ -676,14 +721,14 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                           <td className="p-2">
                             <Input
                               type="number"
-                              className="h-8 text-right"
+                              className="h-8 text-right w-24"
                               value={item.unit_cost}
                               onChange={(e) => updateLineItem(index, 'unit_cost', parseFloat(e.target.value) || 0)}
                               min="0"
                               step="0.01"
                             />
                           </td>
-                          <td className="p-2 text-right font-medium">
+                          <td className="p-2 text-right font-medium whitespace-nowrap">
                             ${item.line_total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="p-2">
@@ -704,7 +749,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   {lineItems.length > 0 && (
                     <tfoot>
                       <tr className="bg-muted/50">
-                        <td colSpan={4} className="p-2 text-right font-medium">
+                        <td colSpan={7} className="p-2 text-right font-medium">
                           Subtotal:
                         </td>
                         <td className="p-2 text-right font-bold">
