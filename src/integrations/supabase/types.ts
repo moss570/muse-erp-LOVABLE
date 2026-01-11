@@ -2320,6 +2320,12 @@ export type Database = {
           photo_added_at: string | null
           photo_path: string | null
           photo_url: string | null
+          pkg_fda_food_contact: boolean | null
+          pkg_material_type: string | null
+          pkg_recyclable: boolean | null
+          pkg_volume: number | null
+          pkg_volume_uom_id: string | null
+          pkg_weight_kg: number | null
           qa_verified_at: string | null
           qa_verified_by: string | null
           receiving_temperature_max: number | null
@@ -2368,6 +2374,12 @@ export type Database = {
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          pkg_fda_food_contact?: boolean | null
+          pkg_material_type?: string | null
+          pkg_recyclable?: boolean | null
+          pkg_volume?: number | null
+          pkg_volume_uom_id?: string | null
+          pkg_weight_kg?: number | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           receiving_temperature_max?: number | null
@@ -2416,6 +2428,12 @@ export type Database = {
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          pkg_fda_food_contact?: boolean | null
+          pkg_material_type?: string | null
+          pkg_recyclable?: boolean | null
+          pkg_volume?: number | null
+          pkg_volume_uom_id?: string | null
+          pkg_weight_kg?: number | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           receiving_temperature_max?: number | null
@@ -2441,6 +2459,13 @@ export type Database = {
             columns: ["listed_material_id"]
             isOneToOne: false
             referencedRelation: "listed_material_names"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_pkg_volume_uom_id_fkey"
+            columns: ["pkg_volume_uom_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
             referencedColumns: ["id"]
           },
           {

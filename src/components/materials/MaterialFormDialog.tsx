@@ -118,6 +118,14 @@ const materialFormSchema = z.object({
   density: z.coerce.number().optional().nullable(),
   label_copy: z.string().min(1, 'Label Copy is required'),
   
+  // Packaging Specifications
+  pkg_fda_food_contact: z.boolean().default(false),
+  pkg_material_type: z.string().optional().nullable(),
+  pkg_weight_kg: z.coerce.number().optional().nullable(),
+  pkg_volume: z.coerce.number().optional().nullable(),
+  pkg_volume_uom_id: z.string().optional().nullable(),
+  pkg_recyclable: z.boolean().default(false),
+  
   // Food Safety (VACCP) Tab
   country_of_origin: z.string().optional(),
   manufacturer: z.string().optional(),
@@ -277,6 +285,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       haccp_new_allergen_name: null,
       haccp_heavy_metal_limits: null,
       haccp_foreign_material_controls: [],
+      // Packaging defaults
+      pkg_fda_food_contact: false,
+      pkg_material_type: null,
+      pkg_weight_kg: null,
+      pkg_volume: null,
+      pkg_volume_uom_id: null,
+      pkg_recyclable: false,
     },
   });
 
@@ -475,6 +490,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         haccp_new_allergen_name: (material as any).haccp_new_allergen_name || null,
         haccp_heavy_metal_limits: (material as any).haccp_heavy_metal_limits ?? null,
         haccp_foreign_material_controls: (material as any).haccp_foreign_material_controls || [],
+        // Packaging fields
+        pkg_fda_food_contact: (material as any).pkg_fda_food_contact ?? false,
+        pkg_material_type: (material as any).pkg_material_type || null,
+        pkg_weight_kg: (material as any).pkg_weight_kg ?? null,
+        pkg_volume: (material as any).pkg_volume ?? null,
+        pkg_volume_uom_id: (material as any).pkg_volume_uom_id || null,
+        pkg_recyclable: (material as any).pkg_recyclable ?? false,
       });
       // Load default photo state
       setDefaultPhotoPath((material as any).photo_path || undefined);
@@ -751,6 +773,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           haccp_new_allergen_name: data.haccp_new_allergen_name || null,
           haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
           haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
+          // Packaging fields
+          pkg_fda_food_contact: data.pkg_fda_food_contact ?? false,
+          pkg_material_type: data.pkg_material_type || null,
+          pkg_weight_kg: data.pkg_weight_kg ?? null,
+          pkg_volume: data.pkg_volume ?? null,
+          pkg_volume_uom_id: data.pkg_volume_uom_id || null,
+          pkg_recyclable: data.pkg_recyclable ?? false,
           // COA Limits
           coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         }])
@@ -871,6 +900,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           haccp_new_allergen_name: data.haccp_new_allergen_name || null,
           haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
           haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
+          // Packaging fields
+          pkg_fda_food_contact: data.pkg_fda_food_contact ?? false,
+          pkg_material_type: data.pkg_material_type || null,
+          pkg_weight_kg: data.pkg_weight_kg ?? null,
+          pkg_volume: data.pkg_volume ?? null,
+          pkg_volume_uom_id: data.pkg_volume_uom_id || null,
+          pkg_recyclable: data.pkg_recyclable ?? false,
           // COA Limits
           coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         })
@@ -1848,10 +1884,129 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       )}
 
                       {isPackaging && (
-                        <div className="p-4 border rounded-md bg-muted/30">
-                          <p className="text-sm text-muted-foreground">
-                            Additional packaging specifications (dimensions, materials, etc.) can be added in future updates.
-                          </p>
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="pkg_fda_food_contact"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Approved by FDA for food contact</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="pkg_material_type"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Material Type</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="e.g., Plastic, Glass, Metal" 
+                                    {...field} 
+                                    value={field.value || ''} 
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="pkg_weight_kg"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Weight of Packaging (KG)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    step="0.001"
+                                    placeholder="0.000"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="pkg_volume"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Volume of Container</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      step="0.001"
+                                      placeholder="0.000"
+                                      {...field}
+                                      value={field.value ?? ''}
+                                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="pkg_volume_uom_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>UOM of Volume</FormLabel>
+                                  <Select 
+                                    onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                                    value={field.value || '__none__'}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select UOM" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Select UOM</SelectItem>
+                                      {units?.filter(u => u.unit_type === 'volume').map((unit) => (
+                                        <SelectItem key={unit.id} value={unit.id}>
+                                          {unit.name} ({unit.code})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="pkg_recyclable"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Can be recycled</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       )}
 
