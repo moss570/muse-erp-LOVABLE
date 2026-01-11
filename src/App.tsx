@@ -114,17 +114,11 @@ const App = () => (
                 </AppLayout>
               }
             />
-            <Route
-              path="/employees/*"
-              element={
-                <AppLayout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold mb-2">Employees Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 2</p>
-                  </div>
-                </AppLayout>
-              }
-            />
+            {/* HR / Team routes */}
+            <Route path="/hr/team" element={<AppLayout><TeamRoster /></AppLayout>} />
+            <Route path="/hr/team/:id" element={<AppLayout><EmployeeDetail /></AppLayout>} />
+            <Route path="/employees/directory" element={<AppLayout><TeamRoster /></AppLayout>} />
+            <Route path="/employees/*" element={<AppLayout><TeamRoster /></AppLayout>} />
             <Route
               path="/reports/*"
               element={
