@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, addDays, parseISO } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useEmployees, useEmployeeShifts } from '@/hooks/useEmployees';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 const shiftFormSchema = z.object({
   employee_id: z.string().min(1, 'Employee is required'),
@@ -149,6 +150,26 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
       onOpenChange(false);
     } catch (error) {
       console.error('Error deleting shift:', error);
+    }
+  };
+
+  const handleDuplicateNextDay = async () => {
+    if (!shift) return;
+    try {
+      const nextDate = addDays(parseISO(shift.shift_date), 1);
+      await createShift.mutateAsync({
+        employee_id: shift.employee_id,
+        shift_date: format(nextDate, 'yyyy-MM-dd'),
+        start_time: shift.start_time?.slice(0, 5) || '09:00',
+        end_time: shift.end_time?.slice(0, 5) || '17:00',
+        break_minutes: shift.break_minutes || 30,
+        notes: shift.notes || null,
+        color: shift.color || null,
+      });
+      toast.success(`Shift duplicated to ${format(nextDate, 'MMM d')}`);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error duplicating shift:', error);
     }
   };
 
@@ -318,24 +339,39 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
               )}
             />
 
-            <DialogFooter className="gap-2">
-              {isEditing && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleteShift.isPending}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+            <DialogFooter className="gap-2 sm:justify-between">
+              <div className="flex gap-2">
+                {isEditing && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={deleteShift.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleDuplicateNextDay}
+                      disabled={createShift.isPending}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy to Next Day
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
                 </Button>
-              )}
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createShift.isPending || updateShift.isPending}>
-                {isEditing ? 'Update' : 'Create'} Shift
-              </Button>
+                <Button type="submit" disabled={createShift.isPending || updateShift.isPending}>
+                  {isEditing ? 'Update' : 'Create'} Shift
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>
