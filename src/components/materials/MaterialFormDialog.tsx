@@ -53,7 +53,7 @@ import {
   DocumentExpiryBadge,
 } from '@/components/approval';
 import { CreateUnitDialog } from './CreateUnitDialog';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, Json } from '@/integrations/supabase/types';
 import { differenceInMonths } from 'date-fns';
 
 type Material = Tables<'materials'>;
@@ -187,6 +187,27 @@ interface DocumentUpload {
   isNew: boolean;
 }
 
+interface CoaLimit {
+  id: string;
+  parameter: string;
+  target_spec: string;
+  min: string;
+  max: string;
+  uom: string;
+  method: string;
+}
+
+const DEFAULT_COA_PARAMETERS = [
+  { parameter: 'Moisture', uom: '%' },
+  { parameter: 'Water Activity', uom: 'Aw' },
+  { parameter: 'Total Plate Count', uom: 'CFU/g' },
+  { parameter: 'Yeast & Mold', uom: 'CFU/g' },
+  { parameter: 'Coliform', uom: 'CFU/g' },
+  { parameter: 'E. coli', uom: 'CFU/g' },
+  { parameter: 'Salmonella', uom: '/25g' },
+  { parameter: 'Listeria', uom: '/25g' },
+];
+
 interface MaterialFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -198,6 +219,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [unitVariants, setUnitVariants] = useState<UnitVariant[]>([]);
   const [materialSuppliers, setMaterialSuppliers] = useState<MaterialSupplier[]>([]);
   const [documents, setDocuments] = useState<DocumentUpload[]>([]);
+  const [coaLimits, setCoaLimits] = useState<CoaLimit[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showArchivedDocs, setShowArchivedDocs] = useState(false);
   const [documentToArchive, setDocumentToArchive] = useState<{ index: number; name: string; isExpired: boolean } | null>(null);
@@ -456,6 +478,22 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       setDefaultPhotoUrl((material as any).photo_url || undefined);
       setDefaultPhotoAddedAt((material as any).photo_added_at || undefined);
       setDefaultPhotoFile(null);
+      // Load COA limits
+      const existingCoaLimits = (material as any).coa_critical_limits;
+      if (existingCoaLimits && Array.isArray(existingCoaLimits) && existingCoaLimits.length > 0) {
+        setCoaLimits(existingCoaLimits as CoaLimit[]);
+      } else {
+        // Initialize with default parameters
+        setCoaLimits(DEFAULT_COA_PARAMETERS.map((p, i) => ({
+          id: `new-${i}`,
+          parameter: p.parameter,
+          target_spec: '',
+          min: '',
+          max: '',
+          uom: p.uom,
+          method: '',
+        })));
+      }
     } else {
       form.reset({
         ...form.formState.defaultValues,
@@ -470,6 +508,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       setDefaultPhotoUrl(undefined);
       setDefaultPhotoAddedAt(undefined);
       setDefaultPhotoFile(null);
+      // Reset COA limits to defaults
+      setCoaLimits(DEFAULT_COA_PARAMETERS.map((p, i) => ({
+        id: `new-${i}`,
+        parameter: p.parameter,
+        target_spec: '',
+        min: '',
+        max: '',
+        uom: p.uom,
+        method: '',
+      })));
     }
     setActiveTab('basic');
   }, [material, form, open]);
@@ -700,6 +748,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           haccp_new_allergen_name: data.haccp_new_allergen_name || null,
           haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
           haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
+          // COA Limits
+          coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         }])
         .select()
         .single();
@@ -818,6 +868,8 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           haccp_new_allergen_name: data.haccp_new_allergen_name || null,
           haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
           haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
+          // COA Limits
+          coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         })
         .eq('id', material.id);
       if (error) throw error;
@@ -1203,11 +1255,12 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-8">
+              <TabsList className="grid w-full grid-cols-9">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="specifications">Specs</TabsTrigger>
                 <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
                 <TabsTrigger value="haccp">HACCP</TabsTrigger>
+                <TabsTrigger value="coa-limits">COA Limits</TabsTrigger>
                 <TabsTrigger value="unit-variants">Units</TabsTrigger>
                 <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -2180,6 +2233,148 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       );
                     }}
                   />
+                </div>
+              </TabsContent>
+
+              {/* COA Critical Limits Tab */}
+              <TabsContent value="coa-limits" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Critical Limits for Certificate of Analysis (COA)</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Enter the specification data from the manufacturer's COA
+                      </p>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCoaLimits([...coaLimits, {
+                        id: `new-${Date.now()}`,
+                        parameter: '',
+                        target_spec: '',
+                        min: '',
+                        max: '',
+                        uom: '',
+                        method: '',
+                      }])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Parameter
+                    </Button>
+                  </div>
+
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-2 text-sm font-medium w-[180px]">Parameter</th>
+                          <th className="text-left p-2 text-sm font-medium w-[120px]">Target/Spec</th>
+                          <th className="text-left p-2 text-sm font-medium w-[90px]">Min</th>
+                          <th className="text-left p-2 text-sm font-medium w-[90px]">Max</th>
+                          <th className="text-left p-2 text-sm font-medium w-[80px]">UOM</th>
+                          <th className="text-left p-2 text-sm font-medium">Method</th>
+                          <th className="w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {coaLimits.map((limit, index) => (
+                          <tr key={limit.id} className="border-t">
+                            <td className="p-1">
+                              <Input
+                                value={limit.parameter}
+                                onChange={(e) => {
+                                  const updated = [...coaLimits];
+                                  updated[index] = { ...limit, parameter: e.target.value };
+                                  setCoaLimits(updated);
+                                }}
+                                placeholder="e.g., Moisture"
+                                className="h-8 text-sm"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <Input
+                                value={limit.target_spec}
+                                onChange={(e) => {
+                                  const updated = [...coaLimits];
+                                  updated[index] = { ...limit, target_spec: e.target.value };
+                                  setCoaLimits(updated);
+                                }}
+                                placeholder="e.g., ≤5%"
+                                className="h-8 text-sm"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <Input
+                                value={limit.min}
+                                onChange={(e) => {
+                                  const updated = [...coaLimits];
+                                  updated[index] = { ...limit, min: e.target.value };
+                                  setCoaLimits(updated);
+                                }}
+                                placeholder="Min"
+                                className="h-8 text-sm"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <Input
+                                value={limit.max}
+                                onChange={(e) => {
+                                  const updated = [...coaLimits];
+                                  updated[index] = { ...limit, max: e.target.value };
+                                  setCoaLimits(updated);
+                                }}
+                                placeholder="Max"
+                                className="h-8 text-sm"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <Input
+                                value={limit.uom}
+                                onChange={(e) => {
+                                  const updated = [...coaLimits];
+                                  updated[index] = { ...limit, uom: e.target.value };
+                                  setCoaLimits(updated);
+                                }}
+                                placeholder="e.g., %"
+                                className="h-8 text-sm"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <Input
+                                value={limit.method}
+                                onChange={(e) => {
+                                  const updated = [...coaLimits];
+                                  updated[index] = { ...limit, method: e.target.value };
+                                  setCoaLimits(updated);
+                                }}
+                                placeholder="Test method"
+                                className="h-8 text-sm"
+                              />
+                            </td>
+                            <td className="p-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => setCoaLimits(coaLimits.filter((_, i) => i !== index))}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {coaLimits.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/20">
+                      <p>No COA parameters defined.</p>
+                      <p className="text-xs mt-1">Click "Add Parameter" to define critical limits.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

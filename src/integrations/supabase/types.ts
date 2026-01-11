@@ -2291,6 +2291,7 @@ export type Database = {
           base_unit_id: string
           ca_prop65_prohibited: boolean | null
           category: string | null
+          coa_critical_limits: Json | null
           coa_required: boolean | null
           code: string
           cost_per_base_unit: number | null
@@ -2338,6 +2339,7 @@ export type Database = {
           base_unit_id: string
           ca_prop65_prohibited?: boolean | null
           category?: string | null
+          coa_critical_limits?: Json | null
           coa_required?: boolean | null
           code: string
           cost_per_base_unit?: number | null
@@ -2385,6 +2387,7 @@ export type Database = {
           base_unit_id?: string
           ca_prop65_prohibited?: boolean | null
           category?: string | null
+          coa_critical_limits?: Json | null
           coa_required?: boolean | null
           code?: string
           cost_per_base_unit?: number | null
