@@ -12,7 +12,8 @@ import {
   Droplets,
   Clock,
   Users,
-  Settings
+  Settings,
+  Pencil
 } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from '@dnd-kit/core';
@@ -21,6 +22,7 @@ import { ScheduleSettings } from '@/components/hr/ScheduleSettings';
 import { cn } from '@/lib/utils';
 
 type ViewType = 'day' | 'week' | 'month';
+
 
 interface ShiftCardProps {
   shift: any;
@@ -39,22 +41,35 @@ function ShiftCard({ shift, employee, isDragging, onEdit }: ShiftCardProps) {
   
   return (
     <div
-      onClick={onEdit}
       className={cn(
-        "p-2 rounded-md text-xs cursor-pointer transition-all",
-        "bg-primary/10 border border-primary/20 hover:bg-primary/20",
+        "p-2 rounded-md text-xs transition-all group relative",
+        "bg-primary/10 border border-primary/20",
         isDragging && "opacity-50 ring-2 ring-primary"
       )}
       style={{ backgroundColor: shift.color ? `${shift.color}20` : undefined }}
     >
-      <div className="font-medium truncate">
-        {employee?.first_name} {employee?.last_name?.charAt(0)}.
-      </div>
-      <div className="text-muted-foreground">
-        {startTime} - {endTime}
-      </div>
-      <div className="text-muted-foreground">
-        {hours.toFixed(1)}h
+      <div className="flex items-start justify-between gap-1">
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">
+            {employee?.first_name} {employee?.last_name?.charAt(0)}.
+          </div>
+          <div className="text-muted-foreground">
+            {startTime} - {endTime}
+          </div>
+          <div className="text-muted-foreground">
+            {hours.toFixed(1)}h
+          </div>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit?.();
+          }}
+          className="p-1 rounded hover:bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Edit shift"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
       </div>
     </div>
   );
