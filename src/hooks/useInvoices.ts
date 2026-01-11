@@ -512,6 +512,60 @@ export function useAvailableFreightInvoices(supplierId?: string) {
   });
 }
 
+// Delete invoice
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      // First delete line items
+      const { error: lineError } = await supabase
+        .from('invoice_line_items')
+        .delete()
+        .eq('invoice_id', invoiceId);
+      if (lineError) throw lineError;
+
+      // Delete additional costs
+      const { error: costsError } = await supabase
+        .from('invoice_additional_costs')
+        .delete()
+        .eq('invoice_id', invoiceId);
+      if (costsError) throw costsError;
+
+      // Delete freight links
+      const { error: linksError } = await supabase
+        .from('invoice_freight_links')
+        .delete()
+        .or(`material_invoice_id.eq.${invoiceId},freight_invoice_id.eq.${invoiceId}`);
+      if (linksError) throw linksError;
+
+      // Delete landed cost allocations
+      const { error: landedError } = await supabase
+        .from('landed_cost_allocations')
+        .delete()
+        .eq('invoice_id', invoiceId);
+      if (landedError) throw landedError;
+
+      // Finally delete the invoice
+      const { error } = await supabase
+        .from('purchase_order_invoices')
+        .delete()
+        .eq('id', invoiceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['po-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoiced-quantities'] });
+      toast.success('Invoice deleted');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to delete invoice', {
+        description: error.message,
+      });
+    },
+  });
+}
+
 // Cost types for additional costs dropdown
 export const COST_TYPES = [
   { value: 'freight', label: 'Freight/Shipping' },

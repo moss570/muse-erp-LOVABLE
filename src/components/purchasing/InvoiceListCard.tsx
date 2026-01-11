@@ -23,6 +23,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   Loader2, 
   Plus, 
@@ -34,14 +44,18 @@ import {
   Link2, 
   RefreshCw, 
   CheckCircle,
-  Clock
+  Clock,
+  Eye,
+  Pencil,
+  Trash2
 } from 'lucide-react';
-import { usePOInvoices, useApproveInvoice } from '@/hooks/useInvoices';
+import { usePOInvoices, useApproveInvoice, useDeleteInvoice } from '@/hooks/useInvoices';
 import { useXeroSyncInvoice, useXeroConnection } from '@/hooks/useXero';
 import { InvoiceFormDialog } from './InvoiceFormDialog';
 import { FreightInvoiceFormDialog } from './FreightInvoiceFormDialog';
 import { LinkFreightInvoiceDialog } from './LinkFreightInvoiceDialog';
 import { AdditionalCostsDialog } from './AdditionalCostsDialog';
+import { InvoiceViewDialog } from './InvoiceViewDialog';
 import { XeroSyncBadge } from './XeroConnectionButton';
 
 const getPaymentStatusBadge = (status: string) => {
@@ -91,10 +105,14 @@ export function InvoiceListCard({
   const [costsDialogInvoiceId, setCostsDialogInvoiceId] = useState<string | null>(null);
   const [linkFreightDialogId, setLinkFreightDialogId] = useState<string | null>(null);
 
+  const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
+  const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
+
   const { data: invoices, isLoading } = usePOInvoices(purchaseOrderId);
   const { data: xeroConnection } = useXeroConnection();
   const xeroSync = useXeroSyncInvoice();
   const approveInvoice = useApproveInvoice();
+  const deleteInvoiceMutation = useDeleteInvoice();
 
   const materialInvoices = invoices?.filter((i) => i.invoice_type !== 'freight') || [];
   const freightInvoices = invoices?.filter((i) => i.invoice_type === 'freight') || [];
@@ -109,6 +127,13 @@ export function InvoiceListCard({
 
   const handleApprove = async (invoiceId: string) => {
     await approveInvoice.mutateAsync(invoiceId);
+  };
+
+  const handleDelete = async () => {
+    if (deleteInvoiceId) {
+      await deleteInvoiceMutation.mutateAsync(deleteInvoiceId);
+      setDeleteInvoiceId(null);
+    }
   };
 
   const renderInvoiceRow = (invoice: any) => (
@@ -153,6 +178,11 @@ export function InvoiceListCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setViewInvoiceId(invoice.id)}>
+              <Eye className="h-4 w-4 mr-2" />
+              View Details
+            </DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setCostsDialogInvoiceId(invoice.id)}>
               <Calculator className="h-4 w-4 mr-2" />
               Additional Costs
@@ -185,6 +215,19 @@ export function InvoiceListCard({
                 <RefreshCw className="h-4 w-4 mr-2" />
                 {invoice.xero_invoice_id ? 'Resync to Xero' : 'Sync to Xero'}
               </DropdownMenuItem>
+            )}
+
+            {canEdit && invoice.approval_status !== 'approved' && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setDeleteInvoiceId(invoice.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Invoice
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -313,6 +356,41 @@ export function InvoiceListCard({
           onOpenChange={(open) => !open && setLinkFreightDialogId(null)}
           materialInvoiceId={linkFreightDialogId}
           supplierId={supplierId}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteInvoiceId} onOpenChange={(open) => !open && setDeleteInvoiceId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this invoice? This will also delete all associated line items, additional costs, and landed cost allocations. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteInvoiceMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Invoice View Dialog */}
+      {viewInvoiceId && (
+        <InvoiceViewDialog
+          open={!!viewInvoiceId}
+          onOpenChange={(open) => !open && setViewInvoiceId(null)}
+          invoiceId={viewInvoiceId}
         />
       )}
     </>
