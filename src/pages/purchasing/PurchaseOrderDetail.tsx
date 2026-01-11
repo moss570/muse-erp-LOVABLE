@@ -46,6 +46,7 @@ import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermission';
 import { POFormDialog } from '@/components/purchasing/POFormDialog';
 import { InvoiceListCard } from '@/components/purchasing/InvoiceListCard';
+import { XeroConnectionButton } from '@/components/purchasing/XeroConnectionButton';
 
 const APPROVAL_THRESHOLD = 5000;
 
@@ -450,6 +451,7 @@ export default function PurchaseOrderDetail() {
         </div>
 
         <div className="flex items-center gap-2">
+          <XeroConnectionButton />
           {purchaseOrder.status === 'draft' && canEdit && (
             <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
               <Pencil className="h-4 w-4 mr-2" />
