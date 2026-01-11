@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -28,6 +29,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEmployees, type EmployeeWithRelations } from '@/hooks/useEmployees';
+import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 const employeeSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
@@ -73,10 +76,13 @@ export function EmployeeFormDialog({
   employee,
   onSuccess,
 }: EmployeeFormDialogProps) {
+  const queryClient = useQueryClient();
   const { createEmployee, updateEmployee } = useEmployees();
   const isEditing = !!employee;
+  const [newPositionName, setNewPositionName] = useState('');
+  const [showNewPosition, setShowNewPosition] = useState(false);
 
-  const { data: jobPositions } = useQuery({
+  const { data: jobPositions, refetch: refetchPositions } = useQuery({
     queryKey: ['job-positions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -86,6 +92,29 @@ export function EmployeeFormDialog({
         .order('name');
       if (error) throw error;
       return data;
+    },
+  });
+
+  const createPositionMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase
+        .from('job_positions')
+        .insert({ name, is_active: true })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
+      refetchPositions();
+      form.setValue('job_position_id', data.id);
+      setNewPositionName('');
+      setShowNewPosition(false);
+      toast.success('Job position created');
+    },
+    onError: (error: Error) => {
+      toast.error('Error creating position: ' + error.message);
     },
   });
 
@@ -305,20 +334,65 @@ export function EmployeeFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Job Position</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select position" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {jobPositions?.map((pos) => (
-                              <SelectItem key={pos.id} value={pos.id}>
-                                {pos.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {showNewPosition ? (
+                          <div className="flex gap-2">
+                            <Input
+                              value={newPositionName}
+                              onChange={(e) => setNewPositionName(e.target.value)}
+                              placeholder="New position name"
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                if (newPositionName.trim()) {
+                                  createPositionMutation.mutate(newPositionName.trim());
+                                }
+                              }}
+                              disabled={!newPositionName.trim() || createPositionMutation.isPending}
+                            >
+                              Add
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setShowNewPosition(false);
+                                setNewPositionName('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                              <FormControl>
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="Select position" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {jobPositions?.map((pos) => (
+                                  <SelectItem key={pos.id} value={pos.id}>
+                                    {pos.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              onClick={() => setShowNewPosition(true)}
+                              title="Add new position"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
