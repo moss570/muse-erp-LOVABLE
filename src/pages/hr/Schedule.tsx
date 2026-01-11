@@ -151,11 +151,26 @@ export default function Schedule() {
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [laborCostPerGallon, setLaborCostPerGallon] = useState(2.50);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
+
+  // Get date range based on view - MUST be defined before hooks that use it
+  const dateRange = useMemo(() => {
+    if (view === 'day') {
+      return [currentDate];
+    } else if (view === 'week') {
+      const start = startOfWeek(currentDate, { weekStartsOn: 0 });
+      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    } else {
+      const start = startOfMonth(currentDate);
+      const end = endOfMonth(currentDate);
+      return eachDayOfInterval({ start, end });
+    }
+  }, [currentDate, view]);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -179,20 +194,6 @@ export default function Schedule() {
     format(dateRange[dateRange.length - 1] || new Date(), 'yyyy-MM-dd')
   );
   const { toast } = useToast();
-
-  // Get date range based on view
-  const dateRange = useMemo(() => {
-    if (view === 'day') {
-      return [currentDate];
-    } else if (view === 'week') {
-      const start = startOfWeek(currentDate, { weekStartsOn: 0 });
-      return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-    } else {
-      const start = startOfMonth(currentDate);
-      const end = endOfMonth(currentDate);
-      return eachDayOfInterval({ start, end });
-    }
-  }, [currentDate, view]);
 
   // Navigation
   const navigate = (direction: 'prev' | 'next') => {
@@ -571,6 +572,9 @@ export default function Schedule() {
                     const dayShifts = getShiftsForDate(date);
                     return (
                       <DroppableCell key={`cell-${date.toISOString()}`} date={date}>
+                        {/* Time Off Overlay */}
+                        <TimeOffOverlay timeOffRequests={timeOffRequests || []} date={date} />
+                        
                         {dayShifts.map(shift => {
                           const employee = employees?.find(e => e.id === shift.employee_id);
                           return (
@@ -797,6 +801,39 @@ export default function Schedule() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Shift Templates Dialog */}
+      <ShiftTemplateDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+      />
+
+      {/* Publish Schedule Dialog */}
+      <PublishScheduleDialog
+        open={publishDialogOpen}
+        onOpenChange={setPublishDialogOpen}
+        shifts={shifts || []}
+        employees={employees || []}
+        dateRange={dateRange}
+      />
+
+      {/* Labor Budget Dialog */}
+      <LaborBudgetDialog
+        open={budgetDialogOpen}
+        onOpenChange={setBudgetDialogOpen}
+        dateRange={dateRange}
+        actualCost={totalLaborCost}
+        actualHours={payrollData.totalHours}
+      />
+
+      {/* Print/Export Schedule Dialog */}
+      <PrintSchedule
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        shifts={shifts || []}
+        employees={employees || []}
+        dateRange={dateRange}
+      />
     </div>
   );
 }
