@@ -102,22 +102,58 @@ export function InvoiceFormDialog({
     enabled: open && !!purchaseOrderId,
   });
 
-  // Initialize quantities and costs from PO items
+  // Fetch already invoiced quantities for each PO item
+  const { data: invoicedItems } = useQuery({
+    queryKey: ['invoiced-quantities', purchaseOrderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invoice_line_items')
+        .select(`
+          po_item_id,
+          quantity,
+          invoice:purchase_order_invoices!inner(purchase_order_id)
+        `)
+        .eq('invoice.purchase_order_id', purchaseOrderId);
+      if (error) throw error;
+      
+      // Sum up invoiced quantities per PO item
+      const invoicedQty: Record<string, number> = {};
+      data?.forEach((item) => {
+        if (item.po_item_id) {
+          invoicedQty[item.po_item_id] = (invoicedQty[item.po_item_id] || 0) + item.quantity;
+        }
+      });
+      return invoicedQty;
+    },
+    enabled: open && !!purchaseOrderId,
+  });
+
+  // Calculate available quantities (received - already invoiced)
+  const getAvailableQty = (item: NonNullable<typeof poItems>[0]) => {
+    const received = item.quantity_received || 0;
+    const alreadyInvoiced = invoicedItems?.[item.id] || 0;
+    return Math.max(0, received - alreadyInvoiced);
+  };
+
+  // Filter to only show items with available quantity to invoice
+  const invoiceableItems = poItems?.filter((item) => getAvailableQty(item) > 0);
+
+  // Initialize quantities and costs from available items
   useEffect(() => {
-    if (poItems) {
+    if (invoiceableItems) {
       const quantities: Record<string, number> = {};
       const costs: Record<string, number> = {};
-      poItems.forEach((item) => {
-        quantities[item.id] = item.quantity_received || item.quantity_ordered;
+      invoiceableItems.forEach((item) => {
+        quantities[item.id] = getAvailableQty(item);
         costs[item.id] = item.unit_cost;
       });
       setItemQuantities(quantities);
       setItemCosts(costs);
     }
-  }, [poItems]);
+  }, [invoiceableItems, invoicedItems]);
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    const selectedPoItems = poItems?.filter((item) => selectedItems[item.id]) || [];
+    const selectedPoItems = invoiceableItems?.filter((item) => selectedItems[item.id]) || [];
 
     if (selectedPoItems.length === 0) {
       return;
@@ -163,9 +199,9 @@ export function InvoiceFormDialog({
   };
 
   const selectAll = () => {
-    if (poItems) {
+    if (invoiceableItems) {
       const allSelected: Record<string, boolean> = {};
-      poItems.forEach((item) => {
+      invoiceableItems.forEach((item) => {
         allSelected[item.id] = true;
       });
       setSelectedItems(allSelected);
@@ -173,11 +209,11 @@ export function InvoiceFormDialog({
   };
 
   const calculateSubtotal = () => {
-    if (!poItems) return 0;
-    return poItems
+    if (!invoiceableItems) return 0;
+    return invoiceableItems
       .filter((item) => selectedItems[item.id])
       .reduce((sum, item) => {
-        const qty = itemQuantities[item.id] || item.quantity_received || item.quantity_ordered;
+        const qty = itemQuantities[item.id] || getAvailableQty(item);
         const cost = itemCosts[item.id] || item.unit_cost;
         return sum + qty * cost;
       }, 0);
@@ -345,64 +381,85 @@ export function InvoiceFormDialog({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {poItems?.map((item) => {
-                            const qty = itemQuantities[item.id] || item.quantity_received || item.quantity_ordered;
-                            const cost = itemCosts[item.id] || item.unit_cost;
-                            return (
-                              <TableRow key={item.id}>
-                                <TableCell>
-                                  <Checkbox
-                                    checked={selectedItems[item.id] || false}
-                                    onCheckedChange={() => toggleItem(item.id)}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <div>
-                                    <div className="font-medium">{item.material?.name}</div>
-                                    <div className="text-xs text-muted-foreground font-mono">
-                                      {item.material?.code}
+                          {(!invoiceableItems || invoiceableItems.length === 0) ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                No items available to invoice. Items must be received first, and cannot be invoiced more than once.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            invoiceableItems.map((item) => {
+                              const availableQty = getAvailableQty(item);
+                              const qty = itemQuantities[item.id] || availableQty;
+                              const cost = itemCosts[item.id] || item.unit_cost;
+                              const alreadyInvoiced = invoicedItems?.[item.id] || 0;
+                              return (
+                                <TableRow key={item.id}>
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={selectedItems[item.id] || false}
+                                      onCheckedChange={() => toggleItem(item.id)}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <div>
+                                      <div className="font-medium">{item.material?.name}</div>
+                                      <div className="text-xs text-muted-foreground font-mono">
+                                        {item.material?.code}
+                                      </div>
                                     </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {item.quantity_received} / {item.quantity_ordered} {item.unit?.code}
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    className="w-24"
-                                    value={qty}
-                                    onChange={(e) =>
-                                      setItemQuantities((prev) => ({
-                                        ...prev,
-                                        [item.id]: parseFloat(e.target.value) || 0,
-                                      }))
-                                    }
-                                    disabled={!selectedItems[item.id]}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    className="w-24"
-                                    value={cost}
-                                    onChange={(e) =>
-                                      setItemCosts((prev) => ({
-                                        ...prev,
-                                        [item.id]: parseFloat(e.target.value) || 0,
-                                      }))
-                                    }
-                                    disabled={!selectedItems[item.id]}
-                                  />
-                                </TableCell>
-                                <TableCell className="text-right font-medium">
-                                  ${(qty * cost).toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div>
+                                      <div>{item.quantity_received} / {item.quantity_ordered} {item.unit?.code}</div>
+                                      {alreadyInvoiced > 0 && (
+                                        <div className="text-xs text-orange-600">
+                                          {alreadyInvoiced} already invoiced
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      className="w-24"
+                                      value={qty}
+                                      max={availableQty}
+                                      onChange={(e) => {
+                                        const value = parseFloat(e.target.value) || 0;
+                                        // Don't allow more than available qty
+                                        const clampedValue = Math.min(value, availableQty);
+                                        setItemQuantities((prev) => ({
+                                          ...prev,
+                                          [item.id]: clampedValue,
+                                        }));
+                                      }}
+                                      disabled={!selectedItems[item.id]}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      className="w-24"
+                                      value={cost}
+                                      onChange={(e) =>
+                                        setItemCosts((prev) => ({
+                                          ...prev,
+                                          [item.id]: parseFloat(e.target.value) || 0,
+                                        }))
+                                      }
+                                      disabled={!selectedItems[item.id]}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    ${(qty * cost).toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          )}
                         </TableBody>
                       </Table>
                     </div>
