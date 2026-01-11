@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 import { useGLAccounts } from '@/hooks/useFinancialSettings';
-import { useXeroConnection, useXeroConnect, useFetchXeroAccounts } from '@/hooks/useXero';
+import { useXeroConnection, useXeroConnect, useXeroDisconnect, useFetchXeroAccounts } from '@/hooks/useXero';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -82,7 +82,9 @@ export default function GLAccounts() {
   // Xero hooks
   const { data: xeroConnection, isLoading: isLoadingXero } = useXeroConnection();
   const { connectToXero } = useXeroConnect();
+  const xeroDisconnect = useXeroDisconnect();
   const fetchXeroAccounts = useFetchXeroAccounts();
+  const [needsReconnect, setNeedsReconnect] = useState(false);
 
   const handleOpenCreate = () => {
     setEditingAccount(null);
@@ -127,6 +129,7 @@ export default function GLAccounts() {
 
   const handleSyncFromXero = async () => {
     try {
+      setNeedsReconnect(false);
       const result = await fetchXeroAccounts.mutateAsync();
       // Filter to only active accounts
       const activeAccounts = result.accounts.filter((a: XeroAccount) => a.status === 'ACTIVE');
@@ -134,9 +137,20 @@ export default function GLAccounts() {
       setTenantName(result.tenant_name);
       setSelectedXeroAccounts(new Set());
       setImportDialogOpen(true);
-    } catch (error) {
-      // Error already handled by hook
+    } catch (error: any) {
+      // Check if it's a scope/authorization issue
+      const errorMessage = error?.message || '';
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('AuthorizationUnsuccessful')) {
+        setNeedsReconnect(true);
+        toast.error('Xero permissions need to be updated. Please reconnect to Xero.');
+      }
     }
+  };
+
+  const handleReconnectXero = async () => {
+    await xeroDisconnect.mutateAsync();
+    setNeedsReconnect(false);
+    connectToXero();
   };
 
   const handleImportSelected = async () => {
@@ -265,10 +279,31 @@ export default function GLAccounts() {
       </div>
 
       {xeroConnection && (
-        <Card className="border-dashed">
-          <CardContent className="py-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-            Connected to Xero: <span className="font-medium text-foreground">{xeroConnection.tenant_name}</span>
+        <Card className={needsReconnect ? "border-destructive bg-destructive/5" : "border-dashed"}>
+          <CardContent className="py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {needsReconnect ? (
+                <>
+                  <XCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-destructive">Xero permissions need updating</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Connected to Xero: <span className="font-medium text-foreground">{xeroConnection.tenant_name}</span>
+                </>
+              )}
+            </div>
+            {needsReconnect && (
+              <Button 
+                size="sm" 
+                onClick={handleReconnectXero}
+                disabled={xeroDisconnect.isPending}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${xeroDisconnect.isPending ? 'animate-spin' : ''}`} />
+                Reconnect to Xero
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
