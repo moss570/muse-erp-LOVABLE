@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useEmployees, useEmployeeShifts } from '@/hooks/useEmployees';
+import { useEmployeeTimeOff } from '@/hooks/useScheduleFeatures';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,13 +18,24 @@ import {
   Settings,
   Pencil,
   Copy,
-  Info
+  Info,
+  Send,
+  FileText,
+  Printer,
+  LayoutTemplate,
+  Target
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { ShiftFormDialog } from '@/components/hr/ShiftFormDialog';
 import { ScheduleSettings } from '@/components/hr/ScheduleSettings';
+import { ShiftTemplateDialog } from '@/components/hr/ShiftTemplateDialog';
+import { PublishScheduleDialog } from '@/components/hr/PublishScheduleDialog';
+import { LaborBudgetDialog } from '@/components/hr/LaborBudgetDialog';
+import { OvertimeWarnings } from '@/components/hr/OvertimeWarnings';
+import { TimeOffOverlay } from '@/components/hr/TimeOffOverlay';
+import { PrintSchedule } from '@/components/hr/PrintSchedule';
 import { cn } from '@/lib/utils';
 
 type ViewType = 'day' | 'week' | 'month';
@@ -139,8 +151,11 @@ export default function Schedule() {
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [laborCostPerGallon, setLaborCostPerGallon] = useState(2.50);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -159,6 +174,10 @@ export default function Schedule() {
   
   const { employees } = useEmployees();
   const { shifts, updateShift, createShift } = useEmployeeShifts();
+  const { timeOffRequests } = useEmployeeTimeOff(
+    format(dateRange[0] || new Date(), 'yyyy-MM-dd'),
+    format(dateRange[dateRange.length - 1] || new Date(), 'yyyy-MM-dd')
+  );
   const { toast } = useToast();
 
   // Get date range based on view
@@ -388,9 +407,16 @@ export default function Schedule() {
           <h1 className="text-3xl font-bold">Schedule</h1>
           <p className="text-muted-foreground">Manage employee shifts and view labor costs</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => setPrintDialogOpen(true)}>
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={() => setTemplateDialogOpen(true)}>
+            <LayoutTemplate className="h-4 w-4 mr-2" />
+            Templates
           </Button>
           {view === 'week' && (
             <Button variant="outline" onClick={handleCopyToWeek}>
@@ -398,6 +424,10 @@ export default function Schedule() {
               Copy to Week
             </Button>
           )}
+          <Button variant="outline" onClick={() => setPublishDialogOpen(true)}>
+            <Send className="h-4 w-4 mr-2" />
+            Publish
+          </Button>
           <Button onClick={() => handleAddShift()}>
             <Plus className="h-4 w-4 mr-2" />
             Add Shift
@@ -405,8 +435,15 @@ export default function Schedule() {
         </div>
       </div>
 
+      {/* Overtime Warnings */}
+      <OvertimeWarnings 
+        shifts={shifts || []} 
+        employees={employees || []} 
+        currentDate={currentDate}
+      />
+
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
@@ -420,15 +457,18 @@ export default function Schedule() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setBudgetDialogOpen(true)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Labor Cost</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-1">
+              <Target className="h-3 w-3 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalLaborCost.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              ${payrollData.totalCost.toFixed(0)} hourly + ${salaryCostData.totalSalaryCost.toFixed(0)} salary
+              Click to set budget
             </p>
           </CardContent>
         </Card>

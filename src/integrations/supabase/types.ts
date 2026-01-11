@@ -1494,6 +1494,60 @@ export type Database = {
         }
         Relationships: []
       }
+      labor_budgets: {
+        Row: {
+          budget_amount: number | null
+          budget_date: string
+          budget_hours: number | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          id: string
+          notes: string | null
+          target_gallons: number | null
+          updated_at: string
+        }
+        Insert: {
+          budget_amount?: number | null
+          budget_date: string
+          budget_hours?: number | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          id?: string
+          notes?: string | null
+          target_gallons?: number | null
+          updated_at?: string
+        }
+        Update: {
+          budget_amount?: number | null
+          budget_date?: string
+          budget_hours?: number | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          id?: string
+          notes?: string | null
+          target_gallons?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_budgets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_budgets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landed_cost_allocations: {
         Row: {
           calculated_at: string
@@ -3493,6 +3547,76 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "permission_resources"
             referencedColumns: ["resource_key"]
+          },
+        ]
+      }
+      shift_templates: {
+        Row: {
+          break_minutes: number | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          end_time: string
+          id: string
+          is_active: boolean | null
+          job_position_id: string | null
+          name: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          break_minutes?: number | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          job_position_id?: string | null
+          name: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          break_minutes?: number | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          job_position_id?: string | null
+          name?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_templates_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
           },
         ]
       }
