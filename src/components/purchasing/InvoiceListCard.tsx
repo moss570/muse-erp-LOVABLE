@@ -47,7 +47,8 @@ import {
   Clock,
   Eye,
   Pencil,
-  Trash2
+  Trash2,
+  TrendingUp
 } from 'lucide-react';
 import { usePOInvoices, useApproveInvoice, useDeleteInvoice } from '@/hooks/useInvoices';
 import { useXeroSyncInvoice, useXeroConnection } from '@/hooks/useXero';
@@ -56,6 +57,7 @@ import { FreightInvoiceFormDialog } from './FreightInvoiceFormDialog';
 import { LinkFreightInvoiceDialog } from './LinkFreightInvoiceDialog';
 import { AdditionalCostsDialog } from './AdditionalCostsDialog';
 import { InvoiceViewDialog } from './InvoiceViewDialog';
+import { LandedCostsDialog } from './LandedCostsDialog';
 import { XeroSyncBadge } from './XeroConnectionButton';
 
 const getPaymentStatusBadge = (status: string) => {
@@ -107,6 +109,7 @@ export function InvoiceListCard({
 
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
+  const [landedCostsDialogId, setLandedCostsDialogId] = useState<string | null>(null);
 
   const { data: invoices, isLoading } = usePOInvoices(purchaseOrderId);
   const { data: xeroConnection } = useXeroConnection();
@@ -187,6 +190,13 @@ export function InvoiceListCard({
               <Calculator className="h-4 w-4 mr-2" />
               Additional Costs
             </DropdownMenuItem>
+
+            {invoice.approval_status === 'approved' && (
+              <DropdownMenuItem onClick={() => setLandedCostsDialogId(invoice.id)}>
+                <TrendingUp className="h-4 w-4 mr-2" />
+                View Landed Costs
+              </DropdownMenuItem>
+            )}
             
             {invoice.invoice_type !== 'freight' && (
               <DropdownMenuItem onClick={() => setLinkFreightDialogId(invoice.id)}>
@@ -391,6 +401,15 @@ export function InvoiceListCard({
           open={!!viewInvoiceId}
           onOpenChange={(open) => !open && setViewInvoiceId(null)}
           invoiceId={viewInvoiceId}
+        />
+      )}
+
+      {/* Landed Costs Dialog */}
+      {landedCostsDialogId && (
+        <LandedCostsDialog
+          open={!!landedCostsDialogId}
+          onOpenChange={(open) => !open && setLandedCostsDialogId(null)}
+          invoiceId={landedCostsDialogId}
         />
       )}
     </>
