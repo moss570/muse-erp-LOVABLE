@@ -82,6 +82,16 @@ const PACKAGING_CATEGORIES = ['Packaging', 'Boxes'];
 // Categories that show chemical/supply specs
 const INDUSTRIAL_CATEGORIES = ['Chemical', 'Supplies', 'Maintenance'];
 
+// QA Approval Statuses for Materials
+const QA_APPROVAL_STATUSES = [
+  { value: 'Draft', label: 'Draft' },
+  { value: 'Pending_QA', label: 'Pending QA' },
+  { value: 'Probation', label: 'Probation' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Archived', label: 'Archived' },
+] as const;
+
 const materialFormSchema = z.object({
   // Basic Info
   code: z.string().min(1, 'Code is required'),
@@ -94,6 +104,9 @@ const materialFormSchema = z.object({
   usage_unit_id: z.string().optional().nullable(),
   usage_unit_conversion: z.coerce.number().min(0).optional().nullable(),
   is_active: z.boolean().default(true),
+  
+  // QA Workflow
+  approval_status: z.string().default('Draft'),
   
   // Specifications Tab
   allergens: z.array(z.string()).default([]),
@@ -414,6 +427,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         ca_prop65_prohibited: material.ca_prop65_prohibited ?? false,
         coa_required: material.coa_required ?? false,
         min_stock_level: material.min_stock_level ?? null,
+        approval_status: (material as any).approval_status || 'Draft',
       });
       // Load default photo state
       setDefaultPhotoPath((material as any).photo_path || undefined);
@@ -656,6 +670,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           coa_required: data.coa_required,
           cost_per_base_unit: null, // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
+          approval_status: data.approval_status || 'Draft',
         }])
         .select()
         .single();
@@ -766,6 +781,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           coa_required: data.coa_required,
           cost_per_base_unit: null, // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
+          approval_status: data.approval_status || 'Draft',
         })
         .eq('id', material.id);
       if (error) throw error;
@@ -2707,6 +2723,35 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         recordId={material.id}
                         tableName="materials"
                         currentStatus={(material as any).approval_status || 'Draft'}
+                      />
+                    </div>
+
+                    {/* Status Dropdown */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="approval_status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>QA Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {QA_APPROVAL_STATUSES.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>
+                                    {status.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>Current QA approval status</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
 
