@@ -29,9 +29,10 @@ interface ShiftCardProps {
   employee: any;
   isDragging?: boolean;
   onEdit?: () => void;
+  dragHandleProps?: any;
 }
 
-function ShiftCard({ shift, employee, isDragging, onEdit }: ShiftCardProps) {
+function ShiftCard({ shift, employee, isDragging, onEdit, dragHandleProps }: ShiftCardProps) {
   const startTime = shift.start_time?.slice(0, 5) || '00:00';
   const endTime = shift.end_time?.slice(0, 5) || '00:00';
   
@@ -43,12 +44,27 @@ function ShiftCard({ shift, employee, isDragging, onEdit }: ShiftCardProps) {
     <div
       className={cn(
         "p-2 rounded-md text-xs transition-all group relative",
-        "bg-primary/10 border border-primary/20",
+        "bg-primary/10 border border-primary/20 hover:bg-primary/20",
         isDragging && "opacity-50 ring-2 ring-primary"
       )}
       style={{ backgroundColor: shift.color ? `${shift.color}20` : undefined }}
     >
-      <div className="flex items-start justify-between gap-1">
+      <div className="flex items-start gap-1">
+        {/* Drag handle */}
+        <div 
+          {...dragHandleProps}
+          className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity"
+          title="Drag to move"
+        >
+          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="9" cy="6" r="2" />
+            <circle cx="15" cy="6" r="2" />
+            <circle cx="9" cy="12" r="2" />
+            <circle cx="15" cy="12" r="2" />
+            <circle cx="9" cy="18" r="2" />
+            <circle cx="15" cy="18" r="2" />
+          </svg>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium truncate">
             {employee?.first_name} {employee?.last_name?.charAt(0)}.
@@ -61,10 +77,8 @@ function ShiftCard({ shift, employee, isDragging, onEdit }: ShiftCardProps) {
           </div>
         </div>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit?.();
-          }}
+          type="button"
+          onClick={onEdit}
           className="p-1 rounded hover:bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity"
           title="Edit shift"
         >
@@ -82,8 +96,14 @@ function DraggableShift({ shift, employee, onEdit }: { shift: any; employee: any
   });
 
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes}>
-      <ShiftCard shift={shift} employee={employee} isDragging={isDragging} onEdit={onEdit} />
+    <div ref={setNodeRef} {...attributes}>
+      <ShiftCard 
+        shift={shift} 
+        employee={employee} 
+        isDragging={isDragging} 
+        onEdit={onEdit}
+        dragHandleProps={listeners}
+      />
     </div>
   );
 }
