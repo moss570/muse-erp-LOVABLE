@@ -323,7 +323,7 @@ export default function Schedule() {
           <CardContent>
             <div className="text-2xl font-bold">
               {new Set(shifts?.filter(s => 
-                dateRange.some(d => isSameDay(new Date(s.shift_date), d))
+                dateRange.some(d => s.shift_date === format(d, 'yyyy-MM-dd'))
               ).map(s => s.employee_id)).size}
             </div>
             <p className="text-xs text-muted-foreground">
