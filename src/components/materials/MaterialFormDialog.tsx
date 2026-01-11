@@ -124,7 +124,7 @@ const materialFormSchema = z.object({
   item_number: z.string().optional(),
   fraud_vulnerability_score: z.string().optional(),
   supply_chain_complexity: z.string().optional(),
-  authentication_method: z.string().optional(),
+  authentication_method: z.array(z.string()).default([]),
   other_hazards: z.string().optional(),
   ca_prop65_prohibited: z.boolean().default(false),
   coa_required: z.boolean().default(false),
@@ -265,7 +265,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       item_number: '',
       fraud_vulnerability_score: '',
       supply_chain_complexity: '',
-      authentication_method: '',
+      authentication_method: [],
       other_hazards: '',
       ca_prop65_prohibited: false,
       coa_required: false,
@@ -462,7 +462,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         item_number: material.item_number || '',
         fraud_vulnerability_score: material.fraud_vulnerability_score || '',
         supply_chain_complexity: material.supply_chain_complexity || '',
-        authentication_method: material.authentication_method || '',
+        authentication_method: (material.authentication_method as string[]) || [],
         other_hazards: material.other_hazards || '',
         ca_prop65_prohibited: material.ca_prop65_prohibited ?? false,
         coa_required: material.coa_required ?? false,
@@ -737,7 +737,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           item_number: data.item_number || null,
           fraud_vulnerability_score: data.fraud_vulnerability_score || null,
           supply_chain_complexity: data.supply_chain_complexity || null,
-          authentication_method: data.authentication_method || null,
+          authentication_method: data.authentication_method.length > 0 ? data.authentication_method : null,
           other_hazards: data.other_hazards || null,
           ca_prop65_prohibited: data.ca_prop65_prohibited,
           coa_required: data.coa_required,
@@ -857,7 +857,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           item_number: data.item_number || null,
           fraud_vulnerability_score: data.fraud_vulnerability_score || null,
           supply_chain_complexity: data.supply_chain_complexity || null,
-          authentication_method: data.authentication_method || null,
+          authentication_method: data.authentication_method.length > 0 ? data.authentication_method : null,
           other_hazards: data.other_hazards || null,
           ca_prop65_prohibited: data.ca_prop65_prohibited,
           coa_required: data.coa_required,
@@ -1961,25 +1961,25 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   name="authentication_method"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Authentication Method</FormLabel>
-                      <Select 
-                        onValueChange={(val) => field.onChange(val === '__none__' ? '' : val)} 
-                        value={field.value || '__none__'}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select method" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="__none__">None</SelectItem>
-                          {authMethodOptions.map((option) => (
-                            <SelectItem key={option.id} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Authentication Method (select all that apply)</FormLabel>
+                      <div className="flex flex-wrap gap-4 pt-2">
+                        {authMethodOptions.map((option) => (
+                          <label key={option.id} className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={(field.value || []).includes(option.value)}
+                              onCheckedChange={(checked) => {
+                                const currentValues = field.value || [];
+                                if (checked) {
+                                  field.onChange([...currentValues, option.value]);
+                                } else {
+                                  field.onChange(currentValues.filter((v: string) => v !== option.value));
+                                }
+                              }}
+                            />
+                            <span className="text-sm">{option.label}</span>
+                          </label>
+                        ))}
+                      </div>
                     </FormItem>
                   )}
                 />

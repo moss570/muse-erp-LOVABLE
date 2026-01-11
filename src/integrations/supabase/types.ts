@@ -2287,7 +2287,7 @@ export type Database = {
         Row: {
           allergens: string[] | null
           approval_status: string | null
-          authentication_method: string | null
+          authentication_method: string[] | null
           base_unit_id: string
           ca_prop65_prohibited: boolean | null
           category: string | null
@@ -2335,7 +2335,7 @@ export type Database = {
         Insert: {
           allergens?: string[] | null
           approval_status?: string | null
-          authentication_method?: string | null
+          authentication_method?: string[] | null
           base_unit_id: string
           ca_prop65_prohibited?: boolean | null
           category?: string | null
@@ -2383,7 +2383,7 @@ export type Database = {
         Update: {
           allergens?: string[] | null
           approval_status?: string | null
-          authentication_method?: string | null
+          authentication_method?: string[] | null
           base_unit_id?: string
           ca_prop65_prohibited?: boolean | null
           category?: string | null
