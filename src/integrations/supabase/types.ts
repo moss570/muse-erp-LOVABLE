@@ -2321,7 +2321,10 @@ export type Database = {
           photo_path: string | null
           photo_url: string | null
           pkg_fda_food_contact: boolean | null
+          pkg_food_grade_suitable: boolean | null
+          pkg_heavy_metals_compliant: boolean | null
           pkg_material_type: string | null
+          pkg_pcr_fda_approved: boolean | null
           pkg_recyclable: boolean | null
           pkg_volume: number | null
           pkg_volume_uom_id: string | null
@@ -2375,7 +2378,10 @@ export type Database = {
           photo_path?: string | null
           photo_url?: string | null
           pkg_fda_food_contact?: boolean | null
+          pkg_food_grade_suitable?: boolean | null
+          pkg_heavy_metals_compliant?: boolean | null
           pkg_material_type?: string | null
+          pkg_pcr_fda_approved?: boolean | null
           pkg_recyclable?: boolean | null
           pkg_volume?: number | null
           pkg_volume_uom_id?: string | null
@@ -2429,7 +2435,10 @@ export type Database = {
           photo_path?: string | null
           photo_url?: string | null
           pkg_fda_food_contact?: boolean | null
+          pkg_food_grade_suitable?: boolean | null
+          pkg_heavy_metals_compliant?: boolean | null
           pkg_material_type?: string | null
+          pkg_pcr_fda_approved?: boolean | null
           pkg_recyclable?: boolean | null
           pkg_volume?: number | null
           pkg_volume_uom_id?: string | null

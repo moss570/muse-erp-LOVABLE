@@ -121,6 +121,9 @@ const materialFormSchema = z.object({
   // Packaging Specifications
   pkg_fda_food_contact: z.boolean().default(false),
   pkg_material_type: z.string().optional().nullable(),
+  pkg_food_grade_suitable: z.boolean().default(false),
+  pkg_pcr_fda_approved: z.boolean().default(false),
+  pkg_heavy_metals_compliant: z.boolean().default(false),
   pkg_weight_kg: z.coerce.number().optional().nullable(),
   pkg_volume: z.coerce.number().optional().nullable(),
   pkg_volume_uom_id: z.string().optional().nullable(),
@@ -288,6 +291,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       // Packaging defaults
       pkg_fda_food_contact: false,
       pkg_material_type: null,
+      pkg_food_grade_suitable: false,
+      pkg_pcr_fda_approved: false,
+      pkg_heavy_metals_compliant: false,
       pkg_weight_kg: null,
       pkg_volume: null,
       pkg_volume_uom_id: null,
@@ -493,6 +499,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         // Packaging fields
         pkg_fda_food_contact: (material as any).pkg_fda_food_contact ?? false,
         pkg_material_type: (material as any).pkg_material_type || null,
+        pkg_food_grade_suitable: (material as any).pkg_food_grade_suitable ?? false,
+        pkg_pcr_fda_approved: (material as any).pkg_pcr_fda_approved ?? false,
+        pkg_heavy_metals_compliant: (material as any).pkg_heavy_metals_compliant ?? false,
         pkg_weight_kg: (material as any).pkg_weight_kg ?? null,
         pkg_volume: (material as any).pkg_volume ?? null,
         pkg_volume_uom_id: (material as any).pkg_volume_uom_id || null,
@@ -776,6 +785,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           // Packaging fields
           pkg_fda_food_contact: data.pkg_fda_food_contact ?? false,
           pkg_material_type: data.pkg_material_type || null,
+          pkg_food_grade_suitable: data.pkg_food_grade_suitable ?? false,
+          pkg_pcr_fda_approved: data.pkg_pcr_fda_approved ?? false,
+          pkg_heavy_metals_compliant: data.pkg_heavy_metals_compliant ?? false,
           pkg_weight_kg: data.pkg_weight_kg ?? null,
           pkg_volume: data.pkg_volume ?? null,
           pkg_volume_uom_id: data.pkg_volume_uom_id || null,
@@ -903,6 +915,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           // Packaging fields
           pkg_fda_food_contact: data.pkg_fda_food_contact ?? false,
           pkg_material_type: data.pkg_material_type || null,
+          pkg_food_grade_suitable: data.pkg_food_grade_suitable ?? false,
+          pkg_pcr_fda_approved: data.pkg_pcr_fda_approved ?? false,
+          pkg_heavy_metals_compliant: data.pkg_heavy_metals_compliant ?? false,
           pkg_weight_kg: data.pkg_weight_kg ?? null,
           pkg_volume: data.pkg_volume ?? null,
           pkg_volume_uom_id: data.pkg_volume_uom_id || null,
@@ -1916,6 +1931,60 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                     value={field.value || ''} 
                                   />
                                 </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="pkg_food_grade_suitable"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Food Grade Confirmation: Is material suitable for food contact?</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="pkg_pcr_fda_approved"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Recycled Content Statement: If using post-consumer recycled (PCR) content, is it FDA-approved for food contact?</FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="pkg_heavy_metals_compliant"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Heavy Metals: Certification that lead, mercury, cadmium, and hexavalent chromium are &lt;100ppm</FormLabel>
+                                </div>
                               </FormItem>
                             )}
                           />
