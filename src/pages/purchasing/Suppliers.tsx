@@ -64,8 +64,7 @@ import {
 } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
-import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel } from '@/components/approval';
-import { ComplianceDocumentsPanel } from '@/components/approval/ComplianceDocumentsPanel';
+import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel, DocumentComplianceSummary, DocumentExpiryBadge } from '@/components/approval';
 import type { Tables } from '@/integrations/supabase/types';
 
 const SUPPLIER_TYPES = [
@@ -1589,10 +1588,18 @@ export default function Suppliers() {
                         </CardContent>
                       </Card>
 
-                      <ComplianceDocumentsPanel
-                        entityId={editingSupplier.id}
+                      {/* Document Compliance Summary */}
+                      <DocumentComplianceSummary
+                        documents={documents.map(d => ({
+                          id: d.id,
+                          document_name: d.document_name,
+                          requirement_id: d.requirement_id,
+                          expiry_date: d.expiry_date,
+                          file_path: d.file_path,
+                          file_url: d.file_url,
+                        }))}
+                        requirements={documentRequirements || []}
                         entityType="supplier"
-                        entityName={editingSupplier.name}
                       />
                     </>
                   ) : (
@@ -1773,6 +1780,11 @@ export default function Suppliers() {
                             value={doc.expiry_date || ''}
                             onChange={(e) => updateDocument(doc.id, 'expiry_date', e.target.value)}
                           />
+                          {doc.expiry_date && (
+                            <div className="mt-1">
+                              <DocumentExpiryBadge expiryDate={doc.expiry_date} size="sm" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

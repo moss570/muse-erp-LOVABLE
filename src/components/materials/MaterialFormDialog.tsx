@@ -39,7 +39,8 @@ import {
   ApprovalStatusBadge,
   ApprovalActionsDropdown,
   ApprovalHistoryPanel,
-  ComplianceDocumentsPanel,
+  DocumentComplianceSummary,
+  DocumentExpiryBadge,
 } from '@/components/approval';
 import { CreateUnitDialog } from './CreateUnitDialog';
 import type { Tables } from '@/integrations/supabase/types';
@@ -2565,15 +2566,19 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       />
                     </div>
 
-                    {/* Compliance Documents */}
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Supplier Compliance Documents</h4>
-                      <ComplianceDocumentsPanel
-                        entityId={material.id}
-                        entityType="material"
-                        entityName={material.name}
-                      />
-                    </div>
+                    {/* Document Compliance Summary */}
+                    <DocumentComplianceSummary
+                      documents={documents.map(d => ({
+                        id: d.id || `temp-${Math.random()}`,
+                        document_name: d.document_name,
+                        requirement_id: d.requirement_id,
+                        expiry_date: undefined, // material_documents doesn't have expiry_date in current schema
+                        file_path: d.file_path,
+                        file_url: d.file_url,
+                      }))}
+                      requirements={documentRequirements || []}
+                      entityType="material"
+                    />
 
                     {/* Approval History */}
                     <div>

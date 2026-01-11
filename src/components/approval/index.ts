@@ -6,6 +6,8 @@ export { DocumentExpirationBadge, getExpirationStatus } from './DocumentExpirati
 export { ComplianceDocumentsPanel } from './ComplianceDocumentsPanel';
 export { ComplianceDocumentUploadDialog } from './ComplianceDocumentUploadDialog';
 export { DocumentRenewalDialog } from './DocumentRenewalDialog';
+export { DocumentComplianceSummary } from './DocumentComplianceSummary';
+export { DocumentExpiryBadge } from './DocumentExpiryBadge';
 
 // Re-export types from hooks
 export type { ApprovalStatus, ApprovalAction, RelatedTableName } from '@/hooks/useApprovalEngine';
