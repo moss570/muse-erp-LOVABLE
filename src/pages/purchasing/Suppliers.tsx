@@ -1682,6 +1682,7 @@ export default function Suppliers() {
                           expiry_date: d.expiry_date,
                           file_path: d.file_path,
                           file_url: d.file_url,
+                          is_archived: d.is_archived,
                         }))}
                         requirements={documentRequirements || []}
                         entityType="supplier"

@@ -2716,9 +2716,10 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         id: d.id || `temp-${Math.random()}`,
                         document_name: d.document_name,
                         requirement_id: d.requirement_id,
-                        expiry_date: undefined, // material_documents doesn't have expiry_date in current schema
+                        expiry_date: d.expiry_date,
                         file_path: d.file_path,
                         file_url: d.file_url,
+                        is_archived: d.is_archived,
                       }))}
                       requirements={documentRequirements || []}
                       entityType="material"

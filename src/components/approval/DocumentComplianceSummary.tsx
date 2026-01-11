@@ -10,6 +10,7 @@ interface Document {
   expiry_date?: string;
   file_path?: string;
   file_url?: string;
+  is_archived?: boolean;
 }
 
 interface Requirement {
@@ -29,18 +30,21 @@ export function DocumentComplianceSummary({
   requirements,
   entityType 
 }: DocumentComplianceSummaryProps) {
+  // Filter out archived documents - they should not be counted in compliance
+  const activeDocuments = documents.filter(d => !d.is_archived);
+
   // Calculate required documents status
   const requiredDocs = requirements.filter(r => r.is_required);
   const uploadedRequiredDocs = requiredDocs.filter(req => 
-    documents.some(d => d.requirement_id === req.id && (d.file_path || d.file_url))
+    activeDocuments.some(d => d.requirement_id === req.id && (d.file_path || d.file_url))
   );
   const missingRequiredDocs = requiredDocs.filter(req => 
-    !documents.some(d => d.requirement_id === req.id && (d.file_path || d.file_url))
+    !activeDocuments.some(d => d.requirement_id === req.id && (d.file_path || d.file_url))
   );
 
-  // Calculate expiration status
+  // Calculate expiration status (only for active documents)
   const today = new Date();
-  const docsWithExpiry = documents.filter(d => d.expiry_date);
+  const docsWithExpiry = activeDocuments.filter(d => d.expiry_date);
   
   const expiredDocs = docsWithExpiry.filter(d => {
     const expiryDate = parseISO(d.expiry_date!);
