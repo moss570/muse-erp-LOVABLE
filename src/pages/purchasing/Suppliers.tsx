@@ -102,6 +102,7 @@ const SUPPLIER_CATEGORIES = [
 const QA_APPROVAL_STATUSES = [
   { value: 'Draft', label: 'Draft' },
   { value: 'Pending_QA', label: 'Pending QA' },
+  { value: 'Probation', label: 'Probation' },
   { value: 'Approved', label: 'Approved' },
   { value: 'Rejected', label: 'Rejected' },
   { value: 'Archived', label: 'Archived' },
