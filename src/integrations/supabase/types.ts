@@ -2300,6 +2300,12 @@ export type Database = {
           description: string | null
           food_claims: string[] | null
           fraud_vulnerability_score: string | null
+          haccp_foreign_material_controls: string[] | null
+          haccp_heavy_metal_limits: boolean | null
+          haccp_kill_step_applied: boolean | null
+          haccp_new_allergen: boolean | null
+          haccp_new_allergen_name: string | null
+          haccp_rte_or_kill_step: string | null
           id: string
           is_active: boolean | null
           item_number: string | null
@@ -2341,6 +2347,12 @@ export type Database = {
           description?: string | null
           food_claims?: string[] | null
           fraud_vulnerability_score?: string | null
+          haccp_foreign_material_controls?: string[] | null
+          haccp_heavy_metal_limits?: boolean | null
+          haccp_kill_step_applied?: boolean | null
+          haccp_new_allergen?: boolean | null
+          haccp_new_allergen_name?: string | null
+          haccp_rte_or_kill_step?: string | null
           id?: string
           is_active?: boolean | null
           item_number?: string | null
@@ -2382,6 +2394,12 @@ export type Database = {
           description?: string | null
           food_claims?: string[] | null
           fraud_vulnerability_score?: string | null
+          haccp_foreign_material_controls?: string[] | null
+          haccp_heavy_metal_limits?: boolean | null
+          haccp_kill_step_applied?: boolean | null
+          haccp_new_allergen?: boolean | null
+          haccp_new_allergen_name?: string | null
+          haccp_rte_or_kill_step?: string | null
           id?: string
           is_active?: boolean | null
           item_number?: string | null

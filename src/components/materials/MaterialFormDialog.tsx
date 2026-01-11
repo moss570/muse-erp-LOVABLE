@@ -129,6 +129,14 @@ const materialFormSchema = z.object({
   ca_prop65_prohibited: z.boolean().default(false),
   coa_required: z.boolean().default(false),
   
+  // HACCP Tab
+  haccp_kill_step_applied: z.boolean().optional().nullable(),
+  haccp_rte_or_kill_step: z.string().optional().nullable(),
+  haccp_new_allergen: z.boolean().optional().nullable(),
+  haccp_new_allergen_name: z.string().optional().nullable(),
+  haccp_heavy_metal_limits: z.boolean().optional().nullable(),
+  haccp_foreign_material_controls: z.array(z.string()).default([]),
+  
   // Removed from Basic Info - now on Suppliers tab only
   min_stock_level: z.coerce.number().min(0).optional().nullable(),
 });
@@ -237,6 +245,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       ca_prop65_prohibited: false,
       coa_required: false,
       min_stock_level: null,
+      // HACCP defaults
+      haccp_kill_step_applied: null,
+      haccp_rte_or_kill_step: null,
+      haccp_new_allergen: null,
+      haccp_new_allergen_name: null,
+      haccp_heavy_metal_limits: null,
+      haccp_foreign_material_controls: [],
     },
   });
 
@@ -428,6 +443,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         coa_required: material.coa_required ?? false,
         min_stock_level: material.min_stock_level ?? null,
         approval_status: (material as any).approval_status || 'Draft',
+        // HACCP fields
+        haccp_kill_step_applied: (material as any).haccp_kill_step_applied ?? null,
+        haccp_rte_or_kill_step: (material as any).haccp_rte_or_kill_step || null,
+        haccp_new_allergen: (material as any).haccp_new_allergen ?? null,
+        haccp_new_allergen_name: (material as any).haccp_new_allergen_name || null,
+        haccp_heavy_metal_limits: (material as any).haccp_heavy_metal_limits ?? null,
+        haccp_foreign_material_controls: (material as any).haccp_foreign_material_controls || [],
       });
       // Load default photo state
       setDefaultPhotoPath((material as any).photo_path || undefined);
@@ -671,6 +693,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           cost_per_base_unit: null, // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
           approval_status: data.approval_status || 'Draft',
+          // HACCP fields
+          haccp_kill_step_applied: data.haccp_kill_step_applied ?? null,
+          haccp_rte_or_kill_step: data.haccp_rte_or_kill_step || null,
+          haccp_new_allergen: data.haccp_new_allergen ?? null,
+          haccp_new_allergen_name: data.haccp_new_allergen_name || null,
+          haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
+          haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
         }])
         .select()
         .single();
@@ -782,6 +811,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           cost_per_base_unit: null, // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
           approval_status: data.approval_status || 'Draft',
+          // HACCP fields
+          haccp_kill_step_applied: data.haccp_kill_step_applied ?? null,
+          haccp_rte_or_kill_step: data.haccp_rte_or_kill_step || null,
+          haccp_new_allergen: data.haccp_new_allergen ?? null,
+          haccp_new_allergen_name: data.haccp_new_allergen_name || null,
+          haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
+          haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
         })
         .eq('id', material.id);
       if (error) throw error;
@@ -1167,11 +1203,12 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-7">
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="specifications">Specifications</TabsTrigger>
+                <TabsTrigger value="specifications">Specs</TabsTrigger>
                 <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
-                <TabsTrigger value="unit-variants">Unit Variants</TabsTrigger>
+                <TabsTrigger value="haccp">HACCP</TabsTrigger>
+                <TabsTrigger value="unit-variants">Units</TabsTrigger>
                 <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="qa-workflow" className="flex items-center gap-1">
@@ -1928,6 +1965,220 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         <FormLabel className="!mt-0">COA Required on Receipt</FormLabel>
                       </FormItem>
                     )}
+                  />
+                </div>
+              </TabsContent>
+
+              {/* HACCP Tab */}
+              <TabsContent value="haccp" className="space-y-6 mt-4">
+                {/* Biological Hazards Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-medium text-base">Biological Hazards</h4>
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="haccp_kill_step_applied"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Does the manufacturer apply a validated kill step?</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="haccp_kill_step"
+                                checked={field.value === true}
+                                onChange={() => field.onChange(true)}
+                                className="h-4 w-4"
+                              />
+                              <span>Yes</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="haccp_kill_step"
+                                checked={field.value === false}
+                                onChange={() => field.onChange(false)}
+                                className="h-4 w-4"
+                              />
+                              <span>No</span>
+                            </label>
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('haccp_kill_step_applied') === false && (
+                    <FormField
+                      control={form.control}
+                      name="haccp_rte_or_kill_step"
+                      render={({ field }) => (
+                        <FormItem className="ml-4 border-l-2 border-muted pl-4">
+                          <FormLabel>Is this ingredient considered "Ready-to-Eat" (RTE) or will we apply a kill step?</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || ''}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select option" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="RTE">Ready-to-Eat (RTE)</SelectItem>
+                              <SelectItem value="KILL_STEP">We will apply a kill step</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                {/* Chemical Hazards & Allergens Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-medium text-base">Chemical Hazards & Allergens</h4>
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="haccp_new_allergen"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Does this material introduce a NEW allergen to our facility?</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="haccp_new_allergen"
+                                checked={field.value === true}
+                                onChange={() => field.onChange(true)}
+                                className="h-4 w-4"
+                              />
+                              <span>Yes</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="haccp_new_allergen"
+                                checked={field.value === false}
+                                onChange={() => field.onChange(false)}
+                                className="h-4 w-4"
+                              />
+                              <span>No</span>
+                            </label>
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('haccp_new_allergen') === true && (
+                    <FormField
+                      control={form.control}
+                      name="haccp_new_allergen_name"
+                      render={({ field }) => (
+                        <FormItem className="ml-4 border-l-2 border-muted pl-4">
+                          <FormLabel>What is that allergen?</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter allergen name..." 
+                              {...field} 
+                              value={field.value || ''} 
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  <FormField
+                    control={form.control}
+                    name="haccp_heavy_metal_limits"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Are there specific limits for heavy metals, pesticides, or mycotoxins?</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="haccp_heavy_metal_limits"
+                                checked={field.value === true}
+                                onChange={() => field.onChange(true)}
+                                className="h-4 w-4"
+                              />
+                              <span>Yes</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="haccp_heavy_metal_limits"
+                                checked={field.value === false}
+                                onChange={() => field.onChange(false)}
+                                className="h-4 w-4"
+                              />
+                              <span>No</span>
+                            </label>
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Physical Hazards Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-medium text-base">Physical Hazards</h4>
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="haccp_foreign_material_controls"
+                    render={({ field }) => {
+                      const controlOptions = [
+                        { value: 'Metal Detection', label: 'Metal Detection' },
+                        { value: 'X-Ray', label: 'X-Ray' },
+                        { value: 'Sieves/Screens', label: 'Sieves/Screens' },
+                      ];
+                      
+                      return (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Foreign Material Control used by manufacturer</FormLabel>
+                          <FormDescription>Select all that apply</FormDescription>
+                          <div className="flex flex-wrap gap-4">
+                            {controlOptions.map((option) => {
+                              const isChecked = (field.value || []).includes(option.value);
+                              return (
+                                <label 
+                                  key={option.value} 
+                                  className="flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(checked) => {
+                                      const currentValues = field.value || [];
+                                      if (checked) {
+                                        field.onChange([...currentValues, option.value]);
+                                      } else {
+                                        field.onChange(currentValues.filter(v => v !== option.value));
+                                      }
+                                    }}
+                                  />
+                                  <span>{option.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
               </TabsContent>
