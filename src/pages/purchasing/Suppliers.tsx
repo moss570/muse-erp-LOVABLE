@@ -39,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -58,10 +59,13 @@ import {
   XCircle,
   Plus,
   Users,
-  Mail
+  Mail,
+  History
 } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
+import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel } from '@/components/approval';
+import { ComplianceDocumentsPanel } from '@/components/approval/ComplianceDocumentsPanel';
 import type { Tables } from '@/integrations/supabase/types';
 
 const SUPPLIER_TYPES = [
@@ -915,10 +919,11 @@ export default function Suppliers() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-6 w-full">
+                <TabsList className="grid grid-cols-7 w-full">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="approval">Approval</TabsTrigger>
+                  <TabsTrigger value="qa_workflow">QA Workflow</TabsTrigger>
                   <TabsTrigger value="compliance">Compliance</TabsTrigger>
                   <TabsTrigger value="payment">Payment</TabsTrigger>
                   <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -1534,6 +1539,68 @@ export default function Suppliers() {
                       )}
                     />
                   </div>
+                </TabsContent>
+
+                {/* QA Workflow Tab */}
+                <TabsContent value="qa_workflow" className="space-y-4 mt-4">
+                  {editingSupplier ? (
+                    <>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg flex items-center justify-between">
+                            <span>QA Approval Status</span>
+                            <ApprovalStatusBadge status={editingSupplier.approval_status as 'Draft' | 'Pending_QA' | 'Approved' | 'Rejected' | 'Archived'} />
+                          </CardTitle>
+                          <CardDescription>
+                            SQF compliance approval workflow for this supplier
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <ApprovalActionsDropdown
+                              recordId={editingSupplier.id}
+                              tableName="suppliers"
+                              currentStatus={editingSupplier.approval_status as 'Draft' | 'Pending_QA' | 'Approved' | 'Rejected' | 'Archived'}
+                              onActionComplete={() => {
+                                queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+                              }}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {editingSupplier.qa_verified_at 
+                                ? `Verified on ${new Date(editingSupplier.qa_verified_at).toLocaleDateString()}` 
+                                : 'Not yet verified by QA'}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Approval History
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ApprovalHistoryPanel
+                            recordId={editingSupplier.id}
+                            tableName="suppliers"
+                          />
+                        </CardContent>
+                      </Card>
+
+                      <ComplianceDocumentsPanel
+                        entityId={editingSupplier.id}
+                        entityType="supplier"
+                        entityName={editingSupplier.name}
+                      />
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                      <p>Save the supplier first to access QA workflow features</p>
+                    </div>
+                  )}
                 </TabsContent>
 
                 {/* Payment Tab */}

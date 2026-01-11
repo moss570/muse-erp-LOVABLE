@@ -23,6 +23,7 @@ import { Pencil, Trash2, Package } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { MaterialFormDialog } from '@/components/materials/MaterialFormDialog';
+import { ApprovalStatusBadge } from '@/components/approval';
 import { usePermissions } from '@/hooks/usePermission';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -195,6 +196,7 @@ export default function Materials() {
                   <TableHead>Name</TableHead>
                   <TableHead>Listed Name</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>QA Status</TableHead>
                   <TableHead>Unit</TableHead>
                   <TableHead className="text-right">Cost/Unit</TableHead>
                   <TableHead className="w-[100px] text-right">Actions</TableHead>
@@ -203,7 +205,7 @@ export default function Materials() {
               <TableBody>
                 {paginatedMaterials?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       <Package className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No materials found</p>
                       <p className="text-sm">Try adjusting your search or filter</p>
@@ -240,6 +242,13 @@ export default function Materials() {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <ApprovalStatusBadge 
+                          status={material.approval_status as 'Draft' | 'Pending_QA' | 'Approved' | 'Rejected' | 'Archived'} 
+                          size="sm"
+                          showIcon={false}
+                        />
                       </TableCell>
                       <TableCell>{material.purchase_unit?.code || '-'}</TableCell>
                       <TableCell className="text-right">
