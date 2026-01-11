@@ -43,6 +43,7 @@ const formSchema = z.object({
   invoice_date: z.date(),
   due_date: z.date().optional(),
   tax_amount: z.coerce.number().min(0).optional(),
+  freight_amount: z.coerce.number().min(0).optional(),
   notes: z.string().optional(),
 });
 
@@ -71,6 +72,7 @@ export function InvoiceFormDialog({
       invoice_number: '',
       invoice_date: new Date(),
       tax_amount: 0,
+      freight_amount: 0,
       notes: '',
     },
   });
@@ -142,6 +144,8 @@ export function InvoiceFormDialog({
       invoice_date: format(values.invoice_date, 'yyyy-MM-dd'),
       due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
       tax_amount: values.tax_amount,
+      freight_amount: values.freight_amount,
+      invoice_type: 'material',
       notes: values.notes,
       line_items: lineItems,
     });
@@ -181,8 +185,10 @@ export function InvoiceFormDialog({
 
   const subtotal = calculateSubtotal();
   const taxValue = form.watch('tax_amount');
+  const freightValue = form.watch('freight_amount');
   const tax = typeof taxValue === 'number' ? taxValue : (parseFloat(String(taxValue)) || 0);
-  const total = subtotal + tax;
+  const freight = typeof freightValue === 'number' ? freightValue : (parseFloat(String(freightValue)) || 0);
+  const total = subtotal + tax + freight;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -292,7 +298,25 @@ export function InvoiceFormDialog({
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="freight_amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Freight Amount</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} placeholder="0.00" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
+
+                <p className="text-xs text-muted-foreground">
+                  For 3rd party freight invoices, create them separately and link them after the material invoice is created.
+                </p>
 
                 {/* Line Items Selection */}
                 <div className="space-y-2">
@@ -405,6 +429,10 @@ export function InvoiceFormDialog({
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
                     <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Freight:</span>
+                    <span>${freight.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Tax:</span>

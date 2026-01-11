@@ -52,6 +52,8 @@ export interface CreateInvoiceInput {
   invoice_date: string;
   due_date?: string;
   tax_amount?: number;
+  freight_amount?: number;
+  invoice_type?: 'material' | 'freight';
   notes?: string;
   line_items: {
     po_item_id?: string;
@@ -190,7 +192,7 @@ export function useCreateInvoice() {
         (sum, item) => sum + item.quantity * item.unit_cost,
         0
       );
-      const totalAmount = subtotal + (input.tax_amount || 0);
+      const totalAmount = subtotal + (input.tax_amount || 0) + (input.freight_amount || 0);
 
       // Create invoice
       const { data: invoice, error: invoiceError } = await supabase
@@ -203,6 +205,8 @@ export function useCreateInvoice() {
           due_date: input.due_date,
           subtotal,
           tax_amount: input.tax_amount,
+          freight_amount: input.freight_amount || 0,
+          invoice_type: input.invoice_type || 'material',
           total_amount: totalAmount,
           notes: input.notes,
           created_by: user?.id,
@@ -366,6 +370,136 @@ export function useUpdateInvoicePayment() {
     onError: (error: Error) => {
       toast.error(`Failed to update payment: ${error.message}`);
     },
+  });
+}
+
+// Approve invoice and calculate landed costs
+export function useApproveInvoice() {
+  const queryClient = useQueryClient();
+  const calculateLandedCosts = useCalculateLandedCosts();
+
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('purchase_order_invoices')
+        .update({
+          approval_status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: user?.id,
+        })
+        .eq('id', invoiceId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      // Calculate landed costs after approval
+      try {
+        await calculateLandedCosts.mutateAsync(data.id);
+      } catch (e) {
+        console.error('Failed to calculate landed costs:', e);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['po-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', data.id] });
+      toast.success('Invoice approved and landed costs calculated');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to approve invoice: ${error.message}`);
+    },
+  });
+}
+
+// Link freight invoice to material invoice
+export function useLinkFreightInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      materialInvoiceId,
+      freightInvoiceId,
+      allocationAmount,
+    }: {
+      materialInvoiceId: string;
+      freightInvoiceId: string;
+      allocationAmount?: number;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('invoice_freight_links')
+        .insert({
+          material_invoice_id: materialInvoiceId,
+          freight_invoice_id: freightInvoiceId,
+          allocation_amount: allocationAmount,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['invoice-freight-links', variables.materialInvoiceId] });
+      toast.success('Freight invoice linked');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to link freight invoice: ${error.message}`);
+    },
+  });
+}
+
+// Get linked freight invoices for a material invoice
+export function useLinkedFreightInvoices(materialInvoiceId?: string) {
+  return useQuery({
+    queryKey: ['invoice-freight-links', materialInvoiceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invoice_freight_links')
+        .select(`
+          *,
+          freight_invoice:purchase_order_invoices!invoice_freight_links_freight_invoice_id_fkey(
+            id, invoice_number, invoice_date, total_amount, supplier:suppliers(name)
+          )
+        `)
+        .eq('material_invoice_id', materialInvoiceId);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!materialInvoiceId,
+  });
+}
+
+// Get available freight invoices (for linking)
+export function useAvailableFreightInvoices(supplierId?: string) {
+  return useQuery({
+    queryKey: ['freight-invoices', supplierId],
+    queryFn: async () => {
+      let query = supabase
+        .from('purchase_order_invoices')
+        .select(`
+          *,
+          supplier:suppliers(id, name, code)
+        `)
+        .eq('invoice_type', 'freight')
+        .order('invoice_date', { ascending: false });
+
+      // Optionally filter by supplier if you want matching supplier
+      // if (supplierId) {
+      //   query = query.eq('supplier_id', supplierId);
+      // }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: true,
   });
 }
 
