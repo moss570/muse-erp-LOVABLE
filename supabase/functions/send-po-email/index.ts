@@ -391,6 +391,14 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
         ` : ''}
 
+        <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; background: #fef2f2;">
+          <h3 style="margin: 0 0 15px 0; color: #991b1b; font-size: 12px; text-transform: uppercase; font-weight: 700;">Supplier Change Notification Requirements</h3>
+          <ul style="margin: 0; padding: 0 0 0 20px; color: #7f1d1d; font-size: 13px; line-height: 1.6;">
+            <li style="margin-bottom: 10px;">Supplier must notify ${escapeHtml(company.company_name)} in writing of any changes to resin, adhesive, or manufacturing location <strong>30 days prior to shipment</strong> of all packaging materials.</li>
+            <li>Supplier must notify ${escapeHtml(company.company_name)} in writing of any changes to ingredients, allergens, or processing steps in manufacturing location <strong>30 days prior to shipment</strong> of all food ingredients.</li>
+          </ul>
+        </div>
+
         <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; background: #f9fafb; text-align: center; color: #6b7280; font-size: 12px;">
           <p style="margin: 0;">${escapeHtml(company.company_name)} | ${escapeHtml(company.phone)} | ${escapeHtml(company.website)}</p>
           <p style="margin: 5px 0 0 0;">Please contact us if you have any questions.</p>
