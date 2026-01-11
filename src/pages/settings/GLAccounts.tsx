@@ -514,12 +514,24 @@ export default function GLAccounts() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="xero_account_id">Xero Account ID</Label>
-              <Input
-                id="xero_account_id"
+              <Select
                 value={formData.xero_account_id}
-                onChange={(e) => setFormData({ ...formData, xero_account_id: e.target.value })}
-                placeholder="Xero account identifier"
-              />
+                onValueChange={(value) => setFormData({ ...formData, xero_account_id: value === '__none__' ? '' : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Xero account..." />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  <SelectItem value="__none__">None</SelectItem>
+                  {glAccounts
+                    ?.filter((a) => a.xero_account_id)
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.xero_account_id!}>
+                        {account.account_code} - {account.account_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
