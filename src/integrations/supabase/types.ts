@@ -2289,6 +2289,16 @@ export type Database = {
           approval_status: string | null
           authentication_method: string[] | null
           base_unit_id: string
+          box_allergen_free_adhesives: boolean | null
+          box_dimensions_internal: string | null
+          box_flute_type: string | null
+          box_foreign_material_control: boolean | null
+          box_heavy_metals_coneg: boolean | null
+          box_joint_style: string | null
+          box_recycled_content_verified: boolean | null
+          box_strength_type: string | null
+          box_strength_value: string | null
+          box_style_code: string | null
           ca_prop65_prohibited: boolean | null
           category: string | null
           coa_critical_limits: Json | null
@@ -2346,6 +2356,16 @@ export type Database = {
           approval_status?: string | null
           authentication_method?: string[] | null
           base_unit_id: string
+          box_allergen_free_adhesives?: boolean | null
+          box_dimensions_internal?: string | null
+          box_flute_type?: string | null
+          box_foreign_material_control?: boolean | null
+          box_heavy_metals_coneg?: boolean | null
+          box_joint_style?: string | null
+          box_recycled_content_verified?: boolean | null
+          box_strength_type?: string | null
+          box_strength_value?: string | null
+          box_style_code?: string | null
           ca_prop65_prohibited?: boolean | null
           category?: string | null
           coa_critical_limits?: Json | null
@@ -2403,6 +2423,16 @@ export type Database = {
           approval_status?: string | null
           authentication_method?: string[] | null
           base_unit_id?: string
+          box_allergen_free_adhesives?: boolean | null
+          box_dimensions_internal?: string | null
+          box_flute_type?: string | null
+          box_foreign_material_control?: boolean | null
+          box_heavy_metals_coneg?: boolean | null
+          box_joint_style?: string | null
+          box_recycled_content_verified?: boolean | null
+          box_strength_type?: string | null
+          box_strength_value?: string | null
+          box_style_code?: string | null
           ca_prop65_prohibited?: boolean | null
           category?: string | null
           coa_critical_limits?: Json | null

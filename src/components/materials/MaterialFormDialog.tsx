@@ -129,6 +129,20 @@ const materialFormSchema = z.object({
   pkg_volume_uom_id: z.string().optional().nullable(),
   pkg_recyclable: z.boolean().default(false),
   
+  // Box-Specific Specifications (Structural & Performance)
+  box_strength_type: z.string().optional().nullable(),
+  box_strength_value: z.string().optional().nullable(),
+  box_flute_type: z.string().optional().nullable(),
+  box_dimensions_internal: z.string().optional().nullable(),
+  box_joint_style: z.string().optional().nullable(),
+  box_style_code: z.string().optional().nullable(),
+  
+  // Box-Specific Specifications (Food Safety)
+  box_recycled_content_verified: z.boolean().default(false),
+  box_allergen_free_adhesives: z.boolean().default(false),
+  box_heavy_metals_coneg: z.boolean().default(false),
+  box_foreign_material_control: z.boolean().default(false),
+  
   // Food Safety (VACCP) Tab
   country_of_origin: z.string().optional(),
   manufacturer: z.string().optional(),
@@ -298,6 +312,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       pkg_volume: null,
       pkg_volume_uom_id: null,
       pkg_recyclable: false,
+      // Box-specific defaults
+      box_strength_type: null,
+      box_strength_value: null,
+      box_flute_type: null,
+      box_dimensions_internal: null,
+      box_joint_style: null,
+      box_style_code: null,
+      box_recycled_content_verified: false,
+      box_allergen_free_adhesives: false,
+      box_heavy_metals_coneg: false,
+      box_foreign_material_control: false,
     },
   });
 
@@ -506,6 +531,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         pkg_volume: (material as any).pkg_volume ?? null,
         pkg_volume_uom_id: (material as any).pkg_volume_uom_id || null,
         pkg_recyclable: (material as any).pkg_recyclable ?? false,
+        // Box-specific fields
+        box_strength_type: (material as any).box_strength_type || null,
+        box_strength_value: (material as any).box_strength_value || null,
+        box_flute_type: (material as any).box_flute_type || null,
+        box_dimensions_internal: (material as any).box_dimensions_internal || null,
+        box_joint_style: (material as any).box_joint_style || null,
+        box_style_code: (material as any).box_style_code || null,
+        box_recycled_content_verified: (material as any).box_recycled_content_verified ?? false,
+        box_allergen_free_adhesives: (material as any).box_allergen_free_adhesives ?? false,
+        box_heavy_metals_coneg: (material as any).box_heavy_metals_coneg ?? false,
+        box_foreign_material_control: (material as any).box_foreign_material_control ?? false,
       });
       // Load default photo state
       setDefaultPhotoPath((material as any).photo_path || undefined);
@@ -792,6 +828,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           pkg_volume: data.pkg_volume ?? null,
           pkg_volume_uom_id: data.pkg_volume_uom_id || null,
           pkg_recyclable: data.pkg_recyclable ?? false,
+          // Box-Specific fields
+          box_strength_type: data.box_strength_type || null,
+          box_strength_value: data.box_strength_value || null,
+          box_flute_type: data.box_flute_type || null,
+          box_dimensions_internal: data.box_dimensions_internal || null,
+          box_joint_style: data.box_joint_style || null,
+          box_style_code: data.box_style_code || null,
+          box_recycled_content_verified: data.box_recycled_content_verified ?? false,
+          box_allergen_free_adhesives: data.box_allergen_free_adhesives ?? false,
+          box_heavy_metals_coneg: data.box_heavy_metals_coneg ?? false,
+          box_foreign_material_control: data.box_foreign_material_control ?? false,
           // COA Limits
           coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         }])
@@ -922,6 +969,17 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           pkg_volume: data.pkg_volume ?? null,
           pkg_volume_uom_id: data.pkg_volume_uom_id || null,
           pkg_recyclable: data.pkg_recyclable ?? false,
+          // Box-Specific fields
+          box_strength_type: data.box_strength_type || null,
+          box_strength_value: data.box_strength_value || null,
+          box_flute_type: data.box_flute_type || null,
+          box_dimensions_internal: data.box_dimensions_internal || null,
+          box_joint_style: data.box_joint_style || null,
+          box_style_code: data.box_style_code || null,
+          box_recycled_content_verified: data.box_recycled_content_verified ?? false,
+          box_allergen_free_adhesives: data.box_allergen_free_adhesives ?? false,
+          box_heavy_metals_coneg: data.box_heavy_metals_coneg ?? false,
+          box_foreign_material_control: data.box_foreign_material_control ?? false,
           // COA Limits
           coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         })
@@ -1715,6 +1773,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                   const category = form.watch('category');
                   const isFood = FOOD_CATEGORIES.includes(category);
                   const isPackaging = PACKAGING_CATEGORIES.includes(category);
+                  const isBoxes = category === 'Boxes';
                   const isIndustrial = INDUSTRIAL_CATEGORIES.includes(category);
                   
                   if (!category) {
@@ -2076,6 +2135,252 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                               </FormItem>
                             )}
                           />
+                        </div>
+                      )}
+
+                      {isBoxes && (
+                        <div className="space-y-6 mt-6">
+                          {/* Structural & Performance Section */}
+                          <div className="border rounded-lg p-4 bg-card">
+                            <h4 className="text-sm font-semibold mb-4 text-primary">📦 Structural & Performance Specifications</h4>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <FormField
+                                control={form.control}
+                                name="box_strength_type"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Strength Test Type</FormLabel>
+                                    <Select 
+                                      onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                                      value={field.value || '__none__'}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Select type</SelectItem>
+                                        <SelectItem value="ECT">ECT (Edge Crush Test) - for stacking strength</SelectItem>
+                                        <SelectItem value="Burst">Burst Strength (Mullen) - for puncture resistance</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <FormDescription className="text-xs">
+                                      ECT: Stacking/palletizing. Burst: Rough handling/individual shipping.
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_strength_value"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Strength Value</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="e.g., 32 ECT or 200# Test" 
+                                        {...field} 
+                                        value={field.value || ''} 
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <FormField
+                              control={form.control}
+                              name="box_flute_type"
+                              render={({ field }) => (
+                                <FormItem className="mb-4">
+                                  <FormLabel>Flute Size</FormLabel>
+                                  <Select 
+                                    onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                                    value={field.value || '__none__'}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select flute type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Select flute type</SelectItem>
+                                      <SelectItem value="B-Flute">B-Flute (crush resistant, good print surface)</SelectItem>
+                                      <SelectItem value="C-Flute">C-Flute (good cushioning, standard shipping)</SelectItem>
+                                      <SelectItem value="BC-Flute">BC-Flute (double wall, heavy items)</SelectItem>
+                                      <SelectItem value="E-Flute">E-Flute (thin, retail packaging)</SelectItem>
+                                      <SelectItem value="F-Flute">F-Flute (very thin, point of purchase)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="box_dimensions_internal"
+                              render={({ field }) => (
+                                <FormItem className="mb-4">
+                                  <FormLabel>Internal Dimensions (L x W x H)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      placeholder="e.g., 12 x 10 x 8 inches" 
+                                      {...field} 
+                                      value={field.value || ''} 
+                                    />
+                                  </FormControl>
+                                  <FormDescription className="text-xs">
+                                    Always specify Internal Dimensions (ID) to ensure product fit.
+                                  </FormDescription>
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="box_joint_style"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Joint Style</FormLabel>
+                                    <Select 
+                                      onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                                      value={field.value || '__none__'}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select joint style" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">Select joint style</SelectItem>
+                                        <SelectItem value="Glued">Glued (strongest, auto-erecting compatible)</SelectItem>
+                                        <SelectItem value="Stitched">Stitched/Stapled (strong, foreign material risk)</SelectItem>
+                                        <SelectItem value="Taped">Taped</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <FormDescription className="text-xs text-amber-600">
+                                      ⚠️ Avoid stitched/stapled for food facilities (metal staples = foreign material risk)
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_style_code"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Box Style Code (FEFCO)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="e.g., RSC 0201" 
+                                        {...field} 
+                                        value={field.value || ''} 
+                                      />
+                                    </FormControl>
+                                    <FormDescription className="text-xs">
+                                      Standard code (e.g., 0201 = Regular Slotted Container)
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Food Safety Section */}
+                          <div className="border rounded-lg p-4 bg-card">
+                            <h4 className="text-sm font-semibold mb-4 text-primary">🛡️ Food Safety Compliance (SQF/GFSI)</h4>
+                            
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="box_recycled_content_verified"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel>Recycled Content Verification</FormLabel>
+                                      <FormDescription className="text-xs">
+                                        If using recycled paper, confirm letter stating free from source contamination (mineral oils, chemicals from inks)
+                                      </FormDescription>
+                                    </div>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_allergen_free_adhesives"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel>Allergen-Free Adhesives</FormLabel>
+                                      <FormDescription className="text-xs">
+                                        Corn starch or glues used to bond flutes do not contain undeclared wheat/gluten
+                                      </FormDescription>
+                                    </div>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_heavy_metals_coneg"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel>Heavy Metals (CONEG Compliant)</FormLabel>
+                                      <FormDescription className="text-xs">
+                                        Lead, mercury, cadmium, hexavalent chromium are &lt;100ppm (relevant for colored inks)
+                                      </FormDescription>
+                                    </div>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_foreign_material_control"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel>Foreign Material Control</FormLabel>
+                                      <FormDescription className="text-xs">
+                                        Supplier confirms "stripping" (removing waste cardboard) is done mechanically to prevent loose scraps
+                                      </FormDescription>
+                                    </div>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
 
