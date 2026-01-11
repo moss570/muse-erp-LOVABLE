@@ -37,6 +37,7 @@ import FixedCosts from "./pages/settings/FixedCosts";
 import GLAccounts from "./pages/settings/GLAccounts";
 import PeriodClose from "./pages/settings/PeriodClose";
 import ProfitLoss from "./pages/reports/ProfitLoss";
+import XeroConfiguration from "./pages/settings/XeroConfiguration";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/settings/fixed-costs" element={<AppLayout><FixedCosts /></AppLayout>} />
             <Route path="/settings/gl-accounts" element={<AppLayout><GLAccounts /></AppLayout>} />
             <Route path="/settings/period-close" element={<AppLayout><PeriodClose /></AppLayout>} />
+            <Route path="/settings/xero" element={<XeroConfiguration />} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

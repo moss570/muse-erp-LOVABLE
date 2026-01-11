@@ -2780,6 +2780,137 @@ export type Database = {
           },
         ]
       }
+      product_recipe_items: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          notes: string | null
+          quantity_required: number
+          recipe_id: string
+          sort_order: number | null
+          unit_id: string | null
+          wastage_percentage: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          notes?: string | null
+          quantity_required: number
+          recipe_id: string
+          sort_order?: number | null
+          unit_id?: string | null
+          wastage_percentage?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          notes?: string | null
+          quantity_required?: number
+          recipe_id?: string
+          sort_order?: number | null
+          unit_id?: string | null
+          wastage_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_recipe_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipe_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "product_recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipe_items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_recipes: {
+        Row: {
+          batch_size: number
+          batch_unit_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          instructions: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          product_id: string
+          recipe_name: string
+          recipe_version: string | null
+          standard_labor_hours: number | null
+          standard_machine_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          batch_size?: number
+          batch_unit_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          product_id: string
+          recipe_name: string
+          recipe_version?: string | null
+          standard_labor_hours?: number | null
+          standard_machine_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          batch_size?: number
+          batch_unit_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          product_id?: string
+          recipe_name?: string
+          recipe_version?: string | null
+          standard_labor_hours?: number | null
+          standard_machine_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_recipes_batch_unit_id_fkey"
+            columns: ["batch_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_lot_materials: {
         Row: {
           created_at: string
@@ -2825,51 +2956,81 @@ export type Database = {
           created_at: string
           expiry_date: string | null
           id: string
+          is_synced_to_xero: boolean | null
           julian_day: number
+          labor_cost: number | null
+          labor_hours: number | null
           lot_number: string
+          machine_hours: number | null
           machine_id: string
+          material_cost: number | null
           notes: string | null
+          overhead_cost: number | null
           produced_by: string | null
           product_id: string
           production_date: string
           quantity_available: number
           quantity_produced: number
+          recipe_id: string | null
           status: string | null
+          synced_at: string | null
+          total_cost: number | null
           updated_at: string
+          xero_journal_id: string | null
         }
         Insert: {
           batch_number: number
           created_at?: string
           expiry_date?: string | null
           id?: string
+          is_synced_to_xero?: boolean | null
           julian_day: number
+          labor_cost?: number | null
+          labor_hours?: number | null
           lot_number: string
+          machine_hours?: number | null
           machine_id: string
+          material_cost?: number | null
           notes?: string | null
+          overhead_cost?: number | null
           produced_by?: string | null
           product_id: string
           production_date?: string
           quantity_available: number
           quantity_produced: number
+          recipe_id?: string | null
           status?: string | null
+          synced_at?: string | null
+          total_cost?: number | null
           updated_at?: string
+          xero_journal_id?: string | null
         }
         Update: {
           batch_number?: number
           created_at?: string
           expiry_date?: string | null
           id?: string
+          is_synced_to_xero?: boolean | null
           julian_day?: number
+          labor_cost?: number | null
+          labor_hours?: number | null
           lot_number?: string
+          machine_hours?: number | null
           machine_id?: string
+          material_cost?: number | null
           notes?: string | null
+          overhead_cost?: number | null
           produced_by?: string | null
           product_id?: string
           production_date?: string
           quantity_available?: number
           quantity_produced?: number
+          recipe_id?: string | null
           status?: string | null
+          synced_at?: string | null
+          total_cost?: number | null
           updated_at?: string
+          xero_journal_id?: string | null
         }
         Relationships: [
           {
@@ -2893,6 +3054,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "production_lots_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "product_recipes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       products: {
@@ -2905,6 +3073,8 @@ export type Database = {
           is_active: boolean | null
           name: string
           sku: string
+          standard_labor_rate: number | null
+          standard_overhead_rate: number | null
           unit_id: string
           units_per_case: number | null
           updated_at: string
@@ -2918,6 +3088,8 @@ export type Database = {
           is_active?: boolean | null
           name: string
           sku: string
+          standard_labor_rate?: number | null
+          standard_overhead_rate?: number | null
           unit_id: string
           units_per_case?: number | null
           updated_at?: string
@@ -2931,6 +3103,8 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           sku?: string
+          standard_labor_rate?: number | null
+          standard_overhead_rate?: number | null
           unit_id?: string
           units_per_case?: number | null
           updated_at?: string
@@ -3223,6 +3397,8 @@ export type Database = {
           tax_amount: number | null
           total_amount: number | null
           updated_at: string
+          xero_invoice_id: string | null
+          xero_synced_at: string | null
         }
         Insert: {
           approval_notes?: string | null
@@ -3250,6 +3426,8 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string
+          xero_invoice_id?: string | null
+          xero_synced_at?: string | null
         }
         Update: {
           approval_notes?: string | null
@@ -3277,6 +3455,8 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string
+          xero_invoice_id?: string | null
+          xero_synced_at?: string | null
         }
         Relationships: [
           {
@@ -4271,6 +4451,109 @@ export type Database = {
           {
             foreignKeyName: "xero_connections_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xero_journal_batches: {
+        Row: {
+          batch_date: string
+          batch_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          production_lot_ids: string[] | null
+          status: string | null
+          sync_error: string | null
+          synced_at: string | null
+          total_labor_amount: number | null
+          total_material_amount: number | null
+          total_overhead_amount: number | null
+          total_wip_amount: number | null
+          xero_journal_id: string | null
+        }
+        Insert: {
+          batch_date: string
+          batch_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          production_lot_ids?: string[] | null
+          status?: string | null
+          sync_error?: string | null
+          synced_at?: string | null
+          total_labor_amount?: number | null
+          total_material_amount?: number | null
+          total_overhead_amount?: number | null
+          total_wip_amount?: number | null
+          xero_journal_id?: string | null
+        }
+        Update: {
+          batch_date?: string
+          batch_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          production_lot_ids?: string[] | null
+          status?: string | null
+          sync_error?: string | null
+          synced_at?: string | null
+          total_labor_amount?: number | null
+          total_material_amount?: number | null
+          total_overhead_amount?: number | null
+          total_wip_amount?: number | null
+          xero_journal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xero_journal_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xero_manufacturing_account_mappings: {
+        Row: {
+          helper_text: string | null
+          id: string
+          mapping_key: string
+          updated_at: string
+          updated_by: string | null
+          xero_account_code: string | null
+          xero_account_id: string | null
+          xero_account_name: string | null
+          xero_account_type: string | null
+        }
+        Insert: {
+          helper_text?: string | null
+          id?: string
+          mapping_key: string
+          updated_at?: string
+          updated_by?: string | null
+          xero_account_code?: string | null
+          xero_account_id?: string | null
+          xero_account_name?: string | null
+          xero_account_type?: string | null
+        }
+        Update: {
+          helper_text?: string | null
+          id?: string
+          mapping_key?: string
+          updated_at?: string
+          updated_by?: string | null
+          xero_account_code?: string | null
+          xero_account_id?: string | null
+          xero_account_name?: string | null
+          xero_account_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xero_manufacturing_account_mappings_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

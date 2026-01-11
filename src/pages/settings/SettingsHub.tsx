@@ -26,6 +26,7 @@ import {
   DollarSign,
   BookOpen,
   CalendarCheck,
+  Link2,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -157,6 +158,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Manage accounting periods and close process',
         href: '/settings/period-close',
         icon: CalendarCheck,
+        status: 'active',
+      },
+      {
+        title: 'Xero Configuration',
+        description: 'Connect to Xero and map manufacturing accounts',
+        href: '/settings/xero',
+        icon: Link2,
         status: 'active',
       },
     ],

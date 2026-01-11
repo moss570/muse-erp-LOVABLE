@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.xero-sync-invoice]
 verify_jwt = false
+
+[functions.xero-sync-production-journal]
+verify_jwt = false
+
+[functions.xero-get-accounts]
+verify_jwt = false
