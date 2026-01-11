@@ -144,8 +144,9 @@ export function useGLAccounts() {
       account_code: string;
       account_name: string;
       account_type: string;
-      xero_account_id?: string;
-      mapping_purpose?: string;
+      xero_account_id?: string | null;
+      mapping_purpose?: string | null;
+      is_active?: boolean;
     }) => {
       const { data, error } = await supabase.from('gl_accounts').insert(account).select().single();
       if (error) throw error;

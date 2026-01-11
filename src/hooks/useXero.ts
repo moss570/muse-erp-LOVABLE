@@ -11,6 +11,17 @@ interface XeroConnection {
   updated_at: string;
 }
 
+interface XeroAccount {
+  xero_account_id: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  xero_type: string;
+  xero_class: string;
+  status: string;
+  tax_type: string;
+}
+
 export function useXeroConnection() {
   const { user } = useAuth();
 
@@ -138,6 +149,44 @@ export function useXeroDisconnect() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to disconnect: ${error.message}`);
+    },
+  });
+}
+
+export function useXeroAccounts() {
+  return useQuery({
+    queryKey: ['xero-accounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('xero-get-accounts');
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      return data as { accounts: XeroAccount[]; tenant_name: string };
+    },
+    enabled: false, // Only fetch when explicitly called
+    retry: false,
+  });
+}
+
+export function useFetchXeroAccounts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('xero-get-accounts');
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      return data as { accounts: XeroAccount[]; tenant_name: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['xero-accounts'] });
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching Xero accounts:', error);
+      toast.error(`Failed to fetch Xero accounts: ${error.message}`);
     },
   });
 }
