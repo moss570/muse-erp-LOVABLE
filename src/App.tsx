@@ -30,6 +30,8 @@ import RolePermissions from "./pages/settings/RolePermissions";
 import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 import CompanySettings from "./pages/settings/CompanySettings";
 import LabelTemplates from "./pages/settings/LabelTemplates";
+import TeamRoster from "./pages/hr/TeamRoster";
+import EmployeeDetail from "./pages/hr/EmployeeDetail";
 
 const queryClient = new QueryClient();
 
