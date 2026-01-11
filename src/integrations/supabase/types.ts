@@ -85,6 +85,56 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          notes: string | null
+          previous_status: string | null
+          related_record_id: string
+          related_table_name: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          notes?: string | null
+          previous_status?: string | null
+          related_record_id: string
+          related_table_name: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          notes?: string | null
+          previous_status?: string | null
+          related_record_id?: string
+          related_table_name?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills_of_lading: {
         Row: {
           bol_number: string
@@ -262,6 +312,95 @@ export type Database = {
           zip?: string | null
         }
         Relationships: []
+      }
+      compliance_documents: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          created_at: string | null
+          document_name: string
+          document_type: string
+          expiration_date: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          is_current: boolean | null
+          notes: string | null
+          related_entity_id: string
+          related_entity_type: string
+          replaced_by_id: string | null
+          storage_provider: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string | null
+          document_name: string
+          document_type: string
+          expiration_date?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          related_entity_id: string
+          related_entity_type: string
+          replaced_by_id?: string | null
+          storage_provider?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string | null
+          document_name?: string
+          document_type?: string
+          expiration_date?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          related_entity_id?: string
+          related_entity_type?: string
+          replaced_by_id?: string | null
+          storage_provider?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_documents_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_documents_replaced_by_id_fkey"
+            columns: ["replaced_by_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_documents_replaced_by_id_fkey"
+            columns: ["replaced_by_id"]
+            isOneToOne: false
+            referencedRelation: "document_expiration_watchlist"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -2126,6 +2265,7 @@ export type Database = {
       materials: {
         Row: {
           allergens: string[] | null
+          approval_status: string | null
           authentication_method: string | null
           base_unit_id: string
           ca_prop65_prohibited: boolean | null
@@ -2152,6 +2292,8 @@ export type Database = {
           photo_added_at: string | null
           photo_path: string | null
           photo_url: string | null
+          qa_verified_at: string | null
+          qa_verified_by: string | null
           receiving_temperature_max: number | null
           receiving_temperature_min: number | null
           storage_temperature_max: number | null
@@ -2164,6 +2306,7 @@ export type Database = {
         }
         Insert: {
           allergens?: string[] | null
+          approval_status?: string | null
           authentication_method?: string | null
           base_unit_id: string
           ca_prop65_prohibited?: boolean | null
@@ -2190,6 +2333,8 @@ export type Database = {
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
           storage_temperature_max?: number | null
@@ -2202,6 +2347,7 @@ export type Database = {
         }
         Update: {
           allergens?: string[] | null
+          approval_status?: string | null
           authentication_method?: string | null
           base_unit_id?: string
           ca_prop65_prohibited?: boolean | null
@@ -2228,6 +2374,8 @@ export type Database = {
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
           storage_temperature_max?: number | null
@@ -2251,6 +2399,13 @@ export type Database = {
             columns: ["listed_material_id"]
             isOneToOne: false
             referencedRelation: "listed_material_names"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_qa_verified_by_fkey"
+            columns: ["qa_verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2682,6 +2837,7 @@ export type Database = {
       }
       po_receiving_sessions: {
         Row: {
+          approval_status: string | null
           carrier_name: string | null
           completed_at: string | null
           created_at: string
@@ -2694,6 +2850,8 @@ export type Database = {
           location_id: string | null
           notes: string | null
           purchase_order_id: string
+          qa_verified_at: string | null
+          qa_verified_by: string | null
           received_by: string | null
           received_date: string
           receiving_number: string
@@ -2707,6 +2865,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_status?: string | null
           carrier_name?: string | null
           completed_at?: string | null
           created_at?: string
@@ -2719,6 +2878,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           purchase_order_id: string
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           received_by?: string | null
           received_date?: string
           receiving_number: string
@@ -2732,6 +2893,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_status?: string | null
           carrier_name?: string | null
           completed_at?: string | null
           created_at?: string
@@ -2744,6 +2906,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           purchase_order_id?: string
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           received_by?: string | null
           received_date?: string
           receiving_number?: string
@@ -2769,6 +2933,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_sessions_qa_verified_by_fkey"
+            columns: ["qa_verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2952,6 +3123,7 @@ export type Database = {
       }
       production_lots: {
         Row: {
+          approval_status: string | null
           batch_number: number
           created_at: string
           expiry_date: string | null
@@ -2969,6 +3141,8 @@ export type Database = {
           produced_by: string | null
           product_id: string
           production_date: string
+          qa_verified_at: string | null
+          qa_verified_by: string | null
           quantity_available: number
           quantity_produced: number
           recipe_id: string | null
@@ -2979,6 +3153,7 @@ export type Database = {
           xero_journal_id: string | null
         }
         Insert: {
+          approval_status?: string | null
           batch_number: number
           created_at?: string
           expiry_date?: string | null
@@ -2996,6 +3171,8 @@ export type Database = {
           produced_by?: string | null
           product_id: string
           production_date?: string
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           quantity_available: number
           quantity_produced: number
           recipe_id?: string | null
@@ -3006,6 +3183,7 @@ export type Database = {
           xero_journal_id?: string | null
         }
         Update: {
+          approval_status?: string | null
           batch_number?: number
           created_at?: string
           expiry_date?: string | null
@@ -3023,6 +3201,8 @@ export type Database = {
           produced_by?: string | null
           product_id?: string
           production_date?: string
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           quantity_available?: number
           quantity_produced?: number
           recipe_id?: string | null
@@ -3055,6 +3235,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "production_lots_qa_verified_by_fkey"
+            columns: ["qa_verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "production_lots_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
@@ -3065,6 +3252,7 @@ export type Database = {
       }
       products: {
         Row: {
+          approval_status: string | null
           case_weight_kg: number | null
           category: string | null
           created_at: string
@@ -3072,6 +3260,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          qa_verified_at: string | null
+          qa_verified_by: string | null
           sku: string
           standard_labor_rate: number | null
           standard_overhead_rate: number | null
@@ -3080,6 +3270,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_status?: string | null
           case_weight_kg?: number | null
           category?: string | null
           created_at?: string
@@ -3087,6 +3278,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           sku: string
           standard_labor_rate?: number | null
           standard_overhead_rate?: number | null
@@ -3095,6 +3288,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_status?: string | null
           case_weight_kg?: number | null
           category?: string | null
           created_at?: string
@@ -3102,6 +3296,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           sku?: string
           standard_labor_rate?: number | null
           standard_overhead_rate?: number | null
@@ -3110,6 +3306,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_qa_verified_by_fkey"
+            columns: ["qa_verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_unit_id_fkey"
             columns: ["unit_id"]
@@ -4153,6 +4356,8 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          qa_verified_at: string | null
+          qa_verified_by: string | null
           risk_level: string | null
           state: string | null
           supplier_type: string | null
@@ -4187,6 +4392,8 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           risk_level?: string | null
           state?: string | null
           supplier_type?: string | null
@@ -4221,6 +4428,8 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          qa_verified_at?: string | null
+          qa_verified_by?: string | null
           risk_level?: string | null
           state?: string | null
           supplier_type?: string | null
@@ -4232,6 +4441,13 @@ export type Database = {
           {
             foreignKeyName: "suppliers_approved_by_fkey"
             columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_qa_verified_by_fkey"
+            columns: ["qa_verified_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4562,13 +4778,63 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      document_expiration_watchlist: {
+        Row: {
+          created_at: string | null
+          document_name: string | null
+          document_type: string | null
+          entity_name: string | null
+          expiration_date: string | null
+          expiration_status: string | null
+          file_url: string | null
+          id: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          uploaded_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_pending_items: {
+        Row: {
+          approval_status: string | null
+          created_at: string | null
+          id: string | null
+          item_code: string | null
+          item_name: string | null
+          qa_verified_by: string | null
+          table_name: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      stale_draft_items: {
+        Row: {
+          approval_status: string | null
+          created_at: string | null
+          days_stale: number | null
+          id: string | null
+          item_code: string | null
+          item_name: string | null
+          table_name: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_landed_costs: {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
+      can_ship_production_lot: { Args: { p_lot_id: string }; Returns: boolean }
       check_permission: {
         Args: {
           _required_level?: string
@@ -4600,6 +4866,14 @@ export type Database = {
         Returns: string
       }
       generate_supplier_code: { Args: never; Returns: string }
+      get_unapproved_recipe_materials: {
+        Args: { p_recipe_id: string }
+        Returns: {
+          approval_status: string
+          material_id: string
+          material_name: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -4612,9 +4886,23 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
+      is_material_approved: {
+        Args: { p_material_id: string }
+        Returns: boolean
+      }
+      supplier_has_valid_documents: {
+        Args: { p_supplier_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "supervisor" | "employee"
+      approval_status_enum:
+        | "Draft"
+        | "Pending_QA"
+        | "Approved"
+        | "Rejected"
+        | "Archived"
       department_type:
         | "production"
         | "warehouse"
@@ -4762,6 +5050,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "supervisor", "employee"],
+      approval_status_enum: [
+        "Draft",
+        "Pending_QA",
+        "Approved",
+        "Rejected",
+        "Archived",
+      ],
       department_type: [
         "production",
         "warehouse",
