@@ -216,7 +216,7 @@ export function useCreateInvoice() {
 
       if (invoiceError) throw invoiceError;
 
-      // Create line items
+      // Create line items (line_total is a generated column, don't include it)
       if (input.line_items.length > 0) {
         const lineItems = input.line_items.map((item) => ({
           invoice_id: invoice.id,
@@ -226,7 +226,6 @@ export function useCreateInvoice() {
           description: item.description,
           quantity: item.quantity,
           unit_cost: item.unit_cost,
-          line_total: item.quantity * item.unit_cost,
         }));
 
         const { error: lineError } = await supabase
