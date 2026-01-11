@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -14,7 +16,8 @@ import {
   Users,
   Settings,
   Pencil,
-  Copy
+  Copy,
+  Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
@@ -137,6 +140,7 @@ export default function Schedule() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [laborCostPerGallon, setLaborCostPerGallon] = useState(2.50);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -202,9 +206,19 @@ export default function Schedule() {
     }).length;
     
     let totalSalaryCost = 0;
-    salaryEmployees.forEach(emp => {
+    const employeeBreakdown = salaryEmployees.map(emp => {
       const dailyRate = (emp.salary_amount || 0) / workDaysPerYear;
-      totalSalaryCost += dailyRate * workDaysInRange;
+      const cost = dailyRate * workDaysInRange;
+      totalSalaryCost += cost;
+      return {
+        id: emp.id,
+        name: `${emp.first_name} ${emp.last_name}`,
+        type: 'salary' as const,
+        annualSalary: emp.salary_amount || 0,
+        dailyRate,
+        days: workDaysInRange,
+        cost,
+      };
     });
     
     // Calculate equivalent hours for display
@@ -213,7 +227,7 @@ export default function Schedule() {
       : 0;
     const equivalentHours = avgHourlyRate > 0 ? totalSalaryCost / avgHourlyRate : workDaysInRange * hoursPerDay * salaryEmployees.length;
     
-    return { totalSalaryCost, salaryEmployeeCount: salaryEmployees.length, equivalentHours };
+    return { totalSalaryCost, salaryEmployeeCount: salaryEmployees.length, equivalentHours, employeeBreakdown, workDaysInRange };
   }, [employees, dateRange]);
 
   // Calculate payroll for the date range (hourly employees from shifts)
@@ -221,6 +235,7 @@ export default function Schedule() {
     let totalHours = 0;
     let totalCost = 0;
     let shiftsCount = 0;
+    const employeeHours: Record<string, { hours: number; cost: number; rate: number }> = {};
 
     shifts?.forEach(shift => {
       const shiftDateStr = shift.shift_date;
@@ -237,10 +252,30 @@ export default function Schedule() {
         totalHours += hours;
         totalCost += hours * hourlyRate;
         shiftsCount++;
+
+        // Track per-employee
+        if (!employeeHours[shift.employee_id]) {
+          employeeHours[shift.employee_id] = { hours: 0, cost: 0, rate: hourlyRate };
+        }
+        employeeHours[shift.employee_id].hours += hours;
+        employeeHours[shift.employee_id].cost += hours * hourlyRate;
       }
     });
 
-    return { totalHours, totalCost, shiftsCount };
+    // Build hourly employee breakdown
+    const employeeBreakdown = Object.entries(employeeHours).map(([empId, data]) => {
+      const employee = employees?.find(e => e.id === empId);
+      return {
+        id: empId,
+        name: employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown',
+        type: 'hourly' as const,
+        hours: data.hours,
+        rate: data.rate,
+        cost: data.cost,
+      };
+    });
+
+    return { totalHours, totalCost, shiftsCount, employeeBreakdown };
   }, [shifts, employees, dateRange]);
 
   // Total labor cost including salary employees
@@ -398,15 +433,18 @@ export default function Schedule() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setBreakdownOpen(true)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Gallons Target</CardTitle>
-            <Droplets className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-1">
+              <Info className="h-3 w-3 text-muted-foreground" />
+              <Droplets className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{gallonsNeeded.toFixed(0)}</div>
             <p className="text-xs text-muted-foreground">
-              ${laborCostPerGallon}/gal (incl. {salaryCostData.salaryEmployeeCount} salary)
+              ${laborCostPerGallon}/gal • Click for details
             </p>
           </CardContent>
         </Card>
@@ -597,6 +635,128 @@ export default function Schedule() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
       />
+
+      {/* Gallons Target Breakdown Dialog */}
+      <Dialog open={breakdownOpen} onOpenChange={setBreakdownOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gallons Target Calculation Breakdown</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="text-sm text-muted-foreground">Total Labor Cost</div>
+                  <div className="text-xl font-bold">${totalLaborCost.toFixed(2)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="text-sm text-muted-foreground">Cost per Gallon</div>
+                  <div className="text-xl font-bold">${laborCostPerGallon.toFixed(2)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="text-sm text-muted-foreground">Gallons Needed</div>
+                  <div className="text-xl font-bold text-primary">{gallonsNeeded.toFixed(0)}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Hourly Employees */}
+            {payrollData.employeeBreakdown.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Badge variant="secondary">Hourly</Badge>
+                  Scheduled Employees
+                </h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead className="text-right">Hours</TableHead>
+                      <TableHead className="text-right">Rate</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payrollData.employeeBreakdown.map(emp => (
+                      <TableRow key={emp.id}>
+                        <TableCell>{emp.name}</TableCell>
+                        <TableCell className="text-right">{emp.hours.toFixed(1)}h</TableCell>
+                        <TableCell className="text-right">${emp.rate.toFixed(2)}/hr</TableCell>
+                        <TableCell className="text-right font-medium">${emp.cost.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/50">
+                      <TableCell className="font-semibold">Subtotal</TableCell>
+                      <TableCell className="text-right font-semibold">{payrollData.totalHours.toFixed(1)}h</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right font-semibold">${payrollData.totalCost.toFixed(2)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Salary Employees */}
+            {salaryCostData.employeeBreakdown.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Badge>Salary</Badge>
+                  Salaried Employees
+                  <span className="text-xs text-muted-foreground font-normal">
+                    ({salaryCostData.workDaysInRange} work days in range)
+                  </span>
+                </h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead className="text-right">Annual Salary</TableHead>
+                      <TableHead className="text-right">Daily Rate</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {salaryCostData.employeeBreakdown.map(emp => (
+                      <TableRow key={emp.id}>
+                        <TableCell>{emp.name}</TableCell>
+                        <TableCell className="text-right">${emp.annualSalary.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${emp.dailyRate.toFixed(2)}/day</TableCell>
+                        <TableCell className="text-right font-medium">${emp.cost.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/50">
+                      <TableCell className="font-semibold">Subtotal</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right font-semibold">${salaryCostData.totalSalaryCost.toFixed(2)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <p className="text-xs text-muted-foreground mt-2">
+                  * Salary cost calculated as: Annual Salary ÷ 260 work days × {salaryCostData.workDaysInRange} days in current view
+                </p>
+              </div>
+            )}
+
+            {/* Formula */}
+            <div className="bg-muted/50 rounded-lg p-4 text-sm">
+              <div className="font-medium mb-2">Calculation Formula:</div>
+              <div className="font-mono text-xs space-y-1">
+                <div>Gallons Target = Total Labor Cost ÷ Labor Cost per Gallon</div>
+                <div className="text-muted-foreground">
+                  {gallonsNeeded.toFixed(0)} = ${totalLaborCost.toFixed(2)} ÷ ${laborCostPerGallon.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
