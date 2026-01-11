@@ -28,10 +28,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Loader2, Search, Plus, Package, MoreVertical, Eye, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Loader2, Search, Plus, Package, MoreVertical, Eye, Trash2, CheckCircle, Clock, XCircle, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { ReceivingSessionDialog } from '@/components/purchasing/ReceivingSessionDialog';
 import { ReceivingDetailDialog } from '@/components/purchasing/ReceivingDetailDialog';
+import { ApprovalStatusBadge } from '@/components/approval';
 
 const getStatusBadge = (status: string) => {
   const configs: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode; label: string }> = {
@@ -188,6 +189,7 @@ export default function Receiving() {
                   <TableHead>Date</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>QA Status</TableHead>
                   <TableHead>Received By</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
@@ -216,6 +218,16 @@ export default function Receiving() {
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(session.status)}
+                    </TableCell>
+                    <TableCell>
+                      {session.status === 'completed' ? (
+                        <ApprovalStatusBadge 
+                          status={(session as any).approval_status || 'Draft'} 
+                          size="sm" 
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {session.received_by_profile 

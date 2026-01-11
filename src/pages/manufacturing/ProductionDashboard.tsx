@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSyncProductionJournal, useXeroJournalBatches, useUnsyncedProductionCount } from "@/hooks/useXeroManufacturing";
 import { useXeroConnection } from "@/hooks/useXero";
 import { ApprovalStatusBadge } from "@/components/approval";
+import { useUnapprovedProductionLots } from "@/hooks/useProductionGatekeeping";
 
 export default function ProductionDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -40,6 +41,7 @@ export default function ProductionDashboard() {
   const { data: unsyncedCount = 0, isLoading: countLoading } = useUnsyncedProductionCount(formattedDate);
   const { data: journalBatches = [], isLoading: batchesLoading } = useXeroJournalBatches(5);
   const { mutate: syncProductionJournal, isPending: syncing } = useSyncProductionJournal();
+  const { data: unapprovedLots = [] } = useUnapprovedProductionLots(formattedDate);
 
   // Fetch production lots for selected date
   const { data: productionLots = [], isLoading: lotsLoading, refetch: refetchLots } = useQuery({
@@ -178,6 +180,21 @@ export default function ProductionDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Unapproved Lots Warning */}
+        {unapprovedLots.length > 0 && (
+          <Alert className="border-amber-500/50 bg-amber-500/10">
+            <ShieldAlert className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                <strong>{unapprovedLots.length} production lot(s)</strong> pending QA approval for shipment on this date.
+              </span>
+              <Badge variant="outline" className="border-amber-500 text-amber-700">
+                QA Action Required
+              </Badge>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Close Production Day Card */}
         <Card className="border-primary/50">
