@@ -32,11 +32,14 @@ Deno.serve(async (req) => {
     const state = btoa(JSON.stringify({ user_id, redirect_url }));
 
     // Build Xero OAuth URL
+    // `prompt=consent` forces Xero to show the consent screen again, which is required
+    // when you add new scopes (like `accounting.settings`) after a previous connection.
     const params = new URLSearchParams({
       response_type: "code",
       client_id: XERO_CLIENT_ID,
       redirect_uri: `${SUPABASE_URL}/functions/v1/xero-oauth-callback`,
       scope: "openid profile email accounting.transactions accounting.contacts accounting.settings offline_access",
+      prompt: "consent",
       state,
     });
 
