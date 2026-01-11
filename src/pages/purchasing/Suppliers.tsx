@@ -99,12 +99,12 @@ const SUPPLIER_CATEGORIES = [
   { value: 'other', label: 'Other' },
 ] as const;
 
-const APPROVAL_STATUSES = [
-  { value: 'pending', label: 'Pending Review', color: 'bg-yellow-500' },
-  { value: 'approved', label: 'Approved', color: 'bg-green-500' },
-  { value: 'conditional', label: 'Conditional Approval', color: 'bg-orange-500' },
-  { value: 'suspended', label: 'Suspended', color: 'bg-red-500' },
-  { value: 'rejected', label: 'Rejected', color: 'bg-destructive' },
+const QA_APPROVAL_STATUSES = [
+  { value: 'Draft', label: 'Draft' },
+  { value: 'Pending_QA', label: 'Pending QA' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Archived', label: 'Archived' },
 ] as const;
 
 const RISK_LEVELS = [
@@ -151,11 +151,10 @@ const supplierSchema = z.object({
   state: z.string().optional(),
   zip: z.string().optional(),
   country: z.string().default('USA'),
-  // Approval fields
-  approval_status: z.string().default('pending'),
+  // Approval fields (QA Workflow)
+  approval_status: z.string().default('Draft'),
   approval_date: z.string().optional(),
   next_review_date: z.string().optional(),
-  conditional_notes: z.string().optional(),
   // Classification
   risk_level: z.string().default('medium'),
   gfsi_certified: z.boolean().default(false),
@@ -209,7 +208,7 @@ const STATUS_FILTER_OPTIONS = [
 
 const APPROVAL_FILTER_OPTIONS = [
   { value: 'all', label: 'All Approval Status' },
-  ...APPROVAL_STATUSES.map(s => ({ value: s.value, label: s.label })),
+  ...QA_APPROVAL_STATUSES.map(s => ({ value: s.value, label: s.label })),
 ];
 
 export default function Suppliers() {
@@ -253,10 +252,9 @@ export default function Suppliers() {
       state: '',
       zip: '',
       country: 'USA',
-      approval_status: 'pending',
+      approval_status: 'Draft',
       approval_date: '',
       next_review_date: '',
-      conditional_notes: '',
       risk_level: 'medium',
       gfsi_certified: false,
       food_safety_certification: '',
@@ -390,7 +388,6 @@ export default function Suppliers() {
         approval_status: data.approval_status,
         approval_date: data.approval_date || null,
         next_review_date: data.next_review_date || null,
-        conditional_notes: data.conditional_notes || null,
         risk_level: data.risk_level,
         gfsi_certified: data.gfsi_certified,
         food_safety_certification: data.food_safety_certification || null,
@@ -444,7 +441,6 @@ export default function Suppliers() {
           approval_status: rest.approval_status,
           approval_date: rest.approval_date || null,
           next_review_date: rest.next_review_date || null,
-          conditional_notes: rest.conditional_notes || null,
           risk_level: rest.risk_level,
           gfsi_certified: rest.gfsi_certified,
           food_safety_certification: rest.food_safety_certification || null,
@@ -749,10 +745,9 @@ export default function Suppliers() {
         state: supplier.state || '',
         zip: supplier.zip || '',
         country: supplier.country || 'USA',
-        approval_status: supplier.approval_status || 'pending',
+        approval_status: supplier.approval_status || 'Draft',
         approval_date: supplier.approval_date || '',
         next_review_date: supplier.next_review_date || '',
-        conditional_notes: supplier.conditional_notes || '',
         risk_level: supplier.risk_level || 'medium',
         gfsi_certified: supplier.gfsi_certified || false,
         food_safety_certification: supplier.food_safety_certification || '',
@@ -790,29 +785,7 @@ export default function Suppliers() {
     }
   };
 
-  const getApprovalStatusBadge = (status: string) => {
-    const statusConfig = APPROVAL_STATUSES.find(s => s.value === status);
-    const icons: Record<string, React.ReactNode> = {
-      pending: <Clock className="h-3 w-3" />,
-      approved: <CheckCircle2 className="h-3 w-3" />,
-      conditional: <AlertTriangle className="h-3 w-3" />,
-      suspended: <XCircle className="h-3 w-3" />,
-      rejected: <XCircle className="h-3 w-3" />,
-    };
-    
-    return (
-      <Badge 
-        variant="outline" 
-        className={`gap-1 ${status === 'approved' ? 'border-green-500 text-green-600' : 
-          status === 'pending' ? 'border-yellow-500 text-yellow-600' :
-          status === 'conditional' ? 'border-orange-500 text-orange-600' :
-          'border-red-500 text-red-600'}`}
-      >
-        {icons[status]}
-        {statusConfig?.label || status}
-      </Badge>
-    );
-  };
+  // Use the ApprovalStatusBadge component for QA workflow status in the table
 
   const getRiskBadge = (level: string) => {
     const config = RISK_LEVELS.find(r => r.value === level);
@@ -849,7 +822,7 @@ export default function Suppliers() {
     currentPage * pageSize
   );
 
-  const approvalStatus = form.watch('approval_status');
+  
 
   return (
     <div className="space-y-4">
@@ -939,7 +912,7 @@ export default function Suppliers() {
                           {SUPPLIER_TYPES.find(t => t.value === supplier.supplier_type)?.label || supplier.supplier_type}
                         </Badge>
                       </TableCell>
-                      <TableCell>{getApprovalStatusBadge(supplier.approval_status || 'pending')}</TableCell>
+                      <TableCell><ApprovalStatusBadge status={supplier.approval_status || 'Draft'} size="sm" /></TableCell>
                       <TableCell>{getRiskBadge(supplier.risk_level || 'medium')}</TableCell>
                       <TableCell className="text-muted-foreground">{supplier.contact_name || '-'}</TableCell>
                       <TableCell className="text-right">
@@ -1003,10 +976,9 @@ export default function Suppliers() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-7 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                  <TabsTrigger value="approval">Approval</TabsTrigger>
                   <TabsTrigger value="qa_workflow">QA Workflow</TabsTrigger>
                   <TabsTrigger value="compliance">Compliance</TabsTrigger>
                   <TabsTrigger value="payment">Payment</TabsTrigger>
@@ -1405,119 +1377,6 @@ export default function Suppliers() {
                   )}
                 </TabsContent>
 
-                {/* Approval Tab */}
-                <TabsContent value="approval" className="space-y-4 mt-4">
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg mb-4">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">Supplier Approval Status</p>
-                      <p className="text-sm text-muted-foreground">Manage supplier qualification and approval workflow</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="approval_status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Approval Status</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {APPROVAL_STATUSES.map((status) => (
-                                <SelectItem key={status.value} value={status.value}>
-                                  {status.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="risk_level"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Risk Level</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select risk level" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {RISK_LEVELS.map((level) => (
-                                <SelectItem key={level.value} value={level.value}>
-                                  {level.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>Based on supplier criticality and food safety risk</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="approval_date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Approval Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="next_review_date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Next Review Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormDescription>When should this supplier be re-evaluated?</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {approvalStatus === 'conditional' && (
-                    <FormField
-                      control={form.control}
-                      name="conditional_notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Conditional Approval Notes</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe conditions for approval..." 
-                              {...field} 
-                              rows={4}
-                            />
-                          </FormControl>
-                          <FormDescription>Required for conditional approval status</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </TabsContent>
 
                 {/* Compliance Tab */}
                 <TabsContent value="compliance" className="space-y-4 mt-4">
@@ -1650,10 +1509,69 @@ export default function Suppliers() {
                               }}
                             />
                             <span className="text-sm text-muted-foreground">
-                              {editingSupplier.qa_verified_at 
-                                ? `Verified on ${new Date(editingSupplier.qa_verified_at).toLocaleDateString()}` 
-                                : 'Not yet verified by QA'}
+                              {editingSupplier.approval_status === 'Archived'
+                                ? 'This supplier has been archived'
+                                : editingSupplier.qa_verified_at 
+                                  ? `Verified on ${new Date(editingSupplier.qa_verified_at).toLocaleDateString()}` 
+                                  : 'Not yet verified by QA'}
                             </span>
+                          </div>
+
+                          {/* Risk Level and Dates */}
+                          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                            <FormField
+                              control={form.control}
+                              name="risk_level"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Risk Level</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select risk level" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {RISK_LEVELS.map((level) => (
+                                        <SelectItem key={level.value} value={level.value}>
+                                          {level.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormDescription>Supplier criticality</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="approval_date"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Original Approval Date</FormLabel>
+                                  <FormControl>
+                                    <Input type="date" {...field} />
+                                  </FormControl>
+                                  <FormDescription>When first approved</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="next_review_date"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Next Review Date</FormLabel>
+                                  <FormControl>
+                                    <Input type="date" {...field} />
+                                  </FormControl>
+                                  <FormDescription>Triggers QA Dashboard task</FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </CardContent>
                       </Card>
