@@ -8,7 +8,7 @@ const corsHeaders = {
 const XERO_CLIENT_ID = Deno.env.get("XERO_CLIENT_ID");
 const XERO_CLIENT_SECRET = Deno.env.get("XERO_CLIENT_SECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -121,7 +121,8 @@ Deno.serve(async (req) => {
     }
 
     // Store tokens for each tenant (usually just one for demo company)
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // Use service role to bypass RLS for server-side token storage
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
