@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_periods: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          period_date: string
+          period_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_date: string
+          period_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_date?: string
+          period_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_periods_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_editors: {
         Row: {
           id: string
@@ -1222,6 +1266,84 @@ export type Database = {
           },
         ]
       }
+      fixed_costs: {
+        Row: {
+          category: string
+          cost_name: string
+          created_at: string
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          gl_account: string | null
+          id: string
+          is_active: boolean | null
+          monthly_amount: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cost_name: string
+          created_at?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          gl_account?: string | null
+          id?: string
+          is_active?: boolean | null
+          monthly_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost_name?: string
+          created_at?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          gl_account?: string | null
+          id?: string
+          is_active?: boolean | null
+          monthly_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gl_accounts: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_type: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          mapping_purpose: string | null
+          updated_at: string
+          xero_account_id: string | null
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          mapping_purpose?: string | null
+          updated_at?: string
+          xero_account_id?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          mapping_purpose?: string | null
+          updated_at?: string
+          xero_account_id?: string | null
+        }
+        Relationships: []
+      }
       invoice_additional_costs: {
         Row: {
           allocated_to_item_id: string | null
@@ -2140,6 +2262,41 @@ export type Database = {
           },
         ]
       }
+      overhead_settings: {
+        Row: {
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overhead_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pallet_cases: {
         Row: {
           added_at: string
@@ -2334,6 +2491,60 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      period_close_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_resolved: boolean | null
+          issue_description: string
+          item_id: string
+          item_reference: string | null
+          item_type: string
+          period_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_resolved?: boolean | null
+          issue_description: string
+          item_id: string
+          item_reference?: string | null
+          item_type: string
+          period_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_resolved?: boolean | null
+          issue_description?: string
+          item_id?: string
+          item_reference?: string | null
+          item_type?: string
+          period_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_close_items_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_close_items_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

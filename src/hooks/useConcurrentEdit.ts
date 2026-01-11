@@ -81,7 +81,7 @@ export function useConcurrentEdit({
 
     // Fetch the latest version from the database
     const { data: latestData, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .eq('id', resourceId)
       .single();
@@ -91,7 +91,7 @@ export function useConcurrentEdit({
       return { canSave: true }; // Allow save if we can't check
     }
 
-    const dataRecord = latestData as Record<string, unknown>;
+    const dataRecord = latestData as unknown as Record<string, unknown>;
     const hasConflict = checkForConflict(dataRecord);
     
     if (hasConflict) {
