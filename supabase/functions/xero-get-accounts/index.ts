@@ -104,6 +104,24 @@ Deno.serve(async (req) => {
     // Refresh token if needed
     const accessToken = await refreshTokenIfNeeded(supabaseClient, connection);
 
+    // Validate scopes before calling Xero APIs
+    const scopes = getXeroTokenScopes(accessToken);
+    if (!scopes.includes("accounting.settings")) {
+      console.warn("Xero token missing accounting.settings scope", { scopes });
+      return new Response(
+        JSON.stringify({
+          error: "Missing required Xero permission: accounting.settings. Please reconnect to Xero.",
+          code: "xero_missing_scope",
+          required_scope: "accounting.settings",
+          scopes,
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Fetch accounts from Xero
     console.log("Fetching accounts from Xero...");
     const accountsResponse = await fetch(
@@ -154,6 +172,26 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+function getXeroTokenScopes(accessToken: string): string[] {
+  try {
+    const parts = accessToken.split(".");
+    if (parts.length < 2) return [];
+    const payload = parts[1];
+    const json = JSON.parse(atob(base64UrlToBase64(payload)));
+    const scope = json.scope;
+    if (Array.isArray(scope)) return scope;
+    if (typeof scope === "string") return scope.split(" ");
+    return [];
+  } catch (e) {
+    console.warn("Unable to parse Xero token scopes", e);
+    return [];
+  }
+}
+
+function base64UrlToBase64(input: string): string {
+  return input.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(input.length / 4) * 4, "=");
+}
 
 function mapXeroAccountType(xeroType: string, xeroClass: string): string {
   // Map Xero account types to our internal types

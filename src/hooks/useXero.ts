@@ -159,12 +159,20 @@ export function useXeroAccounts() {
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('xero-get-accounts');
 
-      if (error) throw error;
+      if (error) {
+        const anyErr: any = error;
+        const res: Response | undefined = anyErr?.context;
+        if (res) {
+          const bodyText = await res.text();
+          throw new Error(`Xero fetch failed (${res.status}): ${bodyText}`);
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
 
       return data as { accounts: XeroAccount[]; tenant_name: string };
     },
-    enabled: false, // Only fetch when explicitly called
+    enabled: false,
     retry: false,
   });
 }
@@ -176,7 +184,15 @@ export function useFetchXeroAccounts() {
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('xero-get-accounts');
 
-      if (error) throw error;
+      if (error) {
+        const anyErr: any = error;
+        const res: Response | undefined = anyErr?.context;
+        if (res) {
+          const bodyText = await res.text();
+          throw new Error(`Xero fetch failed (${res.status}): ${bodyText}`);
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
 
       return data as { accounts: XeroAccount[]; tenant_name: string };
@@ -186,7 +202,7 @@ export function useFetchXeroAccounts() {
     },
     onError: (error: Error) => {
       console.error('Error fetching Xero accounts:', error);
-      toast.error(`Failed to fetch Xero accounts: ${error.message}`);
+      toast.error(error.message);
     },
   });
 }
