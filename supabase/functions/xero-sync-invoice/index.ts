@@ -205,20 +205,29 @@ Deno.serve(async (req) => {
     const xeroResult = await xeroResponse.json();
 
     if (!xeroResponse.ok) {
-      console.error("Xero API error:", xeroResult);
+      // Log full error details server-side only for debugging
+      console.error("Xero API error:", JSON.stringify(xeroResult, null, 2));
       
-      // Update invoice with sync error
+      // Extract safe error message for storage and client response
+      const safeErrorMessage = xeroResult?.Message || 
+        xeroResult?.Elements?.[0]?.ValidationErrors?.[0]?.Message ||
+        'Invoice sync failed';
+      // Truncate to safe length and sanitize
+      const sanitizedError = String(safeErrorMessage).substring(0, 200);
+      
+      // Update invoice with sanitized error (no sensitive details)
       await supabase
         .from("purchase_order_invoices")
         .update({
           xero_sync_status: "error",
-          xero_sync_error: JSON.stringify(xeroResult),
+          xero_sync_error: sanitizedError,
         })
         .eq("id", invoiceId);
 
+      // Return generic error to client (no internal details exposed)
       return new Response(JSON.stringify({ 
-        error: "Xero sync failed", 
-        details: xeroResult 
+        error: "Failed to sync invoice to Xero. Please check the invoice details and try again.",
+        code: "xero_sync_failed"
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
