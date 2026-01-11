@@ -13,8 +13,10 @@ import {
   Clock,
   Users,
   Settings,
-  Pencil
+  Pencil,
+  Copy
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { ShiftFormDialog } from '@/components/hr/ShiftFormDialog';
@@ -152,7 +154,8 @@ export default function Schedule() {
   }, [settingsOpen]); // Re-read when settings dialog closes
   
   const { employees } = useEmployees();
-  const { shifts, updateShift } = useEmployeeShifts();
+  const { shifts, updateShift, createShift } = useEmployeeShifts();
+  const { toast } = useToast();
 
   // Get date range based on view
   const dateRange = useMemo(() => {
@@ -181,15 +184,47 @@ export default function Schedule() {
 
   const goToToday = () => setCurrentDate(new Date());
 
-  // Calculate payroll for the date range
+  // Calculate salary employees' daily cost (assuming 52 weeks, 5 days/week = 260 work days)
+  const salaryCostData = useMemo(() => {
+    const workDaysPerYear = 260;
+    const hoursPerDay = 8;
+    
+    const salaryEmployees = employees?.filter(e => 
+      e.pay_type === 'salary' && 
+      e.salary_amount && 
+      e.employment_status === 'active'
+    ) || [];
+    
+    // Count work days in the date range (Mon-Fri)
+    const workDaysInRange = dateRange.filter(d => {
+      const day = d.getDay();
+      return day !== 0 && day !== 6; // Exclude weekends
+    }).length;
+    
+    let totalSalaryCost = 0;
+    salaryEmployees.forEach(emp => {
+      const dailyRate = (emp.salary_amount || 0) / workDaysPerYear;
+      totalSalaryCost += dailyRate * workDaysInRange;
+    });
+    
+    // Calculate equivalent hours for display
+    const avgHourlyRate = salaryEmployees.length > 0
+      ? salaryEmployees.reduce((sum, emp) => sum + ((emp.salary_amount || 0) / workDaysPerYear / hoursPerDay), 0) / salaryEmployees.length
+      : 0;
+    const equivalentHours = avgHourlyRate > 0 ? totalSalaryCost / avgHourlyRate : workDaysInRange * hoursPerDay * salaryEmployees.length;
+    
+    return { totalSalaryCost, salaryEmployeeCount: salaryEmployees.length, equivalentHours };
+  }, [employees, dateRange]);
+
+  // Calculate payroll for the date range (hourly employees from shifts)
   const payrollData = useMemo(() => {
     let totalHours = 0;
     let totalCost = 0;
     let shiftsCount = 0;
 
     shifts?.forEach(shift => {
-      const shiftDate = new Date(shift.shift_date);
-      const isInRange = dateRange.some(d => isSameDay(d, shiftDate));
+      const shiftDateStr = shift.shift_date;
+      const isInRange = dateRange.some(d => format(d, 'yyyy-MM-dd') === shiftDateStr);
       
       if (isInRange) {
         const startHour = parseInt(shift.start_time?.split(':')[0] || '0');
@@ -208,8 +243,11 @@ export default function Schedule() {
     return { totalHours, totalCost, shiftsCount };
   }, [shifts, employees, dateRange]);
 
-  // Calculate gallons needed based on labor cost setting
-  const gallonsNeeded = laborCostPerGallon > 0 ? payrollData.totalCost / laborCostPerGallon : 0;
+  // Total labor cost including salary employees
+  const totalLaborCost = payrollData.totalCost + salaryCostData.totalSalaryCost;
+
+  // Calculate gallons needed based on labor cost setting (includes salary employees)
+  const gallonsNeeded = laborCostPerGallon > 0 ? totalLaborCost / laborCostPerGallon : 0;
 
   // Get shifts for a specific date - compare date strings to avoid timezone issues
   const getShiftsForDate = (date: Date) => {
@@ -252,6 +290,58 @@ export default function Schedule() {
     setShiftDialogOpen(true);
   };
 
+  // Copy today's shifts to the entire week
+  const handleCopyToWeek = async () => {
+    if (view !== 'week') {
+      toast({ title: 'Please switch to week view first', variant: 'destructive' });
+      return;
+    }
+
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const todayShifts = shifts?.filter(s => s.shift_date === todayStr) || [];
+
+    if (todayShifts.length === 0) {
+      toast({ title: 'No shifts today to copy', description: 'Add shifts for today first', variant: 'destructive' });
+      return;
+    }
+
+    // Get other days in the week (excluding today)
+    const otherDays = dateRange.filter(d => format(d, 'yyyy-MM-dd') !== todayStr);
+
+    let createdCount = 0;
+    for (const day of otherDays) {
+      const dayStr = format(day, 'yyyy-MM-dd');
+      // Check if day already has shifts
+      const existingShifts = shifts?.filter(s => s.shift_date === dayStr) || [];
+      
+      if (existingShifts.length === 0) {
+        // Copy each shift to this day
+        for (const shift of todayShifts) {
+          await createShift.mutateAsync({
+            employee_id: shift.employee_id,
+            shift_date: dayStr,
+            start_time: shift.start_time,
+            end_time: shift.end_time,
+            break_minutes: shift.break_minutes,
+            department_id: shift.department_id,
+            job_position_id: shift.job_position_id,
+            location_id: shift.location_id,
+            color: shift.color,
+            notes: shift.notes,
+          });
+          createdCount++;
+        }
+      }
+    }
+
+    if (createdCount > 0) {
+      toast({ title: `Copied ${createdCount} shifts to the week` });
+    } else {
+      toast({ title: 'All days already have shifts', description: 'Clear existing shifts first to copy' });
+    }
+  };
+
   const activeShift = activeId ? shifts?.find(s => s.id === activeId) : null;
   const activeEmployee = activeShift ? employees?.find(e => e.id === activeShift.employee_id) : null;
 
@@ -267,6 +357,12 @@ export default function Schedule() {
           <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-4 w-4" />
           </Button>
+          {view === 'week' && (
+            <Button variant="outline" onClick={handleCopyToWeek}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy to Week
+            </Button>
+          )}
           <Button onClick={() => handleAddShift()}>
             <Plus className="h-4 w-4 mr-2" />
             Add Shift
@@ -295,9 +391,9 @@ export default function Schedule() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${payrollData.totalCost.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${totalLaborCost.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Avg ${(payrollData.totalCost / (payrollData.totalHours || 1)).toFixed(2)}/hr
+              ${payrollData.totalCost.toFixed(0)} hourly + ${salaryCostData.totalSalaryCost.toFixed(0)} salary
             </p>
           </CardContent>
         </Card>
@@ -310,7 +406,7 @@ export default function Schedule() {
           <CardContent>
             <div className="text-2xl font-bold">{gallonsNeeded.toFixed(0)}</div>
             <p className="text-xs text-muted-foreground">
-              To meet ${laborCostPerGallon}/gal target
+              ${laborCostPerGallon}/gal (incl. {salaryCostData.salaryEmployeeCount} salary)
             </p>
           </CardContent>
         </Card>
