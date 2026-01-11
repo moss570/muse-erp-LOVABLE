@@ -253,7 +253,10 @@ export function useEmployeeWageHistory(employeeId: string | undefined) {
 }
 
 export function useEmployeeShifts(startDate?: string, endDate?: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const shiftsQuery = useQuery({
     queryKey: ['employee-shifts', startDate, endDate],
     queryFn: async () => {
       let query = supabase
@@ -278,6 +281,86 @@ export function useEmployeeShifts(startDate?: string, endDate?: string) {
       if (error) throw error;
       return data;
     },
-    enabled: !!startDate || !!endDate,
   });
+
+  const createShift = useMutation({
+    mutationFn: async (shift: TablesInsert<'employee_shifts'>) => {
+      const { data, error } = await supabase
+        .from('employee_shifts')
+        .insert(shift)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee-shifts'] });
+      toast({ title: 'Shift created successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Error creating shift', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const updateShift = useMutation({
+    mutationFn: async ({ id, ...updates }: TablesUpdate<'employee_shifts'> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('employee_shifts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee-shifts'] });
+      toast({ title: 'Shift updated successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Error updating shift', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const deleteShift = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('employee_shifts')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee-shifts'] });
+      toast({ title: 'Shift deleted successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Error deleting shift', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  return {
+    shifts: shiftsQuery.data || [],
+    isLoading: shiftsQuery.isLoading,
+    error: shiftsQuery.error,
+    refetch: shiftsQuery.refetch,
+    createShift,
+    updateShift,
+    deleteShift,
+  };
 }

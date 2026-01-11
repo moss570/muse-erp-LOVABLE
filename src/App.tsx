@@ -32,6 +32,7 @@ import CompanySettings from "./pages/settings/CompanySettings";
 import LabelTemplates from "./pages/settings/LabelTemplates";
 import TeamRoster from "./pages/hr/TeamRoster";
 import EmployeeDetail from "./pages/hr/EmployeeDetail";
+import Schedule from "./pages/hr/Schedule";
 
 const queryClient = new QueryClient();
 
@@ -105,13 +106,15 @@ const App = () => (
                 </AppLayout>
               }
             />
+            {/* Scheduling routes */}
+            <Route path="/scheduling/employees" element={<AppLayout><Schedule /></AppLayout>} />
             <Route
               path="/scheduling/*"
               element={
                 <AppLayout>
                   <div className="text-center py-12">
                     <h2 className="text-2xl font-bold mb-2">Scheduling Module</h2>
-                    <p className="text-muted-foreground">Coming in Phase 2</p>
+                    <p className="text-muted-foreground">Coming soon</p>
                   </div>
                 </AppLayout>
               }
