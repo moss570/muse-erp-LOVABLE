@@ -360,13 +360,24 @@ export default function QADashboard() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {doc.file_url && (
-                                <Button variant="ghost" size="sm" asChild>
-                                  <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  // Navigate to the entity based on type
+                                  const routes: Record<string, string> = {
+                                    material: '/inventory/materials',
+                                    supplier: '/purchasing/suppliers',
+                                    product: '/inventory/products',
+                                  };
+                                  const route = routes[doc.related_entity_type];
+                                  if (route) {
+                                    navigate(`${route}?edit=${doc.related_entity_id}`);
+                                  }
+                                }}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
                               <Button variant="outline" size="sm">
                                 <RefreshCw className="h-4 w-4 mr-1" />
                                 Renew

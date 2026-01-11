@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermission';
@@ -213,6 +214,7 @@ const APPROVAL_FILTER_OPTIONS = [
 ];
 
 export default function Suppliers() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
@@ -280,6 +282,20 @@ export default function Suppliers() {
       return data as Supplier[];
     },
   });
+
+  // Handle ?edit= query param to open edit dialog
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && suppliers) {
+      const supplierToEdit = suppliers.find(s => s.id === editId);
+      if (supplierToEdit) {
+        setEditingSupplier(supplierToEdit);
+        setIsDialogOpen(true);
+        // Clear the query param
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, suppliers, setSearchParams]);
 
   // Fetch document requirements for suppliers
   const { data: documentRequirements } = useQuery({
