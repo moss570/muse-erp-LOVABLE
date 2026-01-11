@@ -161,12 +161,10 @@ export default function Schedule() {
   const laborCostPerGallon = 2.50; // Example: $2.50 labor cost per gallon target
   const gallonsNeeded = payrollData.totalCost / laborCostPerGallon;
 
-  // Get shifts for a specific date
+  // Get shifts for a specific date - compare date strings to avoid timezone issues
   const getShiftsForDate = (date: Date) => {
-    return shifts?.filter(shift => {
-      const shiftDate = new Date(shift.shift_date);
-      return isSameDay(shiftDate, date);
-    }) || [];
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return shifts?.filter(shift => shift.shift_date === dateStr) || [];
   };
 
   // Handle drag events
