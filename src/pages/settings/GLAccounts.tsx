@@ -138,12 +138,23 @@ export default function GLAccounts() {
       setSelectedXeroAccounts(new Set());
       setImportDialogOpen(true);
     } catch (error: any) {
-      // Check if it's a scope/authorization issue
-      const errorMessage = error?.message || '';
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('AuthorizationUnsuccessful')) {
+      const errorMessage = String(error?.message || '');
+
+      // Handle missing scope / authorization problems
+      if (
+        errorMessage.includes('xero_missing_scope') ||
+        errorMessage.includes('accounting.settings') ||
+        errorMessage.includes('Xero fetch failed (403)') ||
+        errorMessage.includes('Xero fetch failed (401)') ||
+        errorMessage.includes('Unauthorized') ||
+        errorMessage.includes('AuthorizationUnsuccessful')
+      ) {
         setNeedsReconnect(true);
-        toast.error('Xero permissions need to be updated. Please reconnect to Xero.');
+        toast.error('Xero permissions need to be updated. Click “Reconnect to Xero”.');
+        return;
       }
+
+      toast.error(errorMessage || 'Failed to import from Xero');
     }
   };
 
