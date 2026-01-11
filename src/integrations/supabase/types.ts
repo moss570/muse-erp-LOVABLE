@@ -387,13 +387,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "compliance_documents_replaced_by_id_fkey"
-            columns: ["replaced_by_id"]
-            isOneToOne: false
-            referencedRelation: "document_expiration_watchlist"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "compliance_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
@@ -4839,15 +4832,7 @@ export type Database = {
           related_entity_type: string | null
           uploaded_by: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "compliance_documents_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       qa_pending_items: {
         Row: {
