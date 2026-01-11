@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useReceiving } from '@/hooks/useReceiving';
 import { Button } from '@/components/ui/button';
@@ -49,10 +49,16 @@ import {
   AlertTriangle,
   Clock,
   Tag,
-  Printer
+  Printer,
+  ShieldCheck
 } from 'lucide-react';
 import { ReceivingItemDialog } from './ReceivingItemDialog';
 import { LabelPrintDialog } from '@/components/labels/LabelPrintDialog';
+import { 
+  ApprovalStatusBadge, 
+  ApprovalActionsDropdown, 
+  ApprovalHistoryPanel 
+} from '@/components/approval';
 
 interface Props {
   sessionId: string;
@@ -61,6 +67,7 @@ interface Props {
 }
 
 export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) {
+  const queryClient = useQueryClient();
   const { useSession, useSessionItems, deleteItem, completeSession } = useReceiving();
   const { data: session, isLoading: sessionLoading } = useSession(sessionId);
   const { data: items, isLoading: itemsLoading } = useSessionItems(sessionId);
@@ -70,6 +77,12 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
   const [inspectionNotes, setInspectionNotes] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
   const [printLotId, setPrintLotId] = useState<string | null>(null);
+  const [showApprovalHistory, setShowApprovalHistory] = useState(false);
+
+  const handleApprovalComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ['receiving-session', sessionId] });
+    queryClient.invalidateQueries({ queryKey: ['receiving-sessions'] });
+  };
 
   // Get PO id from session
   const poId = (session?.purchase_order as { id?: string } | undefined)?.id;
@@ -165,17 +178,33 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
             <Package className="h-5 w-5" />
             {session?.receiving_number || 'Loading...'}
             {session && (
-              <Badge variant={session.status === 'completed' ? 'default' : 'secondary'} className="ml-2">
-                {session.status === 'completed' ? (
-                  <><CheckCircle className="h-3 w-3 mr-1" /> Completed</>
-                ) : (
-                  <><Clock className="h-3 w-3 mr-1" /> In Progress</>
+              <div className="flex items-center gap-2 ml-2">
+                <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
+                  {session.status === 'completed' ? (
+                    <><CheckCircle className="h-3 w-3 mr-1" /> Completed</>
+                  ) : (
+                    <><Clock className="h-3 w-3 mr-1" /> In Progress</>
+                  )}
+                </Badge>
+                {session.status === 'completed' && (
+                  <ApprovalStatusBadge 
+                    status={(session as any).approval_status || 'Draft'} 
+                    size="sm" 
+                  />
                 )}
-              </Badge>
+              </div>
             )}
           </DialogTitle>
-          <DialogDescription>
-            {session?.purchase_order?.po_number} - {session?.purchase_order?.supplier?.name}
+          <DialogDescription className="flex items-center justify-between">
+            <span>{session?.purchase_order?.po_number} - {session?.purchase_order?.supplier?.name}</span>
+            {session?.status === 'completed' && (
+              <ApprovalActionsDropdown
+                recordId={sessionId}
+                tableName="po_receiving_sessions"
+                currentStatus={(session as any).approval_status || 'Draft'}
+                onActionComplete={handleApprovalComplete}
+              />
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -366,6 +395,34 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
                       />
                     </div>
                   </div>
+                </div>
+              </>
+            )}
+
+            {/* QA Approval History (for completed sessions) */}
+            {session?.status === 'completed' && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      QA Approval
+                    </h3>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowApprovalHistory(!showApprovalHistory)}
+                    >
+                      {showApprovalHistory ? 'Hide History' : 'Show History'}
+                    </Button>
+                  </div>
+                  {showApprovalHistory && (
+                    <ApprovalHistoryPanel
+                      recordId={sessionId}
+                      tableName="po_receiving_sessions"
+                    />
+                  )}
                 </div>
               </>
             )}
