@@ -200,6 +200,9 @@ interface CoaLimit {
 const DEFAULT_COA_PARAMETERS = [
   { parameter: 'Moisture', uom: '%' },
   { parameter: 'Water Activity', uom: 'Aw' },
+  { parameter: 'pH', uom: '' },
+  { parameter: 'Fat', uom: '%' },
+  { parameter: 'Micro(APC)', uom: 'CFU/g' },
   { parameter: 'Total Plate Count', uom: 'CFU/g' },
   { parameter: 'Yeast & Mold', uom: 'CFU/g' },
   { parameter: 'Coliform', uom: 'CFU/g' },
