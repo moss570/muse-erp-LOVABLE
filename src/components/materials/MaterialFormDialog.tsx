@@ -1367,20 +1367,28 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-9">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="specifications">Specs</TabsTrigger>
-                <TabsTrigger value="food-safety">Food Safety</TabsTrigger>
-                <TabsTrigger value="haccp">HACCP</TabsTrigger>
-                <TabsTrigger value="coa-limits">COA Limits</TabsTrigger>
-                <TabsTrigger value="unit-variants">Units</TabsTrigger>
-                <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="qa-workflow" className="flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" />
-                  QA
-                </TabsTrigger>
-              </TabsList>
+              {(() => {
+                const currentCategory = form.watch('category');
+                const hideQualityTabs = ['Supplies', 'Maintenance', 'Direct Sale'].includes(currentCategory);
+                const tabCount = hideQualityTabs ? 6 : 9;
+                
+                return (
+                  <TabsList className={`grid w-full grid-cols-${tabCount}`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
+                    <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                    <TabsTrigger value="specifications">Specs</TabsTrigger>
+                    {!hideQualityTabs && <TabsTrigger value="food-safety">Food Safety</TabsTrigger>}
+                    {!hideQualityTabs && <TabsTrigger value="haccp">HACCP</TabsTrigger>}
+                    {!hideQualityTabs && <TabsTrigger value="coa-limits">COA Limits</TabsTrigger>}
+                    <TabsTrigger value="unit-variants">Units</TabsTrigger>
+                    <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+                    <TabsTrigger value="documents">Documents</TabsTrigger>
+                    <TabsTrigger value="qa-workflow" className="flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3" />
+                      QA
+                    </TabsTrigger>
+                  </TabsList>
+                );
+              })()}
 
               {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4 mt-4">
