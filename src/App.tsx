@@ -33,6 +33,10 @@ import LabelTemplates from "./pages/settings/LabelTemplates";
 import TeamRoster from "./pages/hr/TeamRoster";
 import EmployeeDetail from "./pages/hr/EmployeeDetail";
 import Schedule from "./pages/hr/Schedule";
+import FixedCosts from "./pages/settings/FixedCosts";
+import GLAccounts from "./pages/settings/GLAccounts";
+import PeriodClose from "./pages/settings/PeriodClose";
+import ProfitLoss from "./pages/reports/ProfitLoss";
 
 const queryClient = new QueryClient();
 
