@@ -519,6 +519,55 @@ export type Database = {
           },
         ]
       }
+      invoice_freight_links: {
+        Row: {
+          allocation_amount: number | null
+          created_at: string
+          created_by: string | null
+          freight_invoice_id: string
+          id: string
+          material_invoice_id: string
+        }
+        Insert: {
+          allocation_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          freight_invoice_id: string
+          id?: string
+          material_invoice_id: string
+        }
+        Update: {
+          allocation_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          freight_invoice_id?: string
+          id?: string
+          material_invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_freight_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_freight_links_freight_invoice_id_fkey"
+            columns: ["freight_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_freight_links_material_invoice_id_fkey"
+            columns: ["material_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_line_items: {
         Row: {
           created_at: string
@@ -1898,12 +1947,17 @@ export type Database = {
       purchase_order_invoices: {
         Row: {
           amount_paid: number | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           created_by: string | null
           due_date: string | null
+          freight_amount: number | null
           id: string
           invoice_date: string
           invoice_number: string
+          invoice_type: string
           notes: string | null
           payment_date: string | null
           payment_reference: string | null
@@ -1921,12 +1975,17 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          freight_amount?: number | null
           id?: string
           invoice_date: string
           invoice_number: string
+          invoice_type?: string
           notes?: string | null
           payment_date?: string | null
           payment_reference?: string | null
@@ -1944,12 +2003,17 @@ export type Database = {
         }
         Update: {
           amount_paid?: number | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          freight_amount?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string
+          invoice_type?: string
           notes?: string | null
           payment_date?: string | null
           payment_reference?: string | null
@@ -1966,6 +2030,13 @@ export type Database = {
           xero_synced_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_invoices_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_order_invoices_created_by_fkey"
             columns: ["created_by"]
@@ -3031,6 +3102,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      xero_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          refresh_token: string
+          tenant_id: string
+          tenant_name: string | null
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          refresh_token: string
+          tenant_id: string
+          tenant_name?: string | null
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          tenant_id?: string
+          tenant_name?: string | null
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xero_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
