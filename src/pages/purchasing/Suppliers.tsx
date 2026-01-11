@@ -226,6 +226,7 @@ export default function Suppliers() {
   const [isUploading, setIsUploading] = useState(false);
   const [showArchivedDocs, setShowArchivedDocs] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string; isNew: boolean } | null>(null);
+  const [documentToArchive, setDocumentToArchive] = useState<{ id: string; name: string; isExpired: boolean } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -582,6 +583,17 @@ export default function Suppliers() {
     }
     
     setDocumentToDelete(null);
+  };
+
+  const handleArchiveClick = (docId: string, docName: string, expiryDate: string | null) => {
+    const isExpired = expiryDate ? new Date(expiryDate) < new Date() : false;
+    if (isExpired) {
+      // If expired, archive directly
+      archiveDocument(docId);
+    } else {
+      // Show confirmation dialog for non-expired documents
+      setDocumentToArchive({ id: docId, name: docName, isExpired });
+    }
   };
 
   const archiveDocument = async (docId: string) => {
@@ -1792,7 +1804,8 @@ export default function Suppliers() {
                               value={doc.document_name}
                               onChange={(e) => updateDocument(doc.id, 'document_name', e.target.value)}
                               placeholder="Document name"
-                              disabled={doc.is_archived}
+                              disabled={!doc.isNew || doc.is_archived}
+                              className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                             />
                           </div>
                           <div>
@@ -1800,9 +1813,9 @@ export default function Suppliers() {
                             <Select 
                               value={doc.requirement_id || '__none__'} 
                               onValueChange={(v) => updateDocument(doc.id, 'requirement_id', v === '__none__' ? '' : v)}
-                              disabled={doc.is_archived}
+                              disabled={!doc.isNew || doc.is_archived}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}>
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1816,39 +1829,37 @@ export default function Suppliers() {
                             </Select>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           {!doc.isNew && !doc.is_archived && (
                             <Button
                               type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground"
-                              onClick={() => archiveDocument(doc.id)}
-                              title="Archive document"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleArchiveClick(doc.id, doc.document_name, doc.expiry_date)}
                             >
-                              <Archive className="h-4 w-4" />
+                              <Archive className="h-4 w-4 mr-1" />
+                              Archive
                             </Button>
                           )}
                           {doc.is_archived && (
                             <Button
                               type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground"
+                              variant="outline"
+                              size="sm"
                               onClick={() => restoreDocument(doc.id)}
-                              title="Restore document"
                             >
-                              <ArchiveRestore className="h-4 w-4" />
+                              <ArchiveRestore className="h-4 w-4 mr-1" />
+                              Restore
                             </Button>
                           )}
-                          {!doc.is_archived && (
+                          {doc.isNew && (
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
                               className="text-destructive"
                               onClick={() => handleRemoveDocumentClick(doc.id, doc.document_name, doc.isNew)}
-                              title={doc.isNew ? "Remove" : "Delete permanently"}
+                              title="Remove"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -1877,7 +1888,8 @@ export default function Suppliers() {
                           ) : (
                             <Input
                               type="file"
-                              disabled={doc.is_archived}
+                              disabled={!doc.isNew || doc.is_archived}
+                              className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) handleFileUpload(doc.id, file);
@@ -1894,7 +1906,8 @@ export default function Suppliers() {
                             type="date"
                             value={doc.date_published || ''}
                             onChange={(e) => updateDocument(doc.id, 'date_published', e.target.value)}
-                            disabled={doc.is_archived}
+                            disabled={!doc.isNew || doc.is_archived}
+                            className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                           />
                         </div>
                         <div>
@@ -1903,7 +1916,8 @@ export default function Suppliers() {
                             type="date"
                             value={doc.expiry_date || ''}
                             onChange={(e) => updateDocument(doc.id, 'expiry_date', e.target.value)}
-                            disabled={doc.is_archived}
+                            disabled={!doc.isNew || doc.is_archived}
+                            className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
                           />
                           {doc.expiry_date && (
                             <div className="mt-1">
@@ -1976,6 +1990,31 @@ export default function Suppliers() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive Non-Expired Document Confirmation Dialog */}
+      <AlertDialog open={!!documentToArchive} onOpenChange={(open) => !open && setDocumentToArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This document has not expired yet. Are you sure you want to archive "{documentToArchive?.name || 'this document'}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (documentToArchive) {
+                  archiveDocument(documentToArchive.id);
+                }
+                setDocumentToArchive(null);
+              }}
+            >
+              Yes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
