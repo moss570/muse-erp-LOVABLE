@@ -2973,7 +2973,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                           <SelectValue placeholder="Select supplier" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          {suppliers?.filter(s => s.approval_status === 'approved').map((supplier) => (
+                                          {suppliers?.filter(s => s.approval_status?.toLowerCase() === 'approved').map((supplier) => (
                                             <SelectItem key={supplier.id} value={supplier.id}>
                                               {supplier.name} ({supplier.code})
                                             </SelectItem>
