@@ -38,6 +38,7 @@ import GLAccounts from "./pages/settings/GLAccounts";
 import PeriodClose from "./pages/settings/PeriodClose";
 import ProfitLoss from "./pages/reports/ProfitLoss";
 import XeroConfiguration from "./pages/settings/XeroConfiguration";
+import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,19 @@ const App = () => (
                 <AppLayout>
                   <div className="text-center py-12">
                     <h2 className="text-2xl font-bold mb-2">Sales Module</h2>
+                    <p className="text-muted-foreground">Coming soon</p>
+                  </div>
+                </AppLayout>
+              }
+            />
+            {/* Manufacturing routes */}
+            <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
+            <Route
+              path="/manufacturing/*"
+              element={
+                <AppLayout>
+                  <div className="text-center py-12">
+                    <h2 className="text-2xl font-bold mb-2">Manufacturing Module</h2>
                     <p className="text-muted-foreground">Coming soon</p>
                   </div>
                 </AppLayout>

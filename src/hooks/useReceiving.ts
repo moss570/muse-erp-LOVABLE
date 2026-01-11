@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast as sonnerToast } from 'sonner';
 
 export interface ReceivingSession {
   id: string;
@@ -412,6 +413,25 @@ export function useReceiving() {
           .from('purchase_orders')
           .update({ status: newStatus })
           .eq('id', session.purchase_order_id);
+
+        // Auto-sync to Xero when PO is fully received
+        if (newStatus === 'received') {
+          try {
+            const { data: syncResult, error: syncError } = await supabase.functions.invoke('xero-sync-po-bill', {
+              body: { purchaseOrderId: session.purchase_order_id },
+            });
+            
+            if (syncError) {
+              console.error('Xero sync error:', syncError);
+              sonnerToast.warning('PO marked as received, but Xero sync failed. You can manually sync later.');
+            } else if (syncResult?.success) {
+              sonnerToast.success('PO synced to Xero as Bill');
+            }
+          } catch (xeroErr) {
+            console.error('Xero sync exception:', xeroErr);
+            // Don't fail the receiving - just log the Xero sync failure
+          }
+        }
       }
 
       return { sessionId };

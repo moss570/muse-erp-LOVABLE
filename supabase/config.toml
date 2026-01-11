@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.xero-get-accounts]
 verify_jwt = false
+
+[functions.xero-sync-po-bill]
+verify_jwt = false
+
+[functions.xero-sync-fg-completion]
+verify_jwt = false
