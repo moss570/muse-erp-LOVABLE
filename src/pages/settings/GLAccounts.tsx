@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Link, BookOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, Link, BookOpen, RefreshCw, Download, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 import { useGLAccounts } from '@/hooks/useFinancialSettings';
+import { useXeroConnection, useXeroConnect, useFetchXeroAccounts } from '@/hooks/useXero';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 const ACCOUNT_TYPES = [
   { value: 'asset', label: 'Asset' },
@@ -46,6 +49,15 @@ interface GLAccountFormData {
   is_active: boolean;
 }
 
+interface XeroAccount {
+  xero_account_id: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  xero_type: string;
+  status: string;
+}
+
 const defaultFormData: GLAccountFormData = {
   account_code: '',
   account_name: '',
@@ -60,8 +72,17 @@ export default function GLAccounts() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [formData, setFormData] = useState<GLAccountFormData>(defaultFormData);
+  const [xeroAccounts, setXeroAccounts] = useState<XeroAccount[]>([]);
+  const [selectedXeroAccounts, setSelectedXeroAccounts] = useState<Set<string>>(new Set());
+  const [tenantName, setTenantName] = useState<string>('');
+
+  // Xero hooks
+  const { data: xeroConnection, isLoading: isLoadingXero } = useXeroConnection();
+  const { connectToXero } = useXeroConnect();
+  const fetchXeroAccounts = useFetchXeroAccounts();
 
   const handleOpenCreate = () => {
     setEditingAccount(null);
@@ -104,6 +125,88 @@ export default function GLAccounts() {
     }
   };
 
+  const handleSyncFromXero = async () => {
+    try {
+      const result = await fetchXeroAccounts.mutateAsync();
+      // Filter to only active accounts
+      const activeAccounts = result.accounts.filter((a: XeroAccount) => a.status === 'ACTIVE');
+      setXeroAccounts(activeAccounts);
+      setTenantName(result.tenant_name);
+      setSelectedXeroAccounts(new Set());
+      setImportDialogOpen(true);
+    } catch (error) {
+      // Error already handled by hook
+    }
+  };
+
+  const handleImportSelected = async () => {
+    const accountsToImport = xeroAccounts.filter(a => selectedXeroAccounts.has(a.xero_account_id));
+    
+    // Check for duplicates
+    const existingCodes = new Set(glAccounts?.map(a => a.account_code) || []);
+    const existingXeroIds = new Set(glAccounts?.map(a => a.xero_account_id).filter(Boolean) || []);
+    
+    let imported = 0;
+    let skipped = 0;
+
+    for (const account of accountsToImport) {
+      // Skip if already exists
+      if (existingXeroIds.has(account.xero_account_id)) {
+        skipped++;
+        continue;
+      }
+
+      // Use Xero code or generate one if it exists locally
+      let code = account.account_code;
+      if (!code || existingCodes.has(code)) {
+        code = `XERO-${account.xero_account_id.slice(0, 8)}`;
+      }
+
+      try {
+        await createAccount.mutateAsync({
+          account_code: code,
+          account_name: account.account_name,
+          account_type: account.account_type,
+          xero_account_id: account.xero_account_id,
+          mapping_purpose: null,
+          is_active: true,
+        });
+        existingCodes.add(code);
+        existingXeroIds.add(account.xero_account_id);
+        imported++;
+      } catch (e) {
+        console.error('Failed to import account:', account.account_name, e);
+      }
+    }
+
+    setImportDialogOpen(false);
+    toast.success(`Imported ${imported} account(s)${skipped > 0 ? `, ${skipped} already existed` : ''}`);
+  };
+
+  const toggleXeroAccount = (xeroId: string) => {
+    setSelectedXeroAccounts(prev => {
+      const next = new Set(prev);
+      if (next.has(xeroId)) {
+        next.delete(xeroId);
+      } else {
+        next.add(xeroId);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllXeroAccounts = () => {
+    if (selectedXeroAccounts.size === xeroAccounts.length) {
+      setSelectedXeroAccounts(new Set());
+    } else {
+      setSelectedXeroAccounts(new Set(xeroAccounts.map(a => a.xero_account_id)));
+    }
+  };
+
+  const isAccountAlreadyImported = (xeroId: string) => {
+    return glAccounts?.some(a => a.xero_account_id === xeroId) || false;
+  };
+
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
       asset: 'bg-blue-500/10 text-blue-500',
@@ -135,10 +238,40 @@ export default function GLAccounts() {
           <h1 className="text-3xl font-bold tracking-tight">GL Accounts</h1>
           <p className="text-muted-foreground">Configure general ledger accounts and Xero mapping</p>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add GL Account
-        </Button>
+        <div className="flex items-center gap-2">
+          {xeroConnection ? (
+            <Button 
+              variant="outline" 
+              onClick={handleSyncFromXero}
+              disabled={fetchXeroAccounts.isPending}
+            >
+              {fetchXeroAccounts.isPending ? (
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Import from Xero
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={connectToXero} disabled={isLoadingXero}>
+              <Link className="mr-2 h-4 w-4" />
+              Connect to Xero
+            </Button>
+          )}
+          <Button onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Add GL Account
+          </Button>
+        </div>
       </div>
+
+      {xeroConnection && (
+        <Card className="border-dashed">
+          <CardContent className="py-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            Connected to Xero: <span className="font-medium text-foreground">{xeroConnection.tenant_name}</span>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="accounts">
         <TabsList>
@@ -371,6 +504,95 @@ export default function GLAccounts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Xero Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Import GL Accounts from Xero</DialogTitle>
+            <DialogDescription>
+              Select accounts to import from {tenantName}. Already imported accounts are marked.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto border rounded-md">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background">
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedXeroAccounts.size === xeroAccounts.length && xeroAccounts.length > 0}
+                      onCheckedChange={toggleAllXeroAccounts}
+                    />
+                  </TableHead>
+                  <TableHead>Account Code</TableHead>
+                  <TableHead>Account Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {xeroAccounts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No accounts found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  xeroAccounts.map((account) => {
+                    const alreadyImported = isAccountAlreadyImported(account.xero_account_id);
+                    return (
+                      <TableRow key={account.xero_account_id} className={alreadyImported ? 'opacity-50' : ''}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedXeroAccounts.has(account.xero_account_id)}
+                            onCheckedChange={() => toggleXeroAccount(account.xero_account_id)}
+                            disabled={alreadyImported}
+                          />
+                        </TableCell>
+                        <TableCell className="font-mono">{account.account_code || '—'}</TableCell>
+                        <TableCell>{account.account_name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={getTypeColor(account.account_type)}>
+                            {account.account_type.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {alreadyImported ? (
+                            <Badge variant="secondary">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Imported
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Available
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter className="flex items-center justify-between pt-4">
+            <div className="text-sm text-muted-foreground">
+              {selectedXeroAccounts.size} of {xeroAccounts.length} selected
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleImportSelected}
+                disabled={selectedXeroAccounts.size === 0}
+              >
+                Import Selected ({selectedXeroAccounts.size})
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
