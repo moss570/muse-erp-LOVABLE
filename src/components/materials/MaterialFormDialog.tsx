@@ -67,7 +67,7 @@ type MaterialDocument = Tables<'material_documents'>;
 // Category options with their code prefixes
 const MATERIAL_CATEGORIES = [
   { value: 'Ingredients', prefix: 'ING' },
-  { value: 'Packaging', prefix: 'PAC' },
+  { value: 'Packaging', prefix: 'PAX' },
   { value: 'Boxes', prefix: 'BOX' },
   { value: 'Chemical', prefix: 'CHE' },
   { value: 'Supplies', prefix: 'SUP' },
