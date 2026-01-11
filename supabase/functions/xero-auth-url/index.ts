@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -5,6 +7,7 @@ const corsHeaders = {
 
 const XERO_CLIENT_ID = Deno.env.get("XERO_CLIENT_ID");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,11 +15,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the request
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Auth validation failed:", claimsError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authenticatedUserId = claimsData.claims.sub;
+
     const { user_id, redirect_url } = await req.json();
 
-    if (!user_id) {
-      return new Response(JSON.stringify({ error: "user_id required" }), {
-        status: 400,
+    // Validate that the requested user_id matches the authenticated user
+    if (!user_id || user_id !== authenticatedUserId) {
+      console.error("User ID mismatch:", { requested: user_id, authenticated: authenticatedUserId });
+      return new Response(JSON.stringify({ error: "Unauthorized - user ID mismatch" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -45,7 +76,7 @@ Deno.serve(async (req) => {
 
     const authUrl = `https://login.xero.com/identity/connect/authorize?${params.toString()}`;
 
-    console.log("Generated Xero auth URL for user:", user_id);
+    console.log("Generated Xero auth URL for authenticated user:", authenticatedUserId);
 
     return new Response(JSON.stringify({ auth_url: authUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
