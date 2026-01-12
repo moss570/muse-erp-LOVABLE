@@ -56,7 +56,13 @@ export default function ProductionDashboard() {
         .select(`
           *,
           product:products(name, sku),
-          machine:machines(name, machine_number)
+          machine:machines(name, machine_number),
+          recipe:product_recipes(
+            id,
+            recipe_name,
+            recipe_version,
+            batch_size
+          )
         `)
         .eq("production_date", formattedDate)
         .order("created_at", { ascending: false });
@@ -64,6 +70,56 @@ export default function ProductionDashboard() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch recipe items and consumed materials for selected lot
+  const { data: lotDetails, isLoading: detailsLoading } = useQuery({
+    queryKey: ["production-lot-details", selectedLot?.id],
+    queryFn: async () => {
+      if (!selectedLot?.id) return null;
+
+      // Fetch recipe items (BOM)
+      const { data: recipeItems, error: recipeError } = await supabase
+        .from("product_recipe_items")
+        .select(`
+          id,
+          quantity_required,
+          wastage_percentage,
+          sort_order,
+          notes,
+          material:materials(id, name, code),
+          unit:units_of_measure(id, name)
+        `)
+        .eq("recipe_id", selectedLot.recipe_id)
+        .order("sort_order");
+
+      if (recipeError) throw recipeError;
+
+      // Fetch consumed materials (actual lot consumption)
+      const { data: consumedMaterials, error: consumedError } = await supabase
+        .from("production_lot_materials")
+        .select(`
+          id,
+          quantity_used,
+          created_at,
+          receiving_lot:receiving_lots(
+            id,
+            internal_lot_number,
+            supplier_lot_number,
+            expiry_date,
+            material:materials(id, name, code)
+          )
+        `)
+        .eq("production_lot_id", selectedLot.id);
+
+      if (consumedError) throw consumedError;
+
+      return {
+        recipeItems: recipeItems || [],
+        consumedMaterials: consumedMaterials || [],
+      };
+    },
+    enabled: !!selectedLot?.id && detailDialogOpen,
   });
 
   // Calculate summary stats
@@ -447,7 +503,7 @@ export default function ProductionDashboard() {
 
       {/* Production Lot Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -461,7 +517,7 @@ export default function ProductionDashboard() {
           {selectedLot && (
             <div className="space-y-6">
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
                   <div className="text-sm text-muted-foreground">Lot Number</div>
                   <div className="font-mono font-medium">{selectedLot.lot_number}</div>
@@ -469,7 +525,7 @@ export default function ProductionDashboard() {
                 <div className="space-y-1">
                   <div className="text-sm text-muted-foreground">Production Date</div>
                   <div className="font-medium">
-                    {format(new Date(selectedLot.production_date), "MMMM d, yyyy")}
+                    {format(new Date(selectedLot.production_date), "MMM d, yyyy")}
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -495,7 +551,7 @@ export default function ProductionDashboard() {
                   <div className="text-sm text-muted-foreground">Expiry Date</div>
                   <div className="font-medium">
                     {selectedLot.expiry_date 
-                      ? format(new Date(selectedLot.expiry_date), "MMMM d, yyyy")
+                      ? format(new Date(selectedLot.expiry_date), "MMM d, yyyy")
                       : "Not set"}
                   </div>
                 </div>
@@ -508,6 +564,116 @@ export default function ProductionDashboard() {
                     <ApprovalStatusBadge status={selectedLot.approval_status || "Draft"} />
                   </div>
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Recipe / BOM Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Factory className="h-4 w-4" />
+                    Recipe / Bill of Materials
+                  </h4>
+                  {selectedLot.recipe && (
+                    <Badge variant="outline">
+                      {selectedLot.recipe.recipe_name} v{selectedLot.recipe.recipe_version}
+                    </Badge>
+                  )}
+                </div>
+                {detailsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : lotDetails?.recipeItems && lotDetails.recipeItems.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead className="text-right">Qty Required</TableHead>
+                        <TableHead className="text-right">Wastage %</TableHead>
+                        <TableHead>Unit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lotDetails.recipeItems.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.material?.name}</TableCell>
+                          <TableCell className="font-mono text-xs">{item.material?.code}</TableCell>
+                          <TableCell className="text-right">{item.quantity_required}</TableCell>
+                          <TableCell className="text-right">{item.wastage_percentage || 0}%</TableCell>
+                          <TableCell>{item.unit?.name}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    No recipe items found
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Consumed Materials / Lots Section */}
+              <div>
+                <h4 className="font-medium flex items-center gap-2 mb-3">
+                  <Package className="h-4 w-4" />
+                  Consumed Material Lots
+                </h4>
+                {detailsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : lotDetails?.consumedMaterials && lotDetails.consumedMaterials.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead>Internal Lot #</TableHead>
+                        <TableHead>Supplier Lot #</TableHead>
+                        <TableHead className="text-right">Qty Used</TableHead>
+                        <TableHead>Expiry Date</TableHead>
+                        <TableHead>Used At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lotDetails.consumedMaterials.map((consumed: any) => (
+                        <TableRow key={consumed.id}>
+                          <TableCell>
+                            <div className="font-medium">{consumed.receiving_lot?.material?.name}</div>
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {consumed.receiving_lot?.material?.code}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {consumed.receiving_lot?.internal_lot_number || "-"}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {consumed.receiving_lot?.supplier_lot_number || "-"}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {consumed.quantity_used}
+                          </TableCell>
+                          <TableCell>
+                            {consumed.receiving_lot?.expiry_date
+                              ? format(new Date(consumed.receiving_lot.expiry_date), "MMM d, yyyy")
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(consumed.created_at), "MMM d, h:mm a")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    No material consumption recorded yet
+                  </div>
+                )}
               </div>
 
               <Separator />
