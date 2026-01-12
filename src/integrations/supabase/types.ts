@@ -85,6 +85,58 @@ export type Database = {
         }
         Relationships: []
       }
+      allergen_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          acknowledged_by: string | null
+          allergens: string[]
+          id: string
+          material_id: string
+          notes: string | null
+          production_lot_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          acknowledged_by?: string | null
+          allergens: string[]
+          id?: string
+          material_id: string
+          notes?: string | null
+          production_lot_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          acknowledged_by?: string | null
+          allergens?: string[]
+          id?: string
+          material_id?: string
+          notes?: string | null
+          production_lot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allergen_acknowledgments_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allergen_acknowledgments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allergen_acknowledgments_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_logs: {
         Row: {
           action: string
@@ -3899,10 +3951,12 @@ export type Database = {
         Row: {
           approval_status: string | null
           batch_number: number
+          cost_category: string | null
           created_at: string
           expiry_date: string | null
           id: string
           is_synced_to_xero: boolean | null
+          is_trial_batch: boolean | null
           julian_day: number
           labor_cost: number | null
           labor_hours: number | null
@@ -3923,16 +3977,20 @@ export type Database = {
           status: string | null
           synced_at: string | null
           total_cost: number | null
+          trial_canvas_url: string | null
+          trial_notes: Json | null
           updated_at: string
           xero_journal_id: string | null
         }
         Insert: {
           approval_status?: string | null
           batch_number: number
+          cost_category?: string | null
           created_at?: string
           expiry_date?: string | null
           id?: string
           is_synced_to_xero?: boolean | null
+          is_trial_batch?: boolean | null
           julian_day: number
           labor_cost?: number | null
           labor_hours?: number | null
@@ -3953,16 +4011,20 @@ export type Database = {
           status?: string | null
           synced_at?: string | null
           total_cost?: number | null
+          trial_canvas_url?: string | null
+          trial_notes?: Json | null
           updated_at?: string
           xero_journal_id?: string | null
         }
         Update: {
           approval_status?: string | null
           batch_number?: number
+          cost_category?: string | null
           created_at?: string
           expiry_date?: string | null
           id?: string
           is_synced_to_xero?: boolean | null
+          is_trial_batch?: boolean | null
           julian_day?: number
           labor_cost?: number | null
           labor_hours?: number | null
@@ -3983,6 +4045,8 @@ export type Database = {
           status?: string | null
           synced_at?: string | null
           total_cost?: number | null
+          trial_canvas_url?: string | null
+          trial_notes?: Json | null
           updated_at?: string
           xero_journal_id?: string | null
         }

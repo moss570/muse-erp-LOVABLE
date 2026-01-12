@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { DollarSign, Package, Clock, Cog, Calculator } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign, Package, Clock, Cog, Calculator, FlaskConical } from "lucide-react";
 import type { WeighedIngredient } from "@/hooks/useProductionExecution";
 
 interface ProductionCostSummaryProps {
@@ -10,6 +11,7 @@ interface ProductionCostSummaryProps {
   machineHours: number;
   laborRate?: number;
   overheadRate?: number;
+  isTrialBatch?: boolean;
 }
 
 export function ProductionCostSummary({
@@ -19,6 +21,7 @@ export function ProductionCostSummary({
   machineHours,
   laborRate = 25,
   overheadRate = 0.5,
+  isTrialBatch = false,
 }: ProductionCostSummaryProps) {
   const totalMaterialCost = weighedIngredients.reduce(
     (sum, ing) => sum + (ing.isCompleted ? ing.totalCost : 0),
@@ -36,9 +39,21 @@ export function ProductionCostSummary({
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5" />
           Batch Cost Summary
+          {isTrialBatch && (
+            <Badge variant="outline" className="ml-auto border-amber-500 text-amber-700">
+              <FlaskConical className="h-3 w-3 mr-1" />
+              R&D
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Trial Batch Cost Category Notice */}
+        {isTrialBatch && (
+          <div className="p-2 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
+            Costs will be categorized as R&D expense
+          </div>
+        )}
         {/* Production Quantity */}
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
           <div className="flex items-center gap-2">

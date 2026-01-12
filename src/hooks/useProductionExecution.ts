@@ -240,6 +240,8 @@ export function useCreateProductionLot() {
       laborHours,
       machineHours,
       notes,
+      isTrialBatch = false,
+      trialCanvasData,
     }: {
       productId: string;
       machineId: string;
@@ -249,6 +251,8 @@ export function useCreateProductionLot() {
       laborHours: number;
       machineHours: number;
       notes?: string;
+      isTrialBatch?: boolean;
+      trialCanvasData?: string | null;
     }) => {
       // Get the lot number using the database function
       const { data: lotNumberData, error: lotNumberError } = await supabase
@@ -320,9 +324,12 @@ export function useCreateProductionLot() {
           overhead_cost: overheadCost,
           total_cost: totalCost,
           status: "completed",
-          approval_status: "Pending_QA",
+          approval_status: isTrialBatch ? "Trial" : "Pending_QA",
           produced_by: user?.id,
           notes,
+          is_trial_batch: isTrialBatch,
+          trial_canvas_url: trialCanvasData || null,
+          cost_category: isTrialBatch ? "r_and_d" : "production",
         })
         .select()
         .single();

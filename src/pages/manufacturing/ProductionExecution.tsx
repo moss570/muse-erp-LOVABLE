@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Factory, Play, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Factory, Play, Loader2, CheckCircle2, FlaskConical } from "lucide-react";
 import { ProductSelection } from "@/components/manufacturing/ProductSelection";
 import { IngredientWeighingCard } from "@/components/manufacturing/IngredientWeighingCard";
 import { ProductionCostSummary } from "@/components/manufacturing/ProductionCostSummary";
 import { OverrunCalculator } from "@/components/manufacturing/OverrunCalculator";
+import { TrialBatchToggle } from "@/components/manufacturing/TrialBatchToggle";
+import { StylusCanvas } from "@/components/manufacturing/StylusCanvas";
+import { AllergenAcknowledgmentDialog } from "@/components/manufacturing/AllergenAcknowledgmentDialog";
 import {
   useApprovedProducts,
   useProductRecipes,
@@ -35,6 +38,12 @@ export default function ProductionExecution() {
   const [isStarted, setIsStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [weighedIngredients, setWeighedIngredients] = useState<WeighedIngredient[]>([]);
+  
+  // Trial batch state
+  const [isTrialBatch, setIsTrialBatch] = useState(false);
+  const [trialCanvasData, setTrialCanvasData] = useState<string | null>(null);
+  const [showAllergenDialog, setShowAllergenDialog] = useState(false);
+  const [allergenAcknowledged, setAllergenAcknowledged] = useState(false);
 
   // Data fetching
   const { data: products = [], isLoading: productsLoading } = useApprovedProducts();
@@ -45,6 +54,24 @@ export default function ProductionExecution() {
 
   const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
   const quantityToProduce = (selectedRecipe?.batch_size || 0) * batchMultiplier;
+
+  // Calculate allergen items for acknowledgment dialog
+  const allergenItems = useMemo(() => {
+    return recipeItems
+      .filter((item) => {
+        const allergens = item.material?.allergens || [];
+        return allergens.length > 0;
+      })
+      .map((item) => ({
+        materialId: item.material_id,
+        materialName: item.material?.name || "",
+        materialCode: item.material?.code || "",
+        allergens: item.material?.allergens || [],
+        isApproved: true, // From approved products, but could check material approval_status
+      }));
+  }, [recipeItems]);
+
+  const hasAllergens = allergenItems.length > 0;
 
   // Initialize weighed ingredients when recipe items load
   useMemo(() => {
@@ -73,6 +100,7 @@ export default function ProductionExecution() {
     setIsStarted(false);
     setWeighedIngredients([]);
     setCurrentStep(0);
+    setAllergenAcknowledged(false);
   };
 
   const handleRecipeChange = (recipeId: string) => {
@@ -83,10 +111,22 @@ export default function ProductionExecution() {
     setIsStarted(false);
     setWeighedIngredients([]);
     setCurrentStep(0);
+    setAllergenAcknowledged(false);
   };
 
   const handleStartProduction = () => {
     if (!selectedProductId || !selectedRecipeId || !selectedMachineId) return;
+    
+    // Check if allergen acknowledgment is needed
+    if (hasAllergens && !allergenAcknowledged) {
+      setShowAllergenDialog(true);
+      return;
+    }
+    
+    startProductionRun();
+  };
+
+  const startProductionRun = () => {
     setIsStarted(true);
     setWeighedIngredients(
       recipeItems.map((item) => ({
@@ -103,6 +143,11 @@ export default function ProductionExecution() {
         isCompleted: false,
       }))
     );
+  };
+
+  const handleAllergenAcknowledge = () => {
+    setAllergenAcknowledged(true);
+    startProductionRun();
   };
 
   const handleIngredientComplete = (data: WeighedIngredient) => {
@@ -130,6 +175,8 @@ export default function ProductionExecution() {
         laborHours: parseFloat(laborHours) || 0,
         machineHours: parseFloat(machineHours) || 0,
         notes: notes || undefined,
+        isTrialBatch,
+        trialCanvasData: isTrialBatch ? trialCanvasData : undefined,
       },
       {
         onSuccess: () => {
@@ -142,6 +189,9 @@ export default function ProductionExecution() {
           setWeighedIngredients([]);
           setCurrentStep(0);
           setNotes("");
+          setIsTrialBatch(false);
+          setTrialCanvasData(null);
+          setAllergenAcknowledged(false);
         },
       }
     );
@@ -156,6 +206,12 @@ export default function ProductionExecution() {
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Factory className="h-8 w-8" />
               Production Execution
+              {isTrialBatch && (
+                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-700">
+                  <FlaskConical className="h-3 w-3 mr-1" />
+                  R&D Trial
+                </Badge>
+              )}
             </h1>
             <p className="text-muted-foreground">
               Step-by-step batch production with ingredient weighing
@@ -230,6 +286,15 @@ export default function ProductionExecution() {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* Trial Batch Toggle */}
+            {selectedRecipe && (
+              <TrialBatchToggle
+                isTrialBatch={isTrialBatch}
+                onToggle={setIsTrialBatch}
+                disabled={isStarted}
+              />
             )}
 
             {!isStarted && selectedProductId && selectedRecipeId && selectedMachineId && (
@@ -311,16 +376,34 @@ export default function ProductionExecution() {
             </div>
 
             {/* Cost Summary Sidebar */}
-            <div>
+            <div className="space-y-4">
               <ProductionCostSummary
                 weighedIngredients={weighedIngredients}
                 quantityToProduce={quantityToProduce}
                 laborHours={parseFloat(laborHours) || 0}
                 machineHours={parseFloat(machineHours) || 0}
+                isTrialBatch={isTrialBatch}
               />
+
+              {/* Trial Canvas for R&D batches */}
+              {isTrialBatch && (
+                <StylusCanvas
+                  onSave={setTrialCanvasData}
+                  initialImage={trialCanvasData || undefined}
+                />
+              )}
             </div>
           </div>
         )}
+
+        {/* Allergen Acknowledgment Dialog */}
+        <AllergenAcknowledgmentDialog
+          open={showAllergenDialog}
+          onOpenChange={setShowAllergenDialog}
+          allergenItems={allergenItems}
+          onAcknowledge={handleAllergenAcknowledge}
+          isTrialBatch={isTrialBatch}
+        />
       </div>
     </AppLayout>
   );
