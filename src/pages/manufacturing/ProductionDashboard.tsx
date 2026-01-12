@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Factory, 
   CalendarIcon, 
@@ -22,7 +23,8 @@ import {
   DollarSign,
   RefreshCw,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  Eye
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,8 @@ import { useUnapprovedProductionLots } from "@/hooks/useProductionGatekeeping";
 
 export default function ProductionDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedLot, setSelectedLot] = useState<any>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
   const { data: xeroConnection } = useXeroConnection();
@@ -302,6 +306,7 @@ export default function ProductionDashboard() {
                     <TableHead>Status</TableHead>
                     <TableHead>QA Status</TableHead>
                     <TableHead>Synced</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -362,6 +367,18 @@ export default function ProductionDashboard() {
                         ) : (
                           <Clock className="h-4 w-4 text-muted-foreground" />
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedLot(lot);
+                            setDetailDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -427,6 +444,173 @@ export default function ProductionDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Production Lot Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Production Lot Details
+            </DialogTitle>
+            <DialogDescription>
+              {selectedLot?.lot_number} - {selectedLot?.product?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedLot && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Lot Number</div>
+                  <div className="font-mono font-medium">{selectedLot.lot_number}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Production Date</div>
+                  <div className="font-medium">
+                    {format(new Date(selectedLot.production_date), "MMMM d, yyyy")}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Product</div>
+                  <div>
+                    <div className="font-medium">{selectedLot.product?.name}</div>
+                    <div className="text-xs text-muted-foreground">{selectedLot.product?.sku}</div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Machine</div>
+                  <div className="font-medium">{selectedLot.machine?.name || "N/A"}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Quantity Produced</div>
+                  <div className="text-xl font-bold">{selectedLot.quantity_produced}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Quantity Available</div>
+                  <div className="text-xl font-bold">{selectedLot.quantity_available}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Expiry Date</div>
+                  <div className="font-medium">
+                    {selectedLot.expiry_date 
+                      ? format(new Date(selectedLot.expiry_date), "MMMM d, yyyy")
+                      : "Not set"}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Status</div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={selectedLot.status === "available" ? "default" : "secondary"}>
+                      {selectedLot.status}
+                    </Badge>
+                    <ApprovalStatusBadge status={selectedLot.approval_status || "Draft"} />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Cost Breakdown */}
+              <div>
+                <h4 className="font-medium mb-3">Cost Breakdown</h4>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="rounded-lg border p-3">
+                    <div className="text-xs text-muted-foreground">Material</div>
+                    <div className="text-lg font-semibold font-mono">
+                      ${(Number(selectedLot.material_cost) || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="text-xs text-muted-foreground">Labor</div>
+                    <div className="text-lg font-semibold font-mono">
+                      ${(Number(selectedLot.labor_cost) || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="text-xs text-muted-foreground">Overhead</div>
+                    <div className="text-lg font-semibold font-mono">
+                      ${(Number(selectedLot.overhead_cost) || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-3 bg-primary/5">
+                    <div className="text-xs text-muted-foreground">Total</div>
+                    <div className="text-lg font-bold font-mono text-primary">
+                      ${(Number(selectedLot.total_cost) || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hours */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Labor Hours</div>
+                  <div className="text-lg font-semibold">
+                    {Number(selectedLot.labor_hours || 0).toFixed(2)} hrs
+                  </div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Machine Hours</div>
+                  <div className="text-lg font-semibold">
+                    {Number(selectedLot.machine_hours || 0).toFixed(2)} hrs
+                  </div>
+                </div>
+              </div>
+
+              {/* Xero Sync Status */}
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  {selectedLot.is_synced_to_xero ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <div>
+                    <div className="font-medium">
+                      {selectedLot.is_synced_to_xero ? "Synced to Xero" : "Not Synced"}
+                    </div>
+                    {selectedLot.synced_at && (
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(selectedLot.synced_at), "MMM d, yyyy h:mm a")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {selectedLot.xero_journal_id && (
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {selectedLot.xero_journal_id}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
+              {selectedLot.notes && (
+                <div>
+                  <h4 className="font-medium mb-2">Notes</h4>
+                  <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+                    {selectedLot.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Trial Batch Info */}
+              {selectedLot.is_trial_batch && (
+                <Alert className="border-amber-500/50 bg-amber-500/10">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription>
+                    <strong>Trial Batch</strong>
+                    {selectedLot.trial_notes && (
+                      <p className="mt-1 text-sm">{selectedLot.trial_notes}</p>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
