@@ -111,40 +111,72 @@ export function useApprovalAction() {
       if (tableName === 'receiving_lots') {
         const { data: currentRecord, error: fetchError } = await supabase
           .from('receiving_lots')
-          .select('qa_status')
+          .select('qa_status, internal_lot_number')
           .eq('id', recordId)
           .single();
         if (fetchError) throw fetchError;
         previousStatus = currentRecord?.qa_status || null;
-        
+
         // Map approval status to qa_status values
         const qaStatusMap: Record<string, string> = {
-          'Approved': 'approved',
-          'Rejected': 'rejected',
-          'Pending_QA': 'pending_qa',
-          'Draft': 'pending_qa',
+          Approved: 'approved',
+          Rejected: 'rejected',
+          Pending_QA: 'pending_qa',
+          Draft: 'pending_qa',
         };
-        
+
         const updateData: Record<string, unknown> = {
-          qa_status: qaStatusMap[newStatus] || newStatus.toLowerCase(),
+          qa_status: qaStatusMap[newStatus] || String(newStatus).toLowerCase(),
         };
-        
+
         if (action === 'Approved') {
           updateData.qa_approved_at = new Date().toISOString();
           updateData.qa_approved_by = user?.id;
-          // Also update the main status to make lot available for use
+          // Release the lot for use
           updateData.status = 'available';
         } else if (action === 'Rejected') {
-          // Keep lot on hold if rejected
           updateData.status = 'hold';
         }
-        
+
         const { error: updateError } = await supabase
           .from('receiving_lots')
           .update(updateData)
           .eq('id', recordId);
-          
+
         if (updateError) throw updateError;
+
+        // Keep the receiving line item in sync (Receiving screen renders inspection_status)
+        if (action === 'Approved') {
+          await supabase
+            .from('po_receiving_items')
+            .update({ inspection_status: 'approved' })
+            .eq('receiving_lot_id', recordId);
+        } else if (action === 'Rejected') {
+          await supabase
+            .from('po_receiving_items')
+            .update({ inspection_status: 'hold' })
+            .eq('receiving_lot_id', recordId);
+        }
+
+        // Also log a note on the parent receiving session so the session QA history shows this action.
+        const { data: parentItem } = await supabase
+          .from('po_receiving_items')
+          .select('receiving_session_id')
+          .eq('receiving_lot_id', recordId)
+          .maybeSingle();
+
+        if (parentItem?.receiving_session_id) {
+          await supabase.from('approval_logs').insert({
+            related_record_id: parentItem.receiving_session_id,
+            related_table_name: 'po_receiving_sessions',
+            action: 'Updated',
+            previous_status: null,
+            new_status: null,
+            user_id: user?.id,
+            notes: `Receiving lot ${currentRecord?.internal_lot_number || recordId} ${action.toLowerCase()} via QA Dashboard`,
+            metadata: { receiving_lot_id: recordId },
+          });
+        }
       } else if (tableName !== 'compliance_documents') {
         const { data: currentRecord, error: fetchError } = await supabase
           .from(tableName as 'materials')
@@ -193,6 +225,15 @@ export function useApprovalAction() {
       queryClient.invalidateQueries({ queryKey: [variables.tableName] });
       queryClient.invalidateQueries({ queryKey: ['qa-pending-items'] });
       queryClient.invalidateQueries({ queryKey: ['stale-draft-items'] });
+
+      // Keep receiving/inventory screens in sync
+      if (variables.tableName === 'receiving_lots') {
+        queryClient.invalidateQueries({ queryKey: ['receiving-items'] });
+        queryClient.invalidateQueries({ queryKey: ['receiving-session'] });
+        queryClient.invalidateQueries({ queryKey: ['receiving-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['receiving-lots'] });
+      }
+
       toast.success(`Item ${variables.action.toLowerCase()} successfully`);
     },
     onError: (error: Error) => {
