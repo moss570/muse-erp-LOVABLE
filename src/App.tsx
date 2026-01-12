@@ -65,7 +65,7 @@ const App = () => (
             <Route path="/inventory/on-hand" element={<AppLayout><MaterialInventory /></AppLayout>} />
             <Route path="/inventory/materials" element={<AppLayout><Materials /></AppLayout>} />
             <Route path="/inventory/products" element={<AppLayout><Products /></AppLayout>} />
-            <Route path="/inventory/3pl" element={<ThreePLDashboard />} />
+            <Route path="/inventory/3pl" element={<AppLayout><ThreePLDashboard /></AppLayout>} />
             <Route path="/inventory/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Inventory Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
             {/* Purchasing routes */}
@@ -127,7 +127,7 @@ const App = () => (
               }
             />
             {/* Quality routes */}
-            <Route path="/quality/dashboard" element={<QADashboard />} />
+            <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
             <Route
               path="/quality/*"
               element={

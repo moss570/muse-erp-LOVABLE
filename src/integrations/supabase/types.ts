@@ -371,6 +371,54 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_attachments: {
+        Row: {
+          complaint_id: string
+          file_name: string
+          file_path: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          complaint_id: string
+          file_name: string
+          file_path?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          complaint_id?: string
+          file_name?: string
+          file_path?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_attachments_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "quality_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_documents: {
         Row: {
           archived_at: string | null
@@ -4796,6 +4844,187 @@ export type Database = {
           },
         ]
       }
+      quality_complaints: {
+        Row: {
+          complaint_date: string
+          complaint_number: string
+          complaint_type: string
+          corrective_action: string | null
+          created_at: string
+          created_by: string | null
+          credit_issued: number | null
+          customer_id: string | null
+          description: string | null
+          id: string
+          material_id: string | null
+          preventive_action: string | null
+          product_id: string | null
+          production_lot_id: string | null
+          receiving_lot_id: string | null
+          replacement_cost: number | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          root_cause: string | null
+          severity: string
+          status: string
+          supplier_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          complaint_date?: string
+          complaint_number: string
+          complaint_type: string
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_issued?: number | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          material_id?: string | null
+          preventive_action?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          receiving_lot_id?: string | null
+          replacement_cost?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          complaint_date?: string
+          complaint_number?: string
+          complaint_type?: string
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_issued?: number | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          material_id?: string | null
+          preventive_action?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          receiving_lot_id?: string | null
+          replacement_cost?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_complaints_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_complaints_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quality_metrics: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metric_date: string
+          metric_details: Json | null
+          metric_type: string
+          metric_value: number | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metric_date: string
+          metric_details?: Json | null
+          metric_type: string
+          metric_value?: number | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metric_date?: string
+          metric_details?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+        }
+        Relationships: []
+      }
       recall_affected_lots: {
         Row: {
           bol_id: string | null
@@ -5781,6 +6010,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_training_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_step_viewed: number | null
+          module_key: string
+          skipped_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_step_viewed?: number | null
+          module_key: string
+          skipped_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_step_viewed?: number | null
+          module_key?: string
+          skipped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_training_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       xero_connections: {
         Row: {
           access_token: string
@@ -6016,6 +6286,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_stale_editors: { Args: never; Returns: undefined }
+      generate_complaint_number: { Args: never; Returns: string }
       generate_employee_number: { Args: never; Returns: string }
       generate_listed_material_code: { Args: never; Returns: string }
       generate_material_code: { Args: { p_category: string }; Returns: string }
