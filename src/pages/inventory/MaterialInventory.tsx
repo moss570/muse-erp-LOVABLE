@@ -174,7 +174,7 @@ export default function MaterialInventory() {
             usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name)
           ),
           unit:units_of_measure(id, code, name),
-          location:locations(id, name, location_code),
+          location:locations!receiving_lots_location_id_fkey(id, name, location_code),
           supplier:suppliers(id, name, code)
         `)
         .order('received_date', { ascending: false });
