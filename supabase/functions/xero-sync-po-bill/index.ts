@@ -117,14 +117,14 @@ Deno.serve(async (req) => {
     // Use service client for data operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Get account mapping for raw material inventory
+    // Get default account mapping for raw material inventory (fallback)
     const { data: mappings } = await supabase
       .from("xero_manufacturing_account_mappings")
       .select("*")
       .eq("mapping_key", "raw_material_inventory")
       .single();
 
-    const rawMaterialAccountCode = mappings?.xero_account_code || "630"; // Default fallback
+    const defaultAccountCode = mappings?.xero_account_code || "630"; // Default fallback
 
     // Check if already synced
     const { data: existingPO } = await supabase
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get PO with supplier and line items
+    // Get PO with supplier and line items including material GL account
     const { data: po, error: poError } = await supabase
       .from("purchase_orders")
       .select(`
@@ -151,7 +151,11 @@ Deno.serve(async (req) => {
         supplier:suppliers(*),
         items:purchase_order_items(
           *,
-          material:materials(name, code)
+          material:materials(
+            name, 
+            code,
+            gl_account:gl_accounts(id, account_code, account_name)
+          )
         )
       `)
       .eq("id", purchaseOrderId)
@@ -179,7 +183,7 @@ Deno.serve(async (req) => {
     const { accessToken, tenantId } = await getValidAccessToken(supabase, userId);
 
     // Build Xero Bill (ACCPAY Invoice) payload
-    // Map to Raw Material Inventory Asset account (NOT expense)
+    // Use material-level GL account with fallback to default
     const xeroInvoice = {
       Type: "ACCPAY",
       Contact: {
@@ -191,13 +195,18 @@ Deno.serve(async (req) => {
       Date: po.order_date,
       DueDate: po.expected_delivery_date || po.order_date,
       Status: "AUTHORISED",
-      LineItems: po.items?.map((item: any) => ({
-        Description: `${item.material?.name || 'Material'} (${item.material?.code || ''})`,
-        Quantity: item.quantity_received || item.quantity_ordered,
-        UnitAmount: item.unit_cost,
-        AccountCode: rawMaterialAccountCode, // Map to Raw Material Inventory Asset
-        TaxType: "NONE",
-      })) || [],
+      LineItems: po.items?.map((item: any) => {
+        // Use material's GL account code if available, otherwise fallback to default
+        const accountCode = item.material?.gl_account?.account_code || defaultAccountCode;
+        
+        return {
+          Description: `${item.material?.name || 'Material'} (${item.material?.code || ''})`,
+          Quantity: item.quantity_received || item.quantity_ordered,
+          UnitAmount: item.unit_cost,
+          AccountCode: accountCode,
+          TaxType: "NONE",
+        };
+      }) || [],
     };
 
     // Add shipping as a line item if present
@@ -206,7 +215,7 @@ Deno.serve(async (req) => {
         Description: "Freight / Shipping",
         Quantity: 1,
         UnitAmount: po.shipping_amount,
-        AccountCode: rawMaterialAccountCode,
+        AccountCode: defaultAccountCode,
         TaxType: "NONE",
       });
     }

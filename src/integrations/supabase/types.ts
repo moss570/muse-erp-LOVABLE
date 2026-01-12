@@ -2018,6 +2018,38 @@ export type Database = {
           },
         ]
       }
+      material_category_gl_defaults: {
+        Row: {
+          category: string
+          created_at: string | null
+          gl_account_id: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          gl_account_id?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          gl_account_id?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_category_gl_defaults_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_documents: {
         Row: {
           archive_reason: string | null
@@ -2311,6 +2343,7 @@ export type Database = {
           description: string | null
           food_claims: string[] | null
           fraud_vulnerability_score: string | null
+          gl_account_id: string | null
           haccp_foreign_material_controls: string[] | null
           haccp_heavy_metal_limits: boolean | null
           haccp_kill_step_applied: boolean | null
@@ -2378,6 +2411,7 @@ export type Database = {
           description?: string | null
           food_claims?: string[] | null
           fraud_vulnerability_score?: string | null
+          gl_account_id?: string | null
           haccp_foreign_material_controls?: string[] | null
           haccp_heavy_metal_limits?: boolean | null
           haccp_kill_step_applied?: boolean | null
@@ -2445,6 +2479,7 @@ export type Database = {
           description?: string | null
           food_claims?: string[] | null
           fraud_vulnerability_score?: string | null
+          gl_account_id?: string | null
           haccp_foreign_material_controls?: string[] | null
           haccp_heavy_metal_limits?: boolean | null
           haccp_kill_step_applied?: boolean | null
@@ -2491,6 +2526,13 @@ export type Database = {
             columns: ["base_unit_id"]
             isOneToOne: false
             referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -3493,10 +3535,15 @@ export type Database = {
           approval_status: string
           approved_at: string | null
           approved_by: string | null
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           created_by: string | null
           due_date: string | null
+          finalization_status: string | null
+          financials_complete: boolean | null
           freight_amount: number | null
+          freight_complete: boolean | null
           id: string
           invoice_date: string
           invoice_number: string
@@ -3506,6 +3553,7 @@ export type Database = {
           payment_reference: string | null
           payment_status: string | null
           purchase_order_id: string
+          receiving_complete: boolean | null
           subtotal: number
           supplier_id: string
           tax_amount: number | null
@@ -3521,10 +3569,15 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          finalization_status?: string | null
+          financials_complete?: boolean | null
           freight_amount?: number | null
+          freight_complete?: boolean | null
           id?: string
           invoice_date: string
           invoice_number: string
@@ -3534,6 +3587,7 @@ export type Database = {
           payment_reference?: string | null
           payment_status?: string | null
           purchase_order_id: string
+          receiving_complete?: boolean | null
           subtotal?: number
           supplier_id: string
           tax_amount?: number | null
@@ -3549,10 +3603,15 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          finalization_status?: string | null
+          financials_complete?: boolean | null
           freight_amount?: number | null
+          freight_complete?: boolean | null
           id?: string
           invoice_date?: string
           invoice_number?: string
@@ -3562,6 +3621,7 @@ export type Database = {
           payment_reference?: string | null
           payment_status?: string | null
           purchase_order_id?: string
+          receiving_complete?: boolean | null
           subtotal?: number
           supplier_id?: string
           tax_amount?: number | null
@@ -3576,6 +3636,13 @@ export type Database = {
           {
             foreignKeyName: "purchase_order_invoices_approved_by_fkey"
             columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_invoices_closed_by_fkey"
+            columns: ["closed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4099,6 +4166,7 @@ export type Database = {
       }
       receiving_lots: {
         Row: {
+          cost_finalized: boolean | null
           cost_per_base_unit: number | null
           cost_total: number | null
           created_at: string
@@ -4123,6 +4191,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cost_finalized?: boolean | null
           cost_per_base_unit?: number | null
           cost_total?: number | null
           created_at?: string
@@ -4147,6 +4216,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cost_finalized?: boolean | null
           cost_per_base_unit?: number | null
           cost_total?: number | null
           created_at?: string

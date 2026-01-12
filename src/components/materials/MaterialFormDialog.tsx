@@ -100,6 +100,7 @@ const materialFormSchema = z.object({
   description: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
   sub_category: z.string().optional().nullable(),
+  gl_account_id: z.string().optional().nullable(),
   base_unit_id: z.string().min(1, 'Purchase unit is required'),
   usage_unit_id: z.string().optional().nullable(),
   usage_unit_conversion: z.coerce.number().min(0).optional().nullable(),
@@ -273,6 +274,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       description: '',
       category: '',
       sub_category: null,
+      gl_account_id: null,
       base_unit_id: '',
       usage_unit_id: null,
       usage_unit_conversion: null,
@@ -412,6 +414,32 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     },
   });
 
+  // Fetch GL accounts for dropdown
+  const { data: glAccounts } = useQuery({
+    queryKey: ['gl-accounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('gl_accounts')
+        .select('*')
+        .eq('is_active', true)
+        .order('account_code');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch category GL defaults
+  const { data: categoryGlDefaults } = useQuery({
+    queryKey: ['material-category-gl-defaults'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('material_category_gl_defaults')
+        .select('*, gl_account:gl_accounts(id, account_code, account_name)');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch existing purchase units for editing
   const { data: existingPurchaseUnits } = useQuery({
     queryKey: ['material-purchase-units', material?.id],
@@ -491,6 +519,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         description: material.description || '',
         category: material.category || '',
         sub_category: (material as any).sub_category || null,
+        gl_account_id: (material as any).gl_account_id || null,
         base_unit_id: material.base_unit_id,
         usage_unit_id: material.usage_unit_id || null,
         usage_unit_conversion: material.usage_unit_conversion ?? null,
@@ -787,6 +816,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           description: data.description || null,
           category: data.category || null,
           sub_category: data.sub_category || null,
+          gl_account_id: data.gl_account_id || null,
           base_unit_id: data.base_unit_id,
           usage_unit_id: data.usage_unit_id || null,
           usage_unit_conversion: data.usage_unit_conversion || null,
@@ -928,6 +958,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           description: data.description || null,
           category: data.category || null,
           sub_category: data.sub_category || null,
+          gl_account_id: data.gl_account_id || null,
           base_unit_id: data.base_unit_id,
           usage_unit_id: data.usage_unit_id || null,
           usage_unit_conversion: data.usage_unit_conversion || null,
@@ -1403,6 +1434,13 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                         onValueChange={async (value) => {
                           field.onChange(value);
                           form.setValue('sub_category', null);
+                          
+                          // Auto-set GL account from category defaults
+                          const categoryDefault = categoryGlDefaults?.find(d => d.category === value);
+                          if (categoryDefault?.gl_account_id) {
+                            form.setValue('gl_account_id', categoryDefault.gl_account_id);
+                          }
+                          
                           if (!material) {
                             const { data, error } = await supabase.rpc('generate_material_code', { 
                               p_category: value 
@@ -1475,6 +1513,39 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                       </FormItem>
                     );
                   }}
+                />
+
+                {/* GL Account */}
+                <FormField
+                  control={form.control}
+                  name="gl_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>GL Account</FormLabel>
+                      <Select 
+                        onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} 
+                        value={field.value || '__none__'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select GL account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__none__">-- None --</SelectItem>
+                          {glAccounts?.map((gl) => (
+                            <SelectItem key={gl.id} value={gl.id}>
+                              {gl.account_code} - {gl.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Accounting code for inventory/expense. Auto-set from category default.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
 
                 <div className="grid grid-cols-2 gap-4">

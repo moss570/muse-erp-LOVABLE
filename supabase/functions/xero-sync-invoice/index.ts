@@ -121,13 +121,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get invoice with supplier and line items
+    // Get default account mapping for fallback
+    const { data: mappings } = await supabase
+      .from("xero_manufacturing_account_mappings")
+      .select("*")
+      .eq("mapping_key", "raw_material_inventory")
+      .single();
+
+    const defaultAccountCode = mappings?.xero_account_code || "300"; // Default fallback
+
+    // Get invoice with supplier and line items including material GL account
     const { data: invoice, error: invoiceError } = await supabase
       .from("purchase_order_invoices")
       .select(`
         *,
         supplier:suppliers(*),
-        line_items:invoice_line_items(*)
+        line_items:invoice_line_items(
+          *,
+          material:materials(
+            name,
+            code,
+            gl_account:gl_accounts(id, account_code, account_name)
+          )
+        )
       `)
       .eq("id", invoiceId)
       .single();
@@ -142,7 +158,7 @@ Deno.serve(async (req) => {
     // Get valid Xero access token
     const { accessToken, tenantId } = await getValidAccessToken(supabase, userId);
 
-    // Build Xero invoice payload
+    // Build Xero invoice payload with material-level GL accounts
     const xeroInvoice = {
       Type: "ACCPAY", // Accounts Payable (supplier invoice)
       Contact: {
@@ -153,13 +169,18 @@ Deno.serve(async (req) => {
       Date: invoice.invoice_date,
       DueDate: invoice.due_date || invoice.invoice_date,
       Status: "AUTHORISED",
-      LineItems: invoice.line_items?.map((item: any) => ({
-        Description: item.description,
-        Quantity: item.quantity,
-        UnitAmount: item.unit_cost,
-        AccountCode: "300", // Default purchase account - can be configured
-        TaxType: "NONE",
-      })) || [],
+      LineItems: invoice.line_items?.map((item: any) => {
+        // Use material's GL account code if available, otherwise fallback to default
+        const accountCode = item.material?.gl_account?.account_code || defaultAccountCode;
+        
+        return {
+          Description: item.description,
+          Quantity: item.quantity,
+          UnitAmount: item.unit_cost,
+          AccountCode: accountCode,
+          TaxType: "NONE",
+        };
+      }) || [],
     };
 
     // Add freight as a line item if present
@@ -168,7 +189,7 @@ Deno.serve(async (req) => {
         Description: "Freight",
         Quantity: 1,
         UnitAmount: invoice.freight_amount,
-        AccountCode: "300",
+        AccountCode: defaultAccountCode,
         TaxType: "NONE",
       });
     }
@@ -179,7 +200,7 @@ Deno.serve(async (req) => {
         Description: "Tax",
         Quantity: 1,
         UnitAmount: invoice.tax_amount,
-        AccountCode: "300",
+        AccountCode: defaultAccountCode,
         TaxType: "NONE",
       });
     }
