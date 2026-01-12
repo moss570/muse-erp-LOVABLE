@@ -57,6 +57,7 @@ const navItems: NavItem[] = [
     icon: Factory,
     children: [
       { title: 'Production Dashboard', href: '/manufacturing/dashboard' },
+      { title: 'Production Execution', href: '/manufacturing/production' },
       { title: 'Daily Production', href: '/manufacturing/daily' },
       { title: 'Batch Tracking', href: '/manufacturing/batches' },
       { title: 'Recipes / BOMs', href: '/manufacturing/recipes' },

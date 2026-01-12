@@ -19,11 +19,13 @@ import {
   Calendar,
   DollarSign,
   Loader2,
+  Edit3,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { RecipeItem, AvailableLot, WeighedIngredient } from "@/hooks/useProductionExecution";
 import { useAvailableLots } from "@/hooks/useProductionExecution";
+import { AdjustmentDialog } from "@/components/inventory/AdjustmentDialog";
 
 interface IngredientWeighingCardProps {
   recipeItem: RecipeItem;
@@ -48,6 +50,7 @@ export function IngredientWeighingCard({
   const [weighedQuantity, setWeighedQuantity] = useState<string>("");
   const [showAllergenWarning, setShowAllergenWarning] = useState(false);
   const [allergenAcknowledged, setAllergenAcknowledged] = useState(false);
+  const [showAdjustmentDialog, setShowAdjustmentDialog] = useState(false);
 
   const { data: availableLots = [], isLoading: lotsLoading } = useAvailableLots(
     isActive ? recipeItem.material_id : null
@@ -327,8 +330,20 @@ export function IngredientWeighingCard({
             </div>
           )}
           {selectedLot && parseFloat(weighedQuantity) > (selectedLot.current_quantity || 0) && (
-            <div className="text-sm text-destructive font-medium">
-              Exceeds available quantity ({selectedLot.current_quantity?.toFixed(2)})
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-destructive font-medium">
+                Exceeds available quantity ({selectedLot.current_quantity?.toFixed(2)})
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdjustmentDialog(true)}
+                className="gap-1"
+              >
+                <Edit3 className="h-3 w-3" />
+                Correct Inventory
+              </Button>
             </div>
           )}
         </div>
@@ -363,6 +378,15 @@ export function IngredientWeighingCard({
           <CheckCircle2 className="h-5 w-5 mr-2" />
           Confirm Weighed
         </Button>
+
+        {/* Adjustment Dialog */}
+        {selectedLot && (
+          <AdjustmentDialog
+            open={showAdjustmentDialog}
+            onOpenChange={setShowAdjustmentDialog}
+            lotId={selectedLot.id}
+          />
+        )}
       </CardContent>
     </Card>
   );
