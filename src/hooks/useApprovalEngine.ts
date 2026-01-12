@@ -132,6 +132,11 @@ export function useApprovalAction() {
         if (action === 'Approved') {
           updateData.qa_approved_at = new Date().toISOString();
           updateData.qa_approved_by = user?.id;
+          // Also update the main status to make lot available for use
+          updateData.status = 'available';
+        } else if (action === 'Rejected') {
+          // Keep lot on hold if rejected
+          updateData.status = 'hold';
         }
         
         const { error: updateError } = await supabase
