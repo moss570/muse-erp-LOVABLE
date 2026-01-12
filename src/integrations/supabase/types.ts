@@ -314,10 +314,12 @@ export type Database = {
           address_line2: string | null
           city: string | null
           company_name: string
+          company_prefix: string | null
           country: string | null
           created_at: string
           email: string | null
           fax: string | null
+          gs1_company_prefix: string | null
           id: string
           logo_path: string | null
           logo_url: string | null
@@ -332,10 +334,12 @@ export type Database = {
           address_line2?: string | null
           city?: string | null
           company_name?: string
+          company_prefix?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
           fax?: string | null
+          gs1_company_prefix?: string | null
           id?: string
           logo_path?: string | null
           logo_url?: string | null
@@ -350,10 +354,12 @@ export type Database = {
           address_line2?: string | null
           city?: string | null
           company_name?: string
+          company_prefix?: string | null
           country?: string | null
           created_at?: string
           email?: string | null
           fax?: string | null
+          gs1_company_prefix?: string | null
           id?: string
           logo_path?: string | null
           logo_url?: string | null
@@ -3268,6 +3274,7 @@ export type Database = {
         Row: {
           added_at: string
           added_by: string | null
+          case_label_id: string | null
           id: string
           pallet_id: string
           product_id: string
@@ -3275,10 +3282,12 @@ export type Database = {
           quantity: number
           removed_at: string | null
           removed_by: string | null
+          sscc_code: string | null
         }
         Insert: {
           added_at?: string
           added_by?: string | null
+          case_label_id?: string | null
           id?: string
           pallet_id: string
           product_id: string
@@ -3286,10 +3295,12 @@ export type Database = {
           quantity: number
           removed_at?: string | null
           removed_by?: string | null
+          sscc_code?: string | null
         }
         Update: {
           added_at?: string
           added_by?: string | null
+          case_label_id?: string | null
           id?: string
           pallet_id?: string
           product_id?: string
@@ -3297,6 +3308,7 @@ export type Database = {
           quantity?: number
           removed_at?: string | null
           removed_by?: string | null
+          sscc_code?: string | null
         }
         Relationships: [
           {
@@ -3551,6 +3563,219 @@ export type Database = {
           sort_order?: number | null
         }
         Relationships: []
+      }
+      pick_request_items: {
+        Row: {
+          created_at: string
+          id: string
+          pick_request_id: string
+          product_id: string
+          quantity_picked: number | null
+          quantity_requested: number
+          status: string | null
+          unit_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pick_request_id: string
+          product_id: string
+          quantity_picked?: number | null
+          quantity_requested: number
+          status?: string | null
+          unit_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pick_request_id?: string
+          product_id?: string
+          quantity_picked?: number | null
+          quantity_requested?: number
+          status?: string | null
+          unit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pick_request_items_pick_request_id_fkey"
+            columns: ["pick_request_id"]
+            isOneToOne: false
+            referencedRelation: "pick_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pick_request_picks: {
+        Row: {
+          id: string
+          notes: string | null
+          pallet_case_id: string | null
+          pallet_id: string | null
+          pick_request_item_id: string
+          picked_at: string
+          picked_by: string | null
+          production_lot_id: string | null
+          quantity_picked: number
+          scan_verified: boolean | null
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          pallet_case_id?: string | null
+          pallet_id?: string | null
+          pick_request_item_id: string
+          picked_at?: string
+          picked_by?: string | null
+          production_lot_id?: string | null
+          quantity_picked: number
+          scan_verified?: boolean | null
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          pallet_case_id?: string | null
+          pallet_id?: string | null
+          pick_request_item_id?: string
+          picked_at?: string
+          picked_by?: string | null
+          production_lot_id?: string | null
+          quantity_picked?: number
+          scan_verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pick_request_picks_pallet_case_id_fkey"
+            columns: ["pallet_case_id"]
+            isOneToOne: false
+            referencedRelation: "pallet_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_request_picks_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "pallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_request_picks_pick_request_item_id_fkey"
+            columns: ["pick_request_item_id"]
+            isOneToOne: false
+            referencedRelation: "pick_request_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_request_picks_picked_by_fkey"
+            columns: ["picked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_request_picks_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pick_requests: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          location_id: string
+          notes: string | null
+          priority: string | null
+          request_date: string
+          request_number: string
+          requested_by: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          priority?: string | null
+          request_date?: string
+          request_number: string
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          priority?: string | null
+          request_date?: string
+          request_number?: string
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pick_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_requests_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_requests_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pick_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       po_receiving_items: {
         Row: {
@@ -4091,6 +4316,8 @@ export type Database = {
       products: {
         Row: {
           approval_status: string | null
+          case_pack_quantity: number | null
+          case_upc_code: string | null
           case_weight_kg: number | null
           category: string | null
           created_at: string
@@ -4105,10 +4332,13 @@ export type Database = {
           standard_overhead_rate: number | null
           unit_id: string
           units_per_case: number | null
+          upc_code: string | null
           updated_at: string
         }
         Insert: {
           approval_status?: string | null
+          case_pack_quantity?: number | null
+          case_upc_code?: string | null
           case_weight_kg?: number | null
           category?: string | null
           created_at?: string
@@ -4123,10 +4353,13 @@ export type Database = {
           standard_overhead_rate?: number | null
           unit_id: string
           units_per_case?: number | null
+          upc_code?: string | null
           updated_at?: string
         }
         Update: {
           approval_status?: string | null
+          case_pack_quantity?: number | null
+          case_upc_code?: string | null
           case_weight_kg?: number | null
           category?: string | null
           created_at?: string
@@ -4141,6 +4374,7 @@ export type Database = {
           standard_overhead_rate?: number | null
           unit_id?: string
           units_per_case?: number | null
+          upc_code?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -5787,6 +6021,10 @@ export type Database = {
       generate_material_code: { Args: { p_category: string }; Returns: string }
       generate_pallet_number: {
         Args: { p_build_date?: string }
+        Returns: string
+      }
+      generate_pick_request_number: {
+        Args: { p_request_date?: string }
         Returns: string
       }
       generate_po_number: { Args: { p_order_date?: string }; Returns: string }
