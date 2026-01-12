@@ -60,6 +60,11 @@ export interface ReceivingItem {
   rejection_reason: string | null;
   notes: string | null;
   receiving_lot_id: string | null;
+  receiving_lot?: {
+    id: string;
+    status: string | null;
+    qa_status: string | null;
+  };
   po_item?: {
     material: {
       id: string;
@@ -196,7 +201,8 @@ export function useReceiving() {
               quantity_ordered,
               quantity_received
             ),
-            unit:units_of_measure(id, code, name)
+            unit:units_of_measure(id, code, name),
+            receiving_lot:receiving_lots(id, status, qa_status)
           `)
           .eq('receiving_session_id', sessionId)
           .order('created_at');

@@ -328,13 +328,20 @@ export function ReceivingDetailDialog({ sessionId, open, onOpenChange }: Props) 
                           ) : '-'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={
-                            item.inspection_status === 'approved' ? 'default' :
-                            item.inspection_status === 'rejected' ? 'destructive' :
-                            'secondary'
-                          }>
-                            {item.inspection_status || 'pending'}
-                          </Badge>
+                          {(() => {
+                            const lotStatus = item.receiving_lot?.status || item.inspection_status;
+                            return (
+                              <Badge variant={
+                                lotStatus === 'available' ? 'default' :
+                                lotStatus === 'approved' ? 'default' :
+                                lotStatus === 'rejected' ? 'destructive' :
+                                lotStatus === 'hold' ? 'secondary' :
+                                'secondary'
+                              }>
+                                {lotStatus || 'pending'}
+                              </Badge>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
