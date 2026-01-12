@@ -176,6 +176,49 @@ export function useApprovalAction() {
             notes: `Receiving lot ${currentRecord?.internal_lot_number || recordId} ${action.toLowerCase()} via QA Dashboard`,
             metadata: { receiving_lot_id: recordId },
           });
+
+          // Check if all lots in the session are now approved - if so, auto-approve the session
+          if (action === 'Approved') {
+            const { data: sessionLots } = await supabase
+              .from('po_receiving_items')
+              .select('receiving_lot_id, receiving_lot:receiving_lots(qa_status)')
+              .eq('receiving_session_id', parentItem.receiving_session_id)
+              .not('receiving_lot_id', 'is', null);
+
+            const allApproved = sessionLots?.every(
+              (item: any) => item.receiving_lot?.qa_status === 'approved'
+            );
+
+            if (allApproved) {
+              // Get current session status
+              const { data: sessionData } = await supabase
+                .from('po_receiving_sessions')
+                .select('approval_status')
+                .eq('id', parentItem.receiving_session_id)
+                .single();
+
+              // Auto-approve the session
+              await supabase
+                .from('po_receiving_sessions')
+                .update({
+                  approval_status: 'Approved',
+                  qa_verified_at: new Date().toISOString(),
+                  qa_verified_by: user?.id,
+                })
+                .eq('id', parentItem.receiving_session_id);
+
+              // Log the session approval
+              await supabase.from('approval_logs').insert({
+                related_record_id: parentItem.receiving_session_id,
+                related_table_name: 'po_receiving_sessions',
+                action: 'Approved',
+                previous_status: sessionData?.approval_status || 'Pending_QA',
+                new_status: 'Approved',
+                user_id: user?.id,
+                notes: 'All receiving lots approved - session auto-approved',
+              });
+            }
+          }
         }
       } else if (tableName !== 'compliance_documents') {
         const { data: currentRecord, error: fetchError } = await supabase
