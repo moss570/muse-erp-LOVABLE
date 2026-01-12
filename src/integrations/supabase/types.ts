@@ -2136,6 +2136,52 @@ export type Database = {
           },
         ]
       }
+      material_listed_material_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          listed_material_id: string
+          material_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          listed_material_id: string
+          material_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          listed_material_id?: string
+          material_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_listed_material_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_listed_material_links_listed_material_id_fkey"
+            columns: ["listed_material_id"]
+            isOneToOne: false
+            referencedRelation: "listed_material_names"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_listed_material_links_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_purchase_units: {
         Row: {
           code: string | null

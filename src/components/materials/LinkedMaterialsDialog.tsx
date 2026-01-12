@@ -19,7 +19,6 @@ import { Package, Search, Link, Unlink } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type ListedMaterialName = Tables<'listed_material_names'>;
-type Material = Tables<'materials'>;
 
 interface LinkedMaterialsDialogProps {
   open: boolean;
@@ -43,7 +42,8 @@ export function LinkedMaterialsDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('materials')
-        .select('id, code, name, category, listed_material_id, is_active, manufacturer, item_number')
+        .select('id, code, name, category, is_active, manufacturer, item_number')
+        .eq('is_active', true)
         .order('name');
       if (error) throw error;
       return data;
@@ -51,14 +51,31 @@ export function LinkedMaterialsDialog({
     enabled: open,
   });
 
+  // Fetch existing links for this listed material
+  const { data: existingLinks } = useQuery({
+    queryKey: ['material-listed-links', listedMaterial?.id],
+    queryFn: async () => {
+      if (!listedMaterial?.id) return [];
+      const { data, error } = await supabase
+        .from('material_listed_material_links')
+        .select('material_id')
+        .eq('listed_material_id', listedMaterial.id);
+      if (error) throw error;
+      return data.map(l => l.material_id);
+    },
+    enabled: open && !!listedMaterial?.id,
+  });
+
+  const linkedMaterialIds = new Set(existingLinks || []);
+
   // Materials linked to this listed material
   const linkedMaterials = allMaterials?.filter(
-    m => m.listed_material_id === listedMaterial?.id
+    m => linkedMaterialIds.has(m.id)
   ) || [];
 
-  // Materials not linked to any listed material (available for linking)
+  // All active materials available for linking (can be linked to multiple listed materials)
   const availableMaterials = allMaterials?.filter(
-    m => !m.listed_material_id && m.is_active
+    m => !linkedMaterialIds.has(m.id)
   ) || [];
 
   // Filter based on search - includes name, code, and manufacturer
@@ -77,15 +94,23 @@ export function LinkedMaterialsDialog({
 
   const linkMutation = useMutation({
     mutationFn: async (materialIds: string[]) => {
+      if (!listedMaterial?.id) throw new Error('No listed material selected');
+      
+      // Insert links into junction table
+      const linksToInsert = materialIds.map(materialId => ({
+        material_id: materialId,
+        listed_material_id: listedMaterial.id,
+      }));
+      
       const { error } = await supabase
-        .from('materials')
-        .update({ listed_material_id: listedMaterial?.id })
-        .in('id', materialIds);
+        .from('material_listed_material_links')
+        .insert(linksToInsert);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       queryClient.invalidateQueries({ queryKey: ['materials-for-linking'] });
+      queryClient.invalidateQueries({ queryKey: ['material-listed-links'] });
       queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
       toast({ title: 'Materials linked successfully' });
       setSelectedMaterials(new Set());
@@ -97,15 +122,19 @@ export function LinkedMaterialsDialog({
 
   const unlinkMutation = useMutation({
     mutationFn: async (materialId: string) => {
+      if (!listedMaterial?.id) throw new Error('No listed material selected');
+      
       const { error } = await supabase
-        .from('materials')
-        .update({ listed_material_id: null })
-        .eq('id', materialId);
+        .from('material_listed_material_links')
+        .delete()
+        .eq('material_id', materialId)
+        .eq('listed_material_id', listedMaterial.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       queryClient.invalidateQueries({ queryKey: ['materials-for-linking'] });
+      queryClient.invalidateQueries({ queryKey: ['material-listed-links'] });
       queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
       toast({ title: 'Material unlinked' });
     },
@@ -139,7 +168,7 @@ export function LinkedMaterialsDialog({
             Linked Materials
           </DialogTitle>
           <DialogDescription>
-            Manage materials linked to "{listedMaterial?.name}"
+            Manage materials linked to "{listedMaterial?.name}". Materials can be linked to multiple listed materials.
           </DialogDescription>
         </DialogHeader>
 
