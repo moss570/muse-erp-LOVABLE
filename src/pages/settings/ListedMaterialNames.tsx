@@ -102,22 +102,19 @@ export default function ListedMaterialNames() {
     },
   });
 
-  // Fetch material counts per listed name
+  // Fetch material counts per listed name from junction table
   const { data: materialCounts } = useQuery({
-    queryKey: ['listed-material-counts'],
+    queryKey: ['listed-material-counts', 'material-listed-links'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('materials')
-        .select('listed_material_id')
-        .not('listed_material_id', 'is', null);
+        .from('material_listed_material_links')
+        .select('listed_material_id');
       if (error) throw error;
       
       // Count materials per listed_material_id
       const counts: Record<string, number> = {};
-      data.forEach(m => {
-        if (m.listed_material_id) {
-          counts[m.listed_material_id] = (counts[m.listed_material_id] || 0) + 1;
-        }
+      data.forEach(link => {
+        counts[link.listed_material_id] = (counts[link.listed_material_id] || 0) + 1;
       });
       return counts;
     },
