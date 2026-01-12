@@ -41,6 +41,7 @@ const tableConfig: Record<string, { label: string; route: string }> = {
   products: { label: 'Product', route: '/inventory/products' },
   production_lots: { label: 'Production Lot', route: '/manufacturing/batches' },
   po_receiving_sessions: { label: 'Receiving', route: '/purchasing/receiving' },
+  receiving_lots: { label: 'Receiving Lot', route: '/inventory/material-inventory' },
 };
 
 export default function QADashboard() {
@@ -229,7 +230,7 @@ export default function QADashboard() {
                                 </Button>
                                 <ApprovalActionsDropdown
                                   recordId={item.id}
-                                  tableName={tableName as 'materials' | 'suppliers' | 'products' | 'production_lots' | 'po_receiving_sessions'}
+                                  tableName={tableName as 'materials' | 'suppliers' | 'products' | 'production_lots' | 'po_receiving_sessions' | 'receiving_lots'}
                                   currentStatus={item.approval_status}
                                 />
                               </div>

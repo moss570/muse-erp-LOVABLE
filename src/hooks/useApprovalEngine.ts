@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export type ApprovalStatus = 'Draft' | 'Pending_QA' | 'Approved' | 'Rejected' | 'Archived';
 export type ApprovalAction = 'Created' | 'Submitted' | 'Approved' | 'Rejected' | 'Archived' | 'Updated' | 'Restored';
-export type RelatedTableName = 'materials' | 'products' | 'production_lots' | 'po_receiving_sessions' | 'suppliers' | 'compliance_documents';
+export type RelatedTableName = 'materials' | 'products' | 'production_lots' | 'po_receiving_sessions' | 'suppliers' | 'compliance_documents' | 'receiving_lots';
 
 interface ApprovalLog {
   id: string;
@@ -107,7 +107,40 @@ export function useApprovalAction() {
       // Get current status based on table
       let previousStatus: string | null = null;
       
-      if (tableName !== 'compliance_documents') {
+      // Handle receiving_lots differently as it uses qa_status instead of approval_status
+      if (tableName === 'receiving_lots') {
+        const { data: currentRecord, error: fetchError } = await supabase
+          .from('receiving_lots')
+          .select('qa_status')
+          .eq('id', recordId)
+          .single();
+        if (fetchError) throw fetchError;
+        previousStatus = currentRecord?.qa_status || null;
+        
+        // Map approval status to qa_status values
+        const qaStatusMap: Record<string, string> = {
+          'Approved': 'approved',
+          'Rejected': 'rejected',
+          'Pending_QA': 'pending_qa',
+          'Draft': 'pending_qa',
+        };
+        
+        const updateData: Record<string, unknown> = {
+          qa_status: qaStatusMap[newStatus] || newStatus.toLowerCase(),
+        };
+        
+        if (action === 'Approved') {
+          updateData.qa_approved_at = new Date().toISOString();
+          updateData.qa_approved_by = user?.id;
+        }
+        
+        const { error: updateError } = await supabase
+          .from('receiving_lots')
+          .update(updateData)
+          .eq('id', recordId);
+          
+        if (updateError) throw updateError;
+      } else if (tableName !== 'compliance_documents') {
         const { data: currentRecord, error: fetchError } = await supabase
           .from(tableName as 'materials')
           .select('approval_status')
@@ -115,25 +148,25 @@ export function useApprovalAction() {
           .single();
         if (fetchError) throw fetchError;
         previousStatus = currentRecord?.approval_status || null;
+
+        // Update the record's approval status
+        const updateData: Record<string, unknown> = {
+          approval_status: newStatus,
+        };
+
+        // If approving, set QA verification fields
+        if (action === 'Approved') {
+          updateData.qa_verified_at = new Date().toISOString();
+          updateData.qa_verified_by = user?.id;
+        }
+
+        const { error: updateError } = await supabase
+          .from(tableName as 'materials')
+          .update(updateData)
+          .eq('id', recordId);
+
+        if (updateError) throw updateError;
       }
-
-      // Update the record's approval status
-      const updateData: Record<string, unknown> = {
-        approval_status: newStatus,
-      };
-
-      // If approving, set QA verification fields
-      if (action === 'Approved') {
-        updateData.qa_verified_at = new Date().toISOString();
-        updateData.qa_verified_by = user?.id;
-      }
-
-      const { error: updateError } = await supabase
-        .from(tableName as 'materials')
-        .update(updateData)
-        .eq('id', recordId);
-
-      if (updateError) throw updateError;
 
       // Log the action
       const { error: logError } = await supabase.from('approval_logs').insert({
