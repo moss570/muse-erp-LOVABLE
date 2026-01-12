@@ -25,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -40,6 +41,9 @@ import {
 } from '@/components/ui/collapsible';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { LabelPrintDialog } from '@/components/labels/LabelPrintDialog';
+import { TransferDialog } from '@/components/inventory/TransferDialog';
+import { DisassemblyDialog } from '@/components/inventory/DisassemblyDialog';
+import { AdjustmentDialog } from '@/components/inventory/AdjustmentDialog';
 import { useLabelTemplates } from '@/hooks/useLabelTemplates';
 import { 
   Search, 
@@ -50,6 +54,10 @@ import {
   Package,
   ExternalLink,
   X,
+  Truck,
+  PackageOpen,
+  AlertTriangle,
+  MoreHorizontal,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -125,9 +133,15 @@ export default function MaterialInventory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   
-  // Print dialog state
+  // Dialog states
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [printLotId, setPrintLotId] = useState<string>('');
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferType, setTransferType] = useState<'transfer' | 'issue_to_production'>('transfer');
+  const [disassemblyDialogOpen, setDisassemblyDialogOpen] = useState(false);
+  const [disassemblyLotId, setDisassemblyLotId] = useState<string>('');
+  const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
+  const [adjustmentLotId, setAdjustmentLotId] = useState<string>('');
 
   // Fetch label templates
   const { data: labelTemplates } = useLabelTemplates('receiving');
@@ -372,6 +386,52 @@ export default function MaterialInventory() {
             <Button variant="outline" size="sm" onClick={collapseAll}>
               Collapse All
             </Button>
+
+            {/* Transfer Button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  disabled={selectedLots.size === 0}
+                  className="gap-2"
+                >
+                  <Truck className="h-4 w-4" />
+                  Actions
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setTransferType('transfer'); setTransferDialogOpen(true); }}>
+                  <Truck className="h-4 w-4 mr-2" />
+                  Transfer to Location
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setTransferType('issue_to_production'); setTransferDialogOpen(true); }}>
+                  <Package className="h-4 w-4 mr-2" />
+                  Issue to Production
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => {
+                    const firstLot = Array.from(selectedLots)[0];
+                    if (firstLot) { setDisassemblyLotId(firstLot); setDisassemblyDialogOpen(true); }
+                  }}
+                  disabled={selectedLots.size !== 1}
+                >
+                  <PackageOpen className="h-4 w-4 mr-2" />
+                  Open Container
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    const firstLot = Array.from(selectedLots)[0];
+                    if (firstLot) { setAdjustmentLotId(firstLot); setAdjustmentDialogOpen(true); }
+                  }}
+                  disabled={selectedLots.size !== 1}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Adjust Inventory
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Print Button */}
             <DropdownMenu>
@@ -767,6 +827,28 @@ export default function MaterialInventory() {
         onOpenChange={setPrintDialogOpen}
         lotId={printLotId}
         lotType="receiving"
+      />
+
+      {/* Transfer Dialog */}
+      <TransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        preselectedLots={Array.from(selectedLots)}
+        movementType={transferType}
+      />
+
+      {/* Disassembly Dialog */}
+      <DisassemblyDialog
+        open={disassemblyDialogOpen}
+        onOpenChange={setDisassemblyDialogOpen}
+        lotId={disassemblyLotId}
+      />
+
+      {/* Adjustment Dialog */}
+      <AdjustmentDialog
+        open={adjustmentDialogOpen}
+        onOpenChange={setAdjustmentDialogOpen}
+        lotId={adjustmentLotId}
       />
     </div>
   );
