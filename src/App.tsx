@@ -43,6 +43,7 @@ import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
 import ProductionExecution from "./pages/manufacturing/ProductionExecution";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
+import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/inventory/on-hand" element={<AppLayout><MaterialInventory /></AppLayout>} />
             <Route path="/inventory/materials" element={<AppLayout><Materials /></AppLayout>} />
             <Route path="/inventory/products" element={<AppLayout><Products /></AppLayout>} />
+            <Route path="/inventory/3pl" element={<ThreePLDashboard />} />
             <Route path="/inventory/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Inventory Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
             {/* Purchasing routes */}
