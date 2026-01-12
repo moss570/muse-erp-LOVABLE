@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -32,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Trash2, Tags, Link, Package } from 'lucide-react';
+import { Pencil, Trash2, Tags, Link, Package, Upload, CheckCircle, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
@@ -60,10 +62,18 @@ export default function ListedMaterialNames() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLinkedDialogOpen, setIsLinkedDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingName, setEditingName] = useState<ListedMaterialName | null>(null);
   const [selectedForLinking, setSelectedForLinking] = useState<ListedMaterialName | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [importPreview, setImportPreview] = useState<{
+    toCreate: Array<{ code: string; name: string; description: string; is_active: boolean }>;
+    toUpdate: Array<{ id: string; code: string; name: string; description: string; is_active: boolean; changes: string[] }>;
+    errors: string[];
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -214,6 +224,188 @@ export default function ListedMaterialNames() {
     }
   };
 
+  // CSV parsing helper
+  const parseCSV = (text: string): Record<string, string>[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    const rows: Record<string, string>[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (const char of lines[i]) {
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim().replace(/^"|"$/g, ''));
+      
+      const row: Record<string, string> = {};
+      headers.forEach((header, idx) => {
+        row[header] = values[idx] || '';
+      });
+      rows.push(row);
+    }
+    
+    return rows;
+  };
+
+  // Export function - exports full list
+  const handleExport = () => {
+    if (!materialNames || materialNames.length === 0) {
+      toast({ title: 'No data to export', variant: 'destructive' });
+      return;
+    }
+
+    const headers = ['code', 'name', 'description', 'is_active'];
+    const rows = materialNames.map(item => 
+      headers.map(field => {
+        const value = item[field as keyof ListedMaterialName];
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return String(value);
+      }).join(',')
+    );
+    
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `listed_material_names_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({ title: 'Export successful', description: `Exported ${materialNames.length} material names` });
+  };
+
+  // Import file handler
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const text = await file.text();
+    const rows = parseCSV(text);
+    
+    if (rows.length === 0) {
+      toast({ title: 'Invalid file', description: 'No data found in CSV', variant: 'destructive' });
+      return;
+    }
+
+    // Create a map of existing items by code
+    const existingByCode = new Map(
+      (materialNames || []).map(item => [item.code, item])
+    );
+
+    const toCreate: typeof importPreview extends null ? never : NonNullable<typeof importPreview>['toCreate'] = [];
+    const toUpdate: typeof importPreview extends null ? never : NonNullable<typeof importPreview>['toUpdate'] = [];
+    const errors: string[] = [];
+
+    rows.forEach((row, idx) => {
+      const code = row.code?.trim();
+      const name = row.name?.trim();
+      const description = row.description?.trim() || '';
+      const isActiveStr = row.is_active?.trim().toLowerCase();
+      const is_active = isActiveStr === 'false' || isActiveStr === '0' ? false : true;
+
+      if (!code) {
+        errors.push(`Row ${idx + 2}: Missing code`);
+        return;
+      }
+      if (!name) {
+        errors.push(`Row ${idx + 2}: Missing name`);
+        return;
+      }
+
+      const existing = existingByCode.get(code);
+      if (existing) {
+        // Check what would change (only update if new value is not empty)
+        const changes: string[] = [];
+        if (name && name !== existing.name) changes.push('name');
+        if (description && description !== (existing.description || '')) changes.push('description');
+        if (isActiveStr && is_active !== existing.is_active) changes.push('is_active');
+
+        if (changes.length > 0) {
+          toUpdate.push({
+            id: existing.id,
+            code,
+            name: name || existing.name,
+            description: description || existing.description || '',
+            is_active: isActiveStr ? is_active : (existing.is_active ?? true),
+            changes,
+          });
+        }
+      } else {
+        toCreate.push({ code, name, description, is_active });
+      }
+    });
+
+    setImportPreview({ toCreate, toUpdate, errors });
+    setIsImportDialogOpen(true);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Execute import
+  const handleImport = async () => {
+    if (!importPreview) return;
+    
+    setIsImporting(true);
+    try {
+      // Create new items
+      if (importPreview.toCreate.length > 0) {
+        const { error: createError } = await supabase
+          .from('listed_material_names')
+          .insert(importPreview.toCreate);
+        if (createError) throw createError;
+      }
+
+      // Update existing items (only non-empty fields)
+      for (const item of importPreview.toUpdate) {
+        const updateData: Partial<{ name: string; description: string; is_active: boolean }> = {};
+        if (item.changes.includes('name')) updateData.name = item.name;
+        if (item.changes.includes('description')) updateData.description = item.description;
+        if (item.changes.includes('is_active')) updateData.is_active = item.is_active;
+
+        const { error: updateError } = await supabase
+          .from('listed_material_names')
+          .update(updateData)
+          .eq('id', item.id);
+        if (updateError) throw updateError;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
+      toast({ 
+        title: 'Import successful', 
+        description: `Created ${importPreview.toCreate.length}, updated ${importPreview.toUpdate.length} material names` 
+      });
+      setIsImportDialogOpen(false);
+      setImportPreview(null);
+    } catch (error) {
+      toast({ 
+        title: 'Import failed', 
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // Filter and paginate
   const filteredNames = materialNames?.filter((n) => {
     const matchesSearch = 
@@ -235,6 +427,15 @@ export default function ListedMaterialNames() {
 
   return (
     <div className="space-y-4">
+      {/* Hidden file input for import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
       <SettingsBreadcrumb currentPage="Listed Material Names" />
       
       <DataTableHeader
@@ -255,10 +456,22 @@ export default function ListedMaterialNames() {
         filterPlaceholder="All Status"
         onAdd={() => handleOpenDialog()}
         addLabel="Add Material Name"
+        onExport={handleExport}
         onRefresh={() => refetch()}
         isLoading={isLoading}
         totalCount={materialNames?.length}
         filteredCount={filteredNames?.length}
+        actions={
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
+        }
       />
 
       <div className="rounded-md border bg-card">
@@ -478,6 +691,134 @@ export default function ListedMaterialNames() {
         onOpenChange={setIsLinkedDialogOpen}
         listedMaterial={selectedForLinking}
       />
+
+      {/* Import Preview Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Import Preview</DialogTitle>
+            <DialogDescription>
+              Review the data before importing. Only changes will be applied - existing data won't be overwritten with empty values.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {importPreview && (
+            <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+              {/* Summary */}
+              <div className="flex gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">
+                    <strong>{importPreview.toCreate.length}</strong> new records
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm">
+                    <strong>{importPreview.toUpdate.length}</strong> updates
+                  </span>
+                </div>
+                {importPreview.errors.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm">
+                      <strong>{importPreview.errors.length}</strong> errors
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Errors */}
+              {importPreview.errors.length > 0 && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive max-h-24 overflow-y-auto">
+                  {importPreview.errors.map((error, idx) => (
+                    <div key={idx}>{error}</div>
+                  ))}
+                </div>
+              )}
+
+              {/* Preview Table */}
+              <div className="flex-1 overflow-auto border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-[80px]">Action</TableHead>
+                      <TableHead className="w-[100px]">Code</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[80px]">Active</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importPreview.toCreate.map((item, idx) => (
+                      <TableRow key={`create-${idx}`}>
+                        <TableCell>
+                          <Badge variant="default" className="bg-green-500">New</Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{item.code}</TableCell>
+                        <TableCell>{item.name}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-xs truncate">
+                          {item.description || '-'}
+                        </TableCell>
+                        <TableCell>{item.is_active ? 'Yes' : 'No'}</TableCell>
+                      </TableRow>
+                    ))}
+                    {importPreview.toUpdate.map((item, idx) => (
+                      <TableRow key={`update-${idx}`}>
+                        <TableCell>
+                          <Badge variant="secondary" className="bg-blue-500/20 text-blue-700">Update</Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{item.code}</TableCell>
+                        <TableCell>
+                          {item.name}
+                          {item.changes.includes('name') && (
+                            <span className="ml-1 text-xs text-blue-500">*</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-xs truncate">
+                          {item.description || '-'}
+                          {item.changes.includes('description') && (
+                            <span className="ml-1 text-xs text-blue-500">*</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {item.is_active ? 'Yes' : 'No'}
+                          {item.changes.includes('is_active') && (
+                            <span className="ml-1 text-xs text-blue-500">*</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {importPreview.toCreate.length === 0 && importPreview.toUpdate.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No valid records to import
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                <span className="text-blue-500">*</span> indicates fields that will be updated
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleImport}
+              disabled={isImporting || (!importPreview?.toCreate.length && !importPreview?.toUpdate.length)}
+            >
+              {isImporting ? 'Importing...' : `Import ${(importPreview?.toCreate.length || 0) + (importPreview?.toUpdate.length || 0)} Records`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
