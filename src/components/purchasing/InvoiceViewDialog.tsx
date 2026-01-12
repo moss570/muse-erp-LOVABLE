@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -15,8 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, CheckCircle, Clock, Truck } from 'lucide-react';
-import { useInvoice, useInvoiceLineItems, useAdditionalCosts } from '@/hooks/useInvoices';
+import { Loader2, CheckCircle, Clock, Truck, Lock } from 'lucide-react';
+import { useInvoice, useInvoiceLineItems, useAdditionalCosts, useLinkedFreightInvoices } from '@/hooks/useInvoices';
+import { InvoiceFinalizationChecklist } from './InvoiceFinalizationChecklist';
 
 const getPaymentStatusBadge = (status: string) => {
   switch (status) {
@@ -42,6 +44,17 @@ const getApprovalStatusBadge = (status: string) => {
   }
 };
 
+const getFinalizationStatusBadge = (status?: string) => {
+  switch (status) {
+    case 'closed':
+      return <Badge className="bg-green-600 gap-1"><Lock className="h-3 w-3" />Closed</Badge>;
+    case 'ready_to_close':
+      return <Badge variant="secondary" className="gap-1"><CheckCircle className="h-3 w-3" />Ready to Close</Badge>;
+    default:
+      return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Incomplete</Badge>;
+  }
+};
+
 interface InvoiceViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,6 +69,7 @@ export function InvoiceViewDialog({
   const { data: invoice, isLoading: invoiceLoading } = useInvoice(invoiceId);
   const { data: lineItems, isLoading: itemsLoading } = useInvoiceLineItems(invoiceId);
   const { data: additionalCosts } = useAdditionalCosts(invoiceId);
+  const { data: linkedFreight } = useLinkedFreightInvoices(invoiceId);
 
   const isLoading = invoiceLoading || itemsLoading;
 
@@ -108,7 +122,7 @@ export function InvoiceViewDialog({
               </div>
 
               {/* Status */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">Approval Status</div>
                   {getApprovalStatusBadge(invoice.approval_status || 'pending')}
@@ -116,6 +130,10 @@ export function InvoiceViewDialog({
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">Payment Status</div>
                   {getPaymentStatusBadge(invoice.payment_status || 'pending')}
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground mb-1">Finalization</div>
+                  {getFinalizationStatusBadge(invoice.finalization_status)}
                 </div>
               </div>
 
@@ -229,6 +247,31 @@ export function InvoiceViewDialog({
                     {invoice.notes}
                   </div>
                 </div>
+              )}
+
+              <Separator />
+
+              {/* Finalization Checklist */}
+              {invoice.invoice_type !== 'freight' && (
+                <InvoiceFinalizationChecklist
+                  invoice={{
+                    id: invoice.id,
+                    invoice_number: invoice.invoice_number,
+                    finalization_status: invoice.finalization_status,
+                    receiving_complete: invoice.receiving_complete,
+                    freight_complete: invoice.freight_complete,
+                    financials_complete: invoice.financials_complete,
+                    approval_status: invoice.approval_status,
+                    closed_at: invoice.closed_at,
+                  }}
+                  lineItems={lineItems?.map(item => ({
+                    id: item.id,
+                    receiving_item_id: item.receiving_item_id,
+                    quantity: item.quantity,
+                  }))}
+                  hasLinkedFreight={(linkedFreight?.length || 0) > 0}
+                  freightAmount={invoice.freight_amount || 0}
+                />
               )}
             </div>
           </ScrollArea>

@@ -38,6 +38,7 @@ import GLAccounts from "./pages/settings/GLAccounts";
 import PeriodClose from "./pages/settings/PeriodClose";
 import ProfitLoss from "./pages/reports/ProfitLoss";
 import XeroConfiguration from "./pages/settings/XeroConfiguration";
+import CategoryGLDefaults from "./pages/settings/CategoryGLDefaults";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/settings/gl-accounts" element={<AppLayout><GLAccounts /></AppLayout>} />
             <Route path="/settings/period-close" element={<AppLayout><PeriodClose /></AppLayout>} />
             <Route path="/settings/xero" element={<XeroConfiguration />} />
+            <Route path="/settings/category-gl-defaults" element={<AppLayout><CategoryGLDefaults /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

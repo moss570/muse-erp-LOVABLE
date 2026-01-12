@@ -154,6 +154,13 @@ const settingsCategories: SettingCategory[] = [
         status: 'active',
       },
       {
+        title: 'Category GL Defaults',
+        description: 'Set default GL accounts for each material category',
+        href: '/settings/category-gl-defaults',
+        icon: Tags,
+        status: 'active',
+      },
+      {
         title: 'Period Close',
         description: 'Manage accounting periods and close process',
         href: '/settings/period-close',
