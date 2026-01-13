@@ -53,6 +53,13 @@ const settingsCategories: SettingCategory[] = [
     color: 'bg-blue-500/10 text-blue-500',
     items: [
       {
+        title: 'Product Categories',
+        description: 'Configure product categories with QA parameters and spec sheets',
+        href: '/settings/product-categories',
+        icon: Layers,
+        status: 'active',
+      },
+      {
         title: 'Sub-Categories',
         description: 'Manage material sub-categories for different material types',
         href: '/settings/sub-categories',
