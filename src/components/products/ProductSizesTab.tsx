@@ -124,12 +124,17 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Pack Sizes</CardTitle>
-          <CardDescription>
-            Configure different pack sizes for this product. Each size can have its own UPC codes.
-          </CardDescription>
-        </CardHeader>
+          <CardHeader>
+            <CardTitle>Pack Sizes</CardTitle>
+            <CardDescription>
+              Configure different pack sizes for this product. Each size can have its own UPC codes.
+              {!requiresUpc && (
+                <span className="block mt-1 text-xs text-muted-foreground">
+                  Note: “Requires UPC” is currently turned off for this product, but you can still generate codes here.
+                </span>
+              )}
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -138,12 +143,8 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
                 <TableHead>Value</TableHead>
                 <TableHead>Units/Case</TableHead>
                 <TableHead>SKU</TableHead>
-                {requiresUpc && (
-                  <>
-                    <TableHead>Tub UPC (12-digit)</TableHead>
-                    <TableHead>Case UPC (GTIN-14)</TableHead>
-                  </>
-                )}
+                <TableHead>Tub UPC (12-digit)</TableHead>
+                <TableHead>Case UPC (GTIN-14)</TableHead>
                 <TableHead>Default</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -165,28 +166,24 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
-                  {requiresUpc && (
-                    <>
-                      <TableCell>
-                        {size.upc_code ? (
-                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {formatUPCForDisplay(size.upc_code)}
-                          </code>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Not set</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {size.case_upc_code ? (
-                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {formatUPCForDisplay(size.case_upc_code)}
-                          </code>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Not set</span>
-                        )}
-                      </TableCell>
-                    </>
-                  )}
+                  <TableCell>
+                    {size.upc_code ? (
+                      <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                        {formatUPCForDisplay(size.upc_code)}
+                      </code>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Not set</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {size.case_upc_code ? (
+                      <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                        {formatUPCForDisplay(size.case_upc_code)}
+                      </code>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Not set</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Switch
                       checked={size.is_default}
@@ -195,21 +192,19 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {requiresUpc && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleGenerateUPC(size.id)}
-                          disabled={generatingUpc === size.id}
-                          title="Generate UPC codes"
-                        >
-                          {generatingUpc === size.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Wand2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleGenerateUPC(size.id)}
+                        disabled={generatingUpc === size.id}
+                        title="Generate UPC codes"
+                      >
+                        {generatingUpc === size.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-4 w-4" />
+                        )}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -225,7 +220,7 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
 
               {sizes.length === 0 && !isAddingSize && (
                 <TableRow>
-                  <TableCell colSpan={requiresUpc ? 9 : 6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No sizes configured. Add a size to get started.
                   </TableCell>
                 </TableRow>
@@ -279,11 +274,9 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
                   <TableCell>
                     <span className="text-muted-foreground text-sm">Auto-generated</span>
                   </TableCell>
-                  {requiresUpc && (
-                    <TableCell colSpan={2}>
-                      <span className="text-muted-foreground text-sm">Generate after saving</span>
-                    </TableCell>
-                  )}
+                  <TableCell colSpan={2}>
+                    <span className="text-muted-foreground text-sm">Generate after saving</span>
+                  </TableCell>
                   <TableCell>-</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
