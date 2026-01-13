@@ -41,6 +41,9 @@ import XeroConfiguration from "./pages/settings/XeroConfiguration";
 import CategoryGLDefaults from "./pages/settings/CategoryGLDefaults";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
 import ProductionExecution from "./pages/manufacturing/ProductionExecution";
+import WorkOrders from "./pages/manufacturing/WorkOrders";
+import BaseProduction from "./pages/manufacturing/BaseProduction";
+import FinishingProduction from "./pages/manufacturing/FinishingProduction";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
 import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
@@ -118,6 +121,9 @@ const App = () => (
             {/* Manufacturing routes */}
             <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
             <Route path="/manufacturing/production" element={<ProductionExecution />} />
+            <Route path="/manufacturing/work-orders" element={<WorkOrders />} />
+            <Route path="/manufacturing/base-production" element={<BaseProduction />} />
+            <Route path="/manufacturing/finishing" element={<FinishingProduction />} />
             <Route path="/manufacturing/recipes" element={<RecipeManagement />} />
             <Route
               path="/manufacturing/*"
