@@ -46,6 +46,7 @@ import CloseDay from "./pages/operations/CloseDay";
 import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
 import TimeClockKiosk from "./pages/hr/TimeClockKiosk";
 import PayrollExport from "./pages/hr/PayrollExport";
+import RecipeManagement from "./pages/manufacturing/RecipeManagement";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,7 @@ const App = () => (
             {/* Manufacturing routes */}
             <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
             <Route path="/manufacturing/production" element={<ProductionExecution />} />
+            <Route path="/manufacturing/recipes" element={<RecipeManagement />} />
             <Route
               path="/manufacturing/*"
               element={
