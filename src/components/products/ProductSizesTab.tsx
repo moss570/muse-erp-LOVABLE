@@ -76,7 +76,11 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
   const handleGenerateUPC = async (sizeId: string) => {
     setGeneratingUpc(sizeId);
     try {
-      const { tubUpc, caseUpc } = await generateUPCPair();
+      // Find the size to get units_per_case for packaging indicator lookup
+      const size = sizes.find(s => s.id === sizeId);
+      const unitsPerCase = size?.units_per_case || 1;
+      
+      const { tubUpc, caseUpc } = await generateUPCPair(unitsPerCase);
       
       if (!tubUpc) {
         toast.error("GS1 company prefix not configured. Please set it in Company Settings.");
@@ -91,6 +95,7 @@ export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizes
 
       toast.success("UPC codes generated successfully");
     } catch (error) {
+      console.error("Failed to generate UPC codes:", error);
       toast.error("Failed to generate UPC codes");
     } finally {
       setGeneratingUpc(null);
