@@ -520,14 +520,17 @@ export function WorkOrderFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer (optional)</FormLabel>
-                      <Select value={field.value || ""} onValueChange={field.onChange}>
+                      <Select 
+                        value={field.value || "__none__"} 
+                        onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select customer" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="__none__">None</SelectItem>
                           {customers.map((customer) => (
                             <SelectItem key={customer.id} value={customer.id}>
                               {customer.name} ({customer.code})
