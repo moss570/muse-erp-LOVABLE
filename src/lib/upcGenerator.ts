@@ -114,14 +114,37 @@ async function getNextUPCSequence(): Promise<number> {
 }
 
 /**
- * Generates a pair of UPC codes (tub and case) for a product size
+ * Generates a UPC-A code for a product/tub and derives a GTIN-14 case code from it
+ * 
+ * @param packagingIndicator - Optional override for packaging indicator (defaults to company setting)
+ * @returns Object with tubUpc (12-digit UPC-A) and caseUpc (14-digit GTIN-14)
  */
-export async function generateUPCPair(): Promise<{ tubUpc: string | null; caseUpc: string | null }> {
+export async function generateUPCPair(packagingIndicator?: string): Promise<{ tubUpc: string | null; caseUpc: string | null }> {
+  // Import the GTIN-14 generator
+  const { generateGTIN14FromUPC } = await import("./upcUtils");
+  
+  // Generate the product UPC-A
   const tubSequence = await getNextUPCSequence();
   const tubUpc = await generateUPCCode(tubSequence);
   
-  // Case UPC is typically the next sequence
-  const caseUpc = await generateUPCCode(tubSequence + 1);
+  if (!tubUpc) {
+    return { tubUpc: null, caseUpc: null };
+  }
+  
+  // Get packaging indicator from settings if not provided
+  let indicator = packagingIndicator;
+  if (!indicator) {
+    const { data: settings } = await supabase
+      .from("company_settings")
+      .select("default_packaging_indicator")
+      .limit(1)
+      .single();
+    
+    indicator = settings?.default_packaging_indicator || "1";
+  }
+  
+  // Derive the GTIN-14 case code from the product UPC-A
+  const caseUpc = generateGTIN14FromUPC(tubUpc, indicator);
   
   return { tubUpc, caseUpc };
 }

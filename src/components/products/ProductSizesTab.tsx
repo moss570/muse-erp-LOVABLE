@@ -16,9 +16,10 @@ import { toast } from "sonner";
 
 interface ProductSizesTabProps {
   productId: string;
+  requiresUpc?: boolean;
 }
 
-export function ProductSizesTab({ productId }: ProductSizesTabProps) {
+export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizesTabProps) {
   const { sizes, createSize, updateSize, deleteSize, isLoading } = useProductSizes(productId);
   const [isAddingSize, setIsAddingSize] = useState(false);
   const [generatingUpc, setGeneratingUpc] = useState<string | null>(null);
@@ -131,8 +132,13 @@ export function ProductSizesTab({ productId }: ProductSizesTabProps) {
                 <TableHead>Size Name</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Units/Case</TableHead>
-                <TableHead>Tub UPC</TableHead>
-                <TableHead>Case UPC</TableHead>
+                <TableHead>SKU</TableHead>
+                {requiresUpc && (
+                  <>
+                    <TableHead>Tub UPC (12-digit)</TableHead>
+                    <TableHead>Case UPC (GTIN-14)</TableHead>
+                  </>
+                )}
                 <TableHead>Default</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -146,23 +152,36 @@ export function ProductSizesTab({ productId }: ProductSizesTabProps) {
                   </TableCell>
                   <TableCell>{size.units_per_case}</TableCell>
                   <TableCell>
-                    {size.upc_code ? (
+                    {(size as any).sku ? (
                       <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                        {formatUPCForDisplay(size.upc_code)}
+                        {(size as any).sku}
                       </code>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Not set</span>
+                      <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    {size.case_upc_code ? (
-                      <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                        {formatUPCForDisplay(size.case_upc_code)}
-                      </code>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Not set</span>
-                    )}
-                  </TableCell>
+                  {requiresUpc && (
+                    <>
+                      <TableCell>
+                        {size.upc_code ? (
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                            {formatUPCForDisplay(size.upc_code)}
+                          </code>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Not set</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {size.case_upc_code ? (
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                            {formatUPCForDisplay(size.case_upc_code)}
+                          </code>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Not set</span>
+                        )}
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell>
                     <Switch
                       checked={size.is_default}
@@ -171,19 +190,21 @@ export function ProductSizesTab({ productId }: ProductSizesTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleGenerateUPC(size.id)}
-                        disabled={generatingUpc === size.id}
-                        title="Generate UPC codes"
-                      >
-                        {generatingUpc === size.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {requiresUpc && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleGenerateUPC(size.id)}
+                          disabled={generatingUpc === size.id}
+                          title="Generate UPC codes"
+                        >
+                          {generatingUpc === size.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Wand2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -199,7 +220,7 @@ export function ProductSizesTab({ productId }: ProductSizesTabProps) {
 
               {sizes.length === 0 && !isAddingSize && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={requiresUpc ? 9 : 6} className="text-center text-muted-foreground py-8">
                     No sizes configured. Add a size to get started.
                   </TableCell>
                 </TableRow>
@@ -250,9 +271,14 @@ export function ProductSizesTab({ productId }: ProductSizesTabProps) {
                       onChange={(e) => setNewSize({ ...newSize, units_per_case: e.target.value })}
                     />
                   </TableCell>
-                  <TableCell colSpan={2}>
-                    <span className="text-muted-foreground text-sm">Generate after saving</span>
+                  <TableCell>
+                    <span className="text-muted-foreground text-sm">Auto-generated</span>
                   </TableCell>
+                  {requiresUpc && (
+                    <TableCell colSpan={2}>
+                      <span className="text-muted-foreground text-sm">Generate after saving</span>
+                    </TableCell>
+                  )}
                   <TableCell>-</TableCell>
                   <TableCell>
                     <div className="flex gap-1">

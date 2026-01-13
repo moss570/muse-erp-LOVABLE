@@ -31,6 +31,7 @@ const companySettingsSchema = z.object({
   zip: z.string().optional(),
   country: z.string().optional(),
   gs1_company_prefix: z.string().optional(),
+  default_packaging_indicator: z.string().optional(),
 });
 
 type CompanySettingsForm = z.infer<typeof companySettingsSchema>;
@@ -54,6 +55,7 @@ export default function CompanySettings() {
       zip: '',
       country: 'USA',
       gs1_company_prefix: '',
+      default_packaging_indicator: '1',
     },
   });
 
@@ -72,6 +74,7 @@ export default function CompanySettings() {
         zip: settings.zip || '',
         country: settings.country || 'USA',
         gs1_company_prefix: settings.gs1_company_prefix || '',
+        default_packaging_indicator: settings.default_packaging_indicator || '1',
       });
     }
   }, [settings, form]);
@@ -221,6 +224,31 @@ export default function CompanySettings() {
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
                         Used for automatic UPC code generation
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="default_packaging_indicator"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Default Packaging Indicator</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="1" 
+                          maxLength={1} 
+                          {...field} 
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-8]/g, '');
+                            field.onChange(val);
+                          }}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Used for GTIN-14 case UPC generation (1-8). 1=inner carton, 2=outer case.
                       </p>
                       <FormMessage />
                     </FormItem>

@@ -317,6 +317,7 @@ export type Database = {
           company_prefix: string | null
           country: string | null
           created_at: string
+          default_packaging_indicator: string | null
           email: string | null
           fax: string | null
           gs1_company_prefix: string | null
@@ -337,6 +338,7 @@ export type Database = {
           company_prefix?: string | null
           country?: string | null
           created_at?: string
+          default_packaging_indicator?: string | null
           email?: string | null
           fax?: string | null
           gs1_company_prefix?: string | null
@@ -357,6 +359,7 @@ export type Database = {
           company_prefix?: string | null
           country?: string | null
           created_at?: string
+          default_packaging_indicator?: string | null
           email?: string | null
           fax?: string | null
           gs1_company_prefix?: string | null
@@ -4323,10 +4326,12 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          packaging_indicator: string | null
           product_id: string
           size_name: string
           size_unit_id: string | null
           size_value: number
+          sku: string | null
           sort_order: number | null
           units_per_case: number | null
           upc_code: string | null
@@ -4340,10 +4345,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          packaging_indicator?: string | null
           product_id: string
           size_name: string
           size_unit_id?: string | null
           size_value: number
+          sku?: string | null
           sort_order?: number | null
           units_per_case?: number | null
           upc_code?: string | null
@@ -4357,10 +4364,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          packaging_indicator?: string | null
           product_id?: string
           size_name?: string
           size_unit_id?: string | null
           size_value?: number
+          sku?: string | null
           sort_order?: number | null
           units_per_case?: number | null
           upc_code?: string | null
@@ -4764,6 +4773,7 @@ export type Database = {
           qa_verified_at: string | null
           qa_verified_by: string | null
           requires_base_stage: boolean | null
+          requires_upc: boolean
           shelf_life_days: number | null
           sku: string
           standard_labor_rate: number | null
@@ -4794,6 +4804,7 @@ export type Database = {
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           requires_base_stage?: boolean | null
+          requires_upc?: boolean
           shelf_life_days?: number | null
           sku: string
           standard_labor_rate?: number | null
@@ -4824,6 +4835,7 @@ export type Database = {
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           requires_base_stage?: boolean | null
+          requires_upc?: boolean
           shelf_life_days?: number | null
           sku?: string
           standard_labor_rate?: number | null

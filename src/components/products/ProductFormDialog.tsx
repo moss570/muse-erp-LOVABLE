@@ -24,6 +24,7 @@ const productSchema = z.object({
   unit_id: z.string().optional(),
   is_base_product: z.boolean().default(false),
   is_active: z.boolean().default(true),
+  requires_upc: z.boolean().default(false),
   shelf_life_days: z.number().optional(),
   storage_requirements: z.string().optional(),
   handling_instructions: z.string().optional(),
@@ -44,6 +45,7 @@ interface ProductFormDialogProps {
     unit_id?: string | null;
     is_base_product?: boolean | null;
     is_active?: boolean | null;
+    requires_upc?: boolean | null;
     shelf_life_days?: number | null;
     storage_requirements?: string | null;
     handling_instructions?: string | null;
@@ -73,6 +75,7 @@ export function ProductFormDialog({
       unit_id: undefined,
       is_base_product: false,
       is_active: true,
+      requires_upc: false,
       shelf_life_days: undefined,
       storage_requirements: "",
       handling_instructions: "",
@@ -90,6 +93,7 @@ export function ProductFormDialog({
         unit_id: product.unit_id || undefined,
         is_base_product: product.is_base_product || false,
         is_active: product.is_active ?? true,
+        requires_upc: product.requires_upc || false,
         shelf_life_days: product.shelf_life_days || undefined,
         storage_requirements: product.storage_requirements || "",
         handling_instructions: product.handling_instructions || "",
@@ -104,6 +108,7 @@ export function ProductFormDialog({
         unit_id: undefined,
         is_base_product: false,
         is_active: true,
+        requires_upc: false,
         shelf_life_days: undefined,
         storage_requirements: "",
         handling_instructions: "",
@@ -144,7 +149,12 @@ export function ProductFormDialog({
                 </TabsContent>
 
                 <TabsContent value="sizes" className="mt-0">
-                  {product?.id && <ProductSizesTab productId={product.id} />}
+                  {product?.id && (
+                    <ProductSizesTab 
+                      productId={product.id} 
+                      requiresUpc={product.requires_upc || false}
+                    />
+                  )}
                 </TabsContent>
 
                 <TabsContent value="qa" className="mt-0">

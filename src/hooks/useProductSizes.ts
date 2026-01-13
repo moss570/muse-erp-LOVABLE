@@ -8,8 +8,10 @@ export interface ProductSize {
   size_name: string;
   size_value: number;
   size_unit_id: string | null;
+  sku: string | null;
   upc_code: string | null;
   case_upc_code: string | null;
+  packaging_indicator: string | null;
   units_per_case: number;
   case_weight_kg: number | null;
   case_cube_m3: number | null;
@@ -30,8 +32,10 @@ interface ProductSizeInput {
   size_name: string;
   size_value: number;
   size_unit_id?: string | null;
+  sku?: string | null;
   upc_code?: string | null;
   case_upc_code?: string | null;
+  packaging_indicator?: string | null;
   units_per_case?: number;
   case_weight_kg?: number | null;
   case_cube_m3?: number | null;
