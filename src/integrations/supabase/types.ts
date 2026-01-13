@@ -4249,14 +4249,19 @@ export type Database = {
           material_cost: number | null
           notes: string | null
           overhead_cost: number | null
+          parent_production_lot_id: string | null
           produced_by: string | null
           product_id: string
           production_date: string
+          production_stage: string | null
           qa_verified_at: string | null
           qa_verified_by: string | null
           quantity_available: number
+          quantity_consumed_from_parent: number | null
           quantity_produced: number
           recipe_id: string | null
+          stage_released_at: string | null
+          stage_released_by: string | null
           status: string | null
           synced_at: string | null
           total_cost: number | null
@@ -4283,14 +4288,19 @@ export type Database = {
           material_cost?: number | null
           notes?: string | null
           overhead_cost?: number | null
+          parent_production_lot_id?: string | null
           produced_by?: string | null
           product_id: string
           production_date?: string
+          production_stage?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           quantity_available: number
+          quantity_consumed_from_parent?: number | null
           quantity_produced: number
           recipe_id?: string | null
+          stage_released_at?: string | null
+          stage_released_by?: string | null
           status?: string | null
           synced_at?: string | null
           total_cost?: number | null
@@ -4317,14 +4327,19 @@ export type Database = {
           material_cost?: number | null
           notes?: string | null
           overhead_cost?: number | null
+          parent_production_lot_id?: string | null
           produced_by?: string | null
           product_id?: string
           production_date?: string
+          production_stage?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           quantity_available?: number
+          quantity_consumed_from_parent?: number | null
           quantity_produced?: number
           recipe_id?: string | null
+          stage_released_at?: string | null
+          stage_released_by?: string | null
           status?: string | null
           synced_at?: string | null
           total_cost?: number | null
@@ -4339,6 +4354,13 @@ export type Database = {
             columns: ["machine_id"]
             isOneToOne: false
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lots_parent_production_lot_id_fkey"
+            columns: ["parent_production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
             referencedColumns: ["id"]
           },
           {
@@ -4369,11 +4391,19 @@ export type Database = {
             referencedRelation: "product_recipes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "production_lots_stage_released_by_fkey"
+            columns: ["stage_released_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       products: {
         Row: {
           approval_status: string | null
+          base_product_id: string | null
           case_pack_quantity: number | null
           case_upc_code: string | null
           case_weight_kg: number | null
@@ -4385,6 +4415,7 @@ export type Database = {
           name: string
           qa_verified_at: string | null
           qa_verified_by: string | null
+          requires_base_stage: boolean | null
           sku: string
           standard_labor_rate: number | null
           standard_overhead_rate: number | null
@@ -4395,6 +4426,7 @@ export type Database = {
         }
         Insert: {
           approval_status?: string | null
+          base_product_id?: string | null
           case_pack_quantity?: number | null
           case_upc_code?: string | null
           case_weight_kg?: number | null
@@ -4406,6 +4438,7 @@ export type Database = {
           name: string
           qa_verified_at?: string | null
           qa_verified_by?: string | null
+          requires_base_stage?: boolean | null
           sku: string
           standard_labor_rate?: number | null
           standard_overhead_rate?: number | null
@@ -4416,6 +4449,7 @@ export type Database = {
         }
         Update: {
           approval_status?: string | null
+          base_product_id?: string | null
           case_pack_quantity?: number | null
           case_upc_code?: string | null
           case_weight_kg?: number | null
@@ -4427,6 +4461,7 @@ export type Database = {
           name?: string
           qa_verified_at?: string | null
           qa_verified_by?: string | null
+          requires_base_stage?: boolean | null
           sku?: string
           standard_labor_rate?: number | null
           standard_overhead_rate?: number | null
@@ -4436,6 +4471,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_base_product_id_fkey"
+            columns: ["base_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_qa_verified_by_fkey"
             columns: ["qa_verified_by"]
@@ -6370,6 +6412,7 @@ export type Database = {
         | "maintenance"
         | "hr"
       label_format: "3x2" | "3x5" | "4x6" | "2x1" | "custom"
+      production_stage: "base" | "flavoring" | "finished"
       template_category:
         | "purchase"
         | "sale"
@@ -6525,6 +6568,7 @@ export const Constants = {
         "hr",
       ],
       label_format: ["3x2", "3x5", "4x6", "2x1", "custom"],
+      production_stage: ["base", "flavoring", "finished"],
       template_category: [
         "purchase",
         "sale",

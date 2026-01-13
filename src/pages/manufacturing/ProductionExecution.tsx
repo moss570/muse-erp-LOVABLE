@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Factory, Play, Loader2, CheckCircle2, FlaskConical } from "lucide-react";
+import { Factory, Play, Loader2, CheckCircle2, FlaskConical, Beaker, Palette, Package } from "lucide-react";
 import { ProductSelection } from "@/components/manufacturing/ProductSelection";
 import { IngredientWeighingCard } from "@/components/manufacturing/IngredientWeighingCard";
 import { ProductionCostSummary } from "@/components/manufacturing/ProductionCostSummary";
@@ -15,6 +15,8 @@ import { OverrunCalculator } from "@/components/manufacturing/OverrunCalculator"
 import { TrialBatchToggle } from "@/components/manufacturing/TrialBatchToggle";
 import { StylusCanvas } from "@/components/manufacturing/StylusCanvas";
 import { AllergenAcknowledgmentDialog } from "@/components/manufacturing/AllergenAcknowledgmentDialog";
+import { ProductionStageSelector } from "@/components/manufacturing/ProductionStageSelector";
+import { ParentLotSelector } from "@/components/manufacturing/ParentLotSelector";
 import {
   useApprovedProducts,
   useProductRecipes,
@@ -23,12 +25,24 @@ import {
   useCreateProductionLot,
   type WeighedIngredient,
 } from "@/hooks/useProductionExecution";
+import {
+  useApprovedBaseLots,
+  useApprovedFlavoredLots,
+  type ProductionStage,
+} from "@/hooks/useProductionStages";
 
 export default function ProductionExecution() {
+  // Stage selection
+  const [selectedStage, setSelectedStage] = useState<ProductionStage>("base");
+  
   // Selection state
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [selectedMachineId, setSelectedMachineId] = useState<string | null>(null);
+  
+  // Parent lot state (for flavoring and finished stages)
+  const [selectedParentLotId, setSelectedParentLotId] = useState<string | null>(null);
+  const [quantityFromParent, setQuantityFromParent] = useState<number>(0);
   
   // Production state
   const [batchMultiplier, setBatchMultiplier] = useState<number>(1);
@@ -51,6 +65,18 @@ export default function ProductionExecution() {
   const { data: recipeItems = [], isLoading: itemsLoading } = useRecipeItems(selectedRecipeId);
   const { data: machines = [], isLoading: machinesLoading } = useActiveMachines();
   const createProductionLot = useCreateProductionLot();
+  
+  // Get the base product ID for fetching parent lots
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+  const baseProductId = (selectedProduct as any)?.base_product_id;
+  
+  // Fetch approved parent lots based on stage
+  const { data: approvedBaseLots = [], isLoading: baseLotsLoading } = useApprovedBaseLots(
+    selectedStage === "flavoring" ? baseProductId : null
+  );
+  const { data: approvedFlavoredLots = [], isLoading: flavoredLotsLoading } = useApprovedFlavoredLots(
+    selectedStage === "finished" ? selectedProductId : null
+  );
 
   const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
   const quantityToProduce = (selectedRecipe?.batch_size || 0) * batchMultiplier;
@@ -94,9 +120,24 @@ export default function ProductionExecution() {
     }
   }, [recipeItems, isStarted]);
 
+  const handleStageChange = (stage: ProductionStage) => {
+    setSelectedStage(stage);
+    // Reset selections when stage changes
+    setSelectedProductId(null);
+    setSelectedRecipeId(null);
+    setSelectedParentLotId(null);
+    setQuantityFromParent(0);
+    setIsStarted(false);
+    setWeighedIngredients([]);
+    setCurrentStep(0);
+    setAllergenAcknowledged(false);
+  };
+
   const handleProductChange = (productId: string) => {
     setSelectedProductId(productId);
     setSelectedRecipeId(null);
+    setSelectedParentLotId(null);
+    setQuantityFromParent(0);
     setIsStarted(false);
     setWeighedIngredients([]);
     setCurrentStep(0);
@@ -160,7 +201,12 @@ export default function ProductionExecution() {
   };
 
   const allIngredientsCompleted = weighedIngredients.every((ing) => ing.isCompleted);
-  const canFinish = allIngredientsCompleted && quantityToProduce > 0;
+  
+  // For flavoring/finished stages, also need parent lot selected
+  const needsParentLot = selectedStage === "flavoring" || selectedStage === "finished";
+  const parentLotReady = !needsParentLot || (selectedParentLotId && quantityFromParent > 0);
+  
+  const canFinish = allIngredientsCompleted && quantityToProduce > 0 && parentLotReady;
 
   const handleFinishProduction = () => {
     if (!canFinish || !selectedProductId || !selectedMachineId || !selectedRecipeId) return;
@@ -177,6 +223,9 @@ export default function ProductionExecution() {
         notes: notes || undefined,
         isTrialBatch,
         trialCanvasData: isTrialBatch ? trialCanvasData : undefined,
+        productionStage: selectedStage,
+        parentLotId: selectedParentLotId,
+        quantityConsumedFromParent: quantityFromParent || undefined,
       },
       {
         onSuccess: () => {
@@ -184,6 +233,8 @@ export default function ProductionExecution() {
           setSelectedProductId(null);
           setSelectedRecipeId(null);
           setSelectedMachineId(null);
+          setSelectedParentLotId(null);
+          setQuantityFromParent(0);
           setBatchMultiplier(1);
           setIsStarted(false);
           setWeighedIngredients([]);
@@ -197,6 +248,13 @@ export default function ProductionExecution() {
     );
   };
 
+  // Get stage icon and label for header
+  const stageInfo = {
+    base: { icon: <Beaker className="h-4 w-4" />, label: "Base Manufacturing", color: "border-blue-500 text-blue-700" },
+    flavoring: { icon: <Palette className="h-4 w-4" />, label: "Flavoring", color: "border-purple-500 text-purple-700" },
+    finished: { icon: <Package className="h-4 w-4" />, label: "Freezing & Tubbing", color: "border-green-500 text-green-700" },
+  }[selectedStage];
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -206,6 +264,10 @@ export default function ProductionExecution() {
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Factory className="h-8 w-8" />
               Production Execution
+              <Badge variant="outline" className={`ml-2 ${stageInfo.color}`}>
+                {stageInfo.icon}
+                <span className="ml-1">{stageInfo.label}</span>
+              </Badge>
               {isTrialBatch && (
                 <Badge variant="outline" className="ml-2 border-amber-500 text-amber-700">
                   <FlaskConical className="h-3 w-3 mr-1" />
@@ -214,19 +276,62 @@ export default function ProductionExecution() {
               )}
             </h1>
             <p className="text-muted-foreground">
-              Step-by-step batch production with ingredient weighing
+              Multi-stage batch production: Base → Flavoring → Freezing & Tubbing
             </p>
           </div>
           <OverrunCalculator />
         </div>
 
+        {/* Stage Selection */}
+        <Card>
+          <CardContent className="pt-6">
+            <ProductionStageSelector
+              selectedStage={selectedStage}
+              onStageChange={handleStageChange}
+              disabled={isStarted}
+            />
+          </CardContent>
+        </Card>
+
         {/* Selection Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Batch Setup</CardTitle>
-            <CardDescription>Select product, recipe, and machine to begin production</CardDescription>
+            <CardTitle>Batch Setup - {stageInfo.label}</CardTitle>
+            <CardDescription>
+              {selectedStage === "base" && "Create base mix from raw materials"}
+              {selectedStage === "flavoring" && "Add flavors to an approved base lot"}
+              {selectedStage === "finished" && "Package flavored product into finished goods"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Parent Lot Selection for Flavoring Stage */}
+            {selectedStage === "flavoring" && selectedProductId && (
+              <ParentLotSelector
+                parentLots={approvedBaseLots}
+                selectedLotId={selectedParentLotId}
+                onLotSelect={setSelectedParentLotId}
+                quantityToConsume={quantityFromParent}
+                onQuantityChange={setQuantityFromParent}
+                isLoading={baseLotsLoading}
+                disabled={isStarted}
+                stageLabel="base"
+              />
+            )}
+
+            {/* Parent Lot Selection for Finished Stage */}
+            {selectedStage === "finished" && selectedProductId && (
+              <ParentLotSelector
+                parentLots={approvedFlavoredLots}
+                selectedLotId={selectedParentLotId}
+                onLotSelect={setSelectedParentLotId}
+                quantityToConsume={quantityFromParent}
+                onQuantityChange={setQuantityFromParent}
+                isLoading={flavoredLotsLoading}
+                disabled={isStarted}
+                stageLabel="flavored"
+              />
+            )}
+
             <ProductSelection
               products={products}
               recipes={recipes}

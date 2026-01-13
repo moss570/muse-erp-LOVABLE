@@ -277,6 +277,8 @@ export function useActiveMachines() {
   });
 }
 
+export type ProductionStageType = "base" | "flavoring" | "finished";
+
 export function useCreateProductionLot() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -293,6 +295,9 @@ export function useCreateProductionLot() {
       notes,
       isTrialBatch = false,
       trialCanvasData,
+      productionStage = "finished",
+      parentLotId,
+      quantityConsumedFromParent,
     }: {
       productId: string;
       machineId: string;
@@ -304,6 +309,9 @@ export function useCreateProductionLot() {
       notes?: string;
       isTrialBatch?: boolean;
       trialCanvasData?: string | null;
+      productionStage?: ProductionStageType;
+      parentLotId?: string | null;
+      quantityConsumedFromParent?: number;
     }) => {
       // Get the lot number using the database function
       const { data: lotNumberData, error: lotNumberError } = await supabase
@@ -342,7 +350,23 @@ export function useCreateProductionLot() {
 
       const laborCost = laborHours * laborRate;
       const overheadCost = quantityProduced * overheadRate;
-      const totalCost = totalMaterialCost + laborCost + overheadCost;
+      
+      // Add parent lot cost if consuming from parent
+      let parentLotCost = 0;
+      if (parentLotId && quantityConsumedFromParent) {
+        const { data: parentLot } = await supabase
+          .from("production_lots")
+          .select("total_cost, quantity_produced")
+          .eq("id", parentLotId)
+          .single();
+        
+        if (parentLot && parentLot.quantity_produced > 0) {
+          const costPerUnit = parentLot.total_cost / parentLot.quantity_produced;
+          parentLotCost = costPerUnit * quantityConsumedFromParent;
+        }
+      }
+      
+      const totalCost = totalMaterialCost + laborCost + overheadCost + parentLotCost;
 
       // Get batch number for today
       const { data: existingLots } = await supabase
@@ -355,7 +379,7 @@ export function useCreateProductionLot() {
 
       const batchNumber = (existingLots?.[0]?.batch_number || 0) + 1;
 
-      // Create production lot
+      // Create production lot with stage and parent info
       const { data: productionLot, error: lotError } = await supabase
         .from("production_lots")
         .insert({
@@ -368,7 +392,7 @@ export function useCreateProductionLot() {
           batch_number: batchNumber,
           quantity_produced: quantityProduced,
           quantity_available: quantityProduced,
-          material_cost: totalMaterialCost,
+          material_cost: totalMaterialCost + parentLotCost,
           labor_cost: laborCost,
           labor_hours: laborHours,
           machine_hours: machineHours,
@@ -381,13 +405,33 @@ export function useCreateProductionLot() {
           is_trial_batch: isTrialBatch,
           trial_canvas_url: trialCanvasData || null,
           cost_category: isTrialBatch ? "r_and_d" : "production",
-        })
+          production_stage: productionStage,
+          parent_production_lot_id: parentLotId || null,
+          quantity_consumed_from_parent: quantityConsumedFromParent || null,
+        } as any) // Cast needed for new columns not yet in types
         .select()
         .single();
 
       if (lotError) throw lotError;
 
-      // Create production lot materials and deduct from inventory
+      // Deduct from parent lot if consuming
+      if (parentLotId && quantityConsumedFromParent) {
+        const { data: parentLot } = await supabase
+          .from("production_lots")
+          .select("quantity_available")
+          .eq("id", parentLotId)
+          .single();
+        
+        if (parentLot) {
+          const newQuantity = (parentLot.quantity_available || 0) - quantityConsumedFromParent;
+          await supabase
+            .from("production_lots")
+            .update({ quantity_available: newQuantity })
+            .eq("id", parentLotId);
+        }
+      }
+
+      // Create production lot materials and deduct from inventory (for raw materials)
       for (const ingredient of weighedIngredients) {
         // Link material to production lot
         await supabase.from("production_lot_materials").insert({
@@ -428,13 +472,22 @@ export function useCreateProductionLot() {
 
       return productionLot;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["production-lots"] });
       queryClient.invalidateQueries({ queryKey: ["available-lots-fefo"] });
       queryClient.invalidateQueries({ queryKey: ["receiving-lots"] });
+      queryClient.invalidateQueries({ queryKey: ["approved-base-lots"] });
+      queryClient.invalidateQueries({ queryKey: ["approved-flavored-lots"] });
+      
+      const stageLabel = {
+        base: "Base",
+        flavoring: "Flavored",
+        finished: "Finished",
+      }[variables.productionStage || "finished"];
+      
       toast({
-        title: "Production lot created",
-        description: "The production batch has been completed and saved.",
+        title: `${stageLabel} lot created`,
+        description: `The ${stageLabel.toLowerCase()} batch has been completed and is pending QA approval.`,
       });
     },
     onError: (error: any) => {
