@@ -59,7 +59,7 @@ export function IngredientWeighingCard({
   // Calculate required quantity with wastage
   const wastageMultiplier = 1 + (recipeItem.wastage_percentage || 0) / 100;
   const requiredQuantity = recipeItem.quantity_required * batchMultiplier * wastageMultiplier;
-  const unitAbbreviation = recipeItem.unit?.code || recipeItem.material?.usage_unit?.code || "units";
+  const unitAbbreviation = recipeItem.material?.usage_unit?.code || recipeItem.unit?.code || "units";
 
   // Get selected lot details
   const selectedLot = availableLots.find((lot) => lot.id === selectedLotId);
