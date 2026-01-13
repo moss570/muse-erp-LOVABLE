@@ -50,6 +50,7 @@ import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
 import TimeClockKiosk from "./pages/hr/TimeClockKiosk";
 import PayrollExport from "./pages/hr/PayrollExport";
 import RecipeManagement from "./pages/manufacturing/RecipeManagement";
+import ProductCategories from "./pages/settings/ProductCategories";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,7 @@ const App = () => (
             <Route path="/settings/period-close" element={<AppLayout><PeriodClose /></AppLayout>} />
             <Route path="/settings/xero" element={<XeroConfiguration />} />
             <Route path="/settings/category-gl-defaults" element={<AppLayout><CategoryGLDefaults /></AppLayout>} />
+            <Route path="/settings/product-categories" element={<AppLayout><ProductCategories /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
