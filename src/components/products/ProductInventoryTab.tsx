@@ -16,12 +16,8 @@ interface ProductionLot {
   quantity_produced: number;
   status: string;
   approval_status: string;
-  expiration_date: string | null;
+  expiry_date: string | null;
   production_date: string;
-  location: {
-    id: string;
-    name: string;
-  } | null;
   machine: {
     id: string;
     name: string;
@@ -41,16 +37,15 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
           quantity_produced,
           status,
           approval_status,
+          expiry_date,
           production_date,
-          location:locations(id, name),
           machine:machines(id, name)
         `)
         .eq("product_id", productId)
         .order("production_date", { ascending: false });
 
       if (error) throw error;
-      // Add null expiration_date for interface compatibility
-      return (data || []).map(lot => ({ ...lot, expiration_date: null })) as ProductionLot[];
+      return data as unknown as ProductionLot[];
     },
   });
 
@@ -59,14 +54,14 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
   const approvedLots = lots.filter((l) => l.approval_status === "Approved");
   const approvedQuantity = approvedLots.reduce((sum, lot) => sum + (lot.quantity_produced || 0), 0);
 
-  // Group by location
-  const byLocation = lots.reduce((acc, lot) => {
-    const locName = lot.location?.name || "Unassigned";
-    if (!acc[locName]) {
-      acc[locName] = { quantity: 0, lots: 0 };
+  // Group by machine (since production_lots doesn't have location)
+  const byMachine = lots.reduce((acc, lot) => {
+    const machineName = lot.machine?.name || "Unassigned";
+    if (!acc[machineName]) {
+      acc[machineName] = { quantity: 0, lots: 0 };
     }
-    acc[locName].quantity += lot.quantity_produced || 0;
-    acc[locName].lots += 1;
+    acc[machineName].quantity += lot.quantity_produced || 0;
+    acc[machineName].lots += 1;
     return acc;
   }, {} as Record<string, { quantity: number; lots: number }>);
 
@@ -161,38 +156,38 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Locations
+              Machines
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="text-2xl font-bold">
-                {Object.keys(byLocation).length}
+                {Object.keys(byMachine).length}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              storage locations
+              production machines
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* By Location */}
+      {/* By Machine */}
       <Card>
         <CardHeader>
-          <CardTitle>Inventory by Location</CardTitle>
+          <CardTitle>Production by Machine</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {Object.entries(byLocation).map(([location, data]) => (
+            {Object.entries(byMachine).map(([machine, data]) => (
               <div
-                key={location}
+                key={machine}
                 className="flex items-center justify-between p-3 bg-muted rounded-lg"
               >
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{location}</span>
+                  <span className="font-medium">{machine}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-semibold">{data.quantity.toLocaleString()}</span>
@@ -202,7 +197,7 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
                 </div>
               </div>
             ))}
-            {Object.keys(byLocation).length === 0 && (
+            {Object.keys(byMachine).length === 0 && (
               <p className="text-center text-muted-foreground py-4">
                 No inventory records found
               </p>
@@ -225,8 +220,8 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
               <TableRow>
                 <TableHead>Lot Number</TableHead>
                 <TableHead>Production Date</TableHead>
-                <TableHead>Expiration</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Expiry</TableHead>
+                <TableHead>Machine</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Approval</TableHead>
@@ -243,13 +238,13 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {lot.expiration_date
-                        ? format(new Date(lot.expiration_date), "MMM d, yyyy")
+                      {lot.expiry_date
+                        ? format(new Date(lot.expiry_date), "MMM d, yyyy")
                         : "-"}
-                      {getExpirationBadge(lot.expiration_date)}
+                      {getExpirationBadge(lot.expiry_date)}
                     </div>
                   </TableCell>
-                  <TableCell>{lot.location?.name || "-"}</TableCell>
+                  <TableCell>{lot.machine?.name || "-"}</TableCell>
                   <TableCell className="text-right font-medium">
                     {lot.quantity_produced?.toLocaleString()}
                   </TableCell>

@@ -62,13 +62,13 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
         .select(`
           id,
           recipe_name,
-          description,
-          version,
-          yield_quantity,
+          recipe_version,
+          batch_size,
+          instructions,
           is_active,
           product_recipe_items (
             id,
-            quantity,
+            quantity_required,
             sort_order,
             material:materials (
               id,
@@ -82,18 +82,31 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               code
             )
           ),
-          yield_unit:units_of_measure (
+          batch_unit:units_of_measure!product_recipes_batch_unit_id_fkey (
             id,
             name,
             code
           )
         `)
         .eq("product_id", productId)
-        .order("version", { ascending: false });
+        .order("recipe_version", { ascending: false });
 
       if (error) throw error;
-      // Map recipe_name to name for our interface
-      return (data || []).map(r => ({ ...r, name: r.recipe_name })) as unknown as Recipe[];
+      
+      // Map to our interface structure
+      return (data || []).map(r => ({
+        id: r.id,
+        name: r.recipe_name,
+        description: r.instructions,
+        version: r.recipe_version || 1,
+        yield_quantity: r.batch_size,
+        is_active: r.is_active,
+        product_recipe_items: (r.product_recipe_items || []).map((item: any) => ({
+          ...item,
+          quantity: item.quantity_required,
+        })),
+        yield_unit: r.batch_unit,
+      })) as Recipe[];
     },
   });
 
