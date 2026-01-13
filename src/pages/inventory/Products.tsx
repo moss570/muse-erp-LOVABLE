@@ -64,7 +64,7 @@ export default function Products() {
 
   const createMutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
-      const { error } = await supabase.from('products').insert([{
+      const { data: newProduct, error } = await supabase.from('products').insert([{
         sku: data.sku,
         name: data.name,
         description: data.description || null,
@@ -73,16 +73,21 @@ export default function Products() {
         unit_id: data.unit_id || null,
         is_base_product: data.is_base_product,
         is_active: data.is_active,
+        requires_upc: data.requires_upc,
         shelf_life_days: data.shelf_life_days || null,
         storage_requirements: data.storage_requirements || null,
         handling_instructions: data.handling_instructions || null,
-      }]);
+      }]).select().single();
       if (error) throw error;
+      return newProduct;
     },
-    onSuccess: () => {
+    onSuccess: (newProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: 'Product created successfully' });
-      handleCloseDialog();
+      // Keep dialog open and switch to editing the new product
+      if (newProduct) {
+        setEditingProduct(newProduct as Product);
+      }
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating product', description: error.message, variant: 'destructive' });
@@ -92,7 +97,7 @@ export default function Products() {
   const updateMutation = useMutation({
     mutationFn: async (data: ProductFormData & { id: string }) => {
       const { id, ...rest } = data;
-      const { error } = await supabase
+      const { data: updatedProduct, error } = await supabase
         .from('products')
         .update({
           sku: rest.sku,
@@ -103,17 +108,24 @@ export default function Products() {
           unit_id: rest.unit_id || null,
           is_base_product: rest.is_base_product,
           is_active: rest.is_active,
+          requires_upc: rest.requires_upc,
           shelf_life_days: rest.shelf_life_days || null,
           storage_requirements: rest.storage_requirements || null,
           handling_instructions: rest.handling_instructions || null,
         })
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
       if (error) throw error;
+      return updatedProduct;
     },
-    onSuccess: () => {
+    onSuccess: (updatedProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: 'Product updated successfully' });
-      handleCloseDialog();
+      // Update the editing product with new data so tabs reflect changes
+      if (updatedProduct) {
+        setEditingProduct(updatedProduct as Product);
+      }
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating product', description: error.message, variant: 'destructive' });
