@@ -4043,6 +4043,136 @@ export type Database = {
           },
         ]
       }
+      product_attributes: {
+        Row: {
+          attribute_type: string
+          attribute_value: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          product_id: string
+        }
+        Insert: {
+          attribute_type: string
+          attribute_value: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          product_id: string
+        }
+        Update: {
+          attribute_type?: string
+          attribute_value?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attributes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          qa_parameters: Json | null
+          sort_order: number | null
+          spec_sheet_sections: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          qa_parameters?: Json | null
+          sort_order?: number | null
+          spec_sheet_sections?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          qa_parameters?: Json | null
+          sort_order?: number | null
+          spec_sheet_sections?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      product_qa_requirements: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_critical: boolean | null
+          max_value: number | null
+          min_value: number | null
+          parameter_name: string
+          product_id: string
+          required_at_stage: string | null
+          sort_order: number | null
+          target_value: string | null
+          test_method: string | null
+          uom: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_critical?: boolean | null
+          max_value?: number | null
+          min_value?: number | null
+          parameter_name: string
+          product_id: string
+          required_at_stage?: string | null
+          sort_order?: number | null
+          target_value?: string | null
+          test_method?: string | null
+          uom?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_critical?: boolean | null
+          max_value?: number | null
+          min_value?: number | null
+          parameter_name?: string
+          product_id?: string
+          required_at_stage?: string | null
+          sort_order?: number | null
+          target_value?: string | null
+          test_method?: string | null
+          uom?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_qa_requirements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_recipe_items: {
         Row: {
           created_at: string
@@ -4180,6 +4310,75 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sizes: {
+        Row: {
+          case_cube_m3: number | null
+          case_upc_code: string | null
+          case_weight_kg: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          product_id: string
+          size_name: string
+          size_unit_id: string | null
+          size_value: number
+          sort_order: number | null
+          units_per_case: number | null
+          upc_code: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          case_cube_m3?: number | null
+          case_upc_code?: string | null
+          case_weight_kg?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          product_id: string
+          size_name: string
+          size_unit_id?: string | null
+          size_value: number
+          sort_order?: number | null
+          units_per_case?: number | null
+          upc_code?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          case_cube_m3?: number | null
+          case_upc_code?: string | null
+          case_weight_kg?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          product_id?: string
+          size_name?: string
+          size_unit_id?: string | null
+          size_value?: number
+          sort_order?: number | null
+          units_per_case?: number | null
+          upc_code?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sizes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_sizes_size_unit_id_fkey"
+            columns: ["size_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
             referencedColumns: ["id"]
           },
         ]
@@ -4554,15 +4753,22 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
+          flavor_family_id: string | null
+          handling_instructions: string | null
           id: string
           is_active: boolean | null
+          is_base_product: boolean | null
           name: string
+          nutritional_data: Json | null
+          product_category_id: string | null
           qa_verified_at: string | null
           qa_verified_by: string | null
           requires_base_stage: boolean | null
+          shelf_life_days: number | null
           sku: string
           standard_labor_rate: number | null
           standard_overhead_rate: number | null
+          storage_requirements: string | null
           unit_id: string
           units_per_case: number | null
           upc_code: string | null
@@ -4577,15 +4783,22 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          flavor_family_id?: string | null
+          handling_instructions?: string | null
           id?: string
           is_active?: boolean | null
+          is_base_product?: boolean | null
           name: string
+          nutritional_data?: Json | null
+          product_category_id?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           requires_base_stage?: boolean | null
+          shelf_life_days?: number | null
           sku: string
           standard_labor_rate?: number | null
           standard_overhead_rate?: number | null
+          storage_requirements?: string | null
           unit_id: string
           units_per_case?: number | null
           upc_code?: string | null
@@ -4600,15 +4813,22 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          flavor_family_id?: string | null
+          handling_instructions?: string | null
           id?: string
           is_active?: boolean | null
+          is_base_product?: boolean | null
           name?: string
+          nutritional_data?: Json | null
+          product_category_id?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           requires_base_stage?: boolean | null
+          shelf_life_days?: number | null
           sku?: string
           standard_labor_rate?: number | null
           standard_overhead_rate?: number | null
+          storage_requirements?: string | null
           unit_id?: string
           units_per_case?: number | null
           upc_code?: string | null
@@ -4620,6 +4840,20 @@ export type Database = {
             columns: ["base_product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_flavor_family_id_fkey"
+            columns: ["flavor_family_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_product_category_id_fkey"
+            columns: ["product_category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
             referencedColumns: ["id"]
           },
           {
