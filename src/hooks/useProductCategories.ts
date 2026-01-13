@@ -22,7 +22,7 @@ export interface ProductCategory {
   updated_at: string;
 }
 
-interface ProductCategoryInput {
+export interface ProductCategoryInput {
   name: string;
   code: string;
   description?: string | null;
