@@ -277,7 +277,7 @@ export function useActiveMachines() {
   });
 }
 
-export type ProductionStageType = "base" | "flavoring" | "finished";
+export type ProductionStageType = "base" | "flavoring" | "freezing" | "finished";
 
 export function useCreateProductionLot() {
   const queryClient = useQueryClient();

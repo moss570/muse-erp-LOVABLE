@@ -194,14 +194,7 @@ export function WorkOrderFormDialog({
           ...values,
         } as any);
       } else {
-        await createWorkOrder.mutateAsync(values);
-      }
-      onOpenChange(false);
-    } catch (error) {
-      // Error handled by mutation
-    }
-  };
-        await createWorkOrder.mutateAsync(values);
+        await createWorkOrder.mutateAsync(values as any);
       }
       onOpenChange(false);
     } catch (error) {
