@@ -20,11 +20,12 @@ import {
   DollarSign,
   Loader2,
   Edit3,
+  Link as LinkIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import type { RecipeItem, AvailableLot, WeighedIngredient } from "@/hooks/useProductionExecution";
-import { useAvailableLots } from "@/hooks/useProductionExecution";
+import type { RecipeItem, AvailableLot, WeighedIngredient, LinkedMaterial } from "@/hooks/useProductionExecution";
+import { useAvailableLots, useLinkedMaterials } from "@/hooks/useProductionExecution";
 import { AdjustmentDialog } from "@/components/inventory/AdjustmentDialog";
 
 interface IngredientWeighingCardProps {
@@ -46,28 +47,59 @@ export function IngredientWeighingCard({
   completedData,
   stepNumber,
 }: IngredientWeighingCardProps) {
+  // Selected material from linked materials (for new listed_material workflow)
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
   const [selectedLotId, setSelectedLotId] = useState<string>("");
   const [weighedQuantity, setWeighedQuantity] = useState<string>("");
   const [showAllergenWarning, setShowAllergenWarning] = useState(false);
   const [allergenAcknowledged, setAllergenAcknowledged] = useState(false);
   const [showAdjustmentDialog, setShowAdjustmentDialog] = useState(false);
 
+  // Fetch linked materials for the listed material (new workflow)
+  const { data: linkedMaterials = [], isLoading: linkedMaterialsLoading } = useLinkedMaterials(
+    isActive ? recipeItem.listed_material_id : null
+  );
+
+  // Determine which material to use for lot lookup
+  // - If user selected a material from linked materials, use that
+  // - Otherwise fall back to the legacy direct material_id
+  const effectiveMaterialId = selectedMaterialId || recipeItem.material_id || 
+    (linkedMaterials.length === 1 ? linkedMaterials[0].id : "");
+
   const { data: availableLots = [], isLoading: lotsLoading } = useAvailableLots(
-    isActive ? recipeItem.material_id : null
+    isActive && effectiveMaterialId ? effectiveMaterialId : null
   );
 
   // Calculate required quantity with wastage
   const wastageMultiplier = 1 + (recipeItem.wastage_percentage || 0) / 100;
   const requiredQuantity = recipeItem.quantity_required * batchMultiplier * wastageMultiplier;
-  const unitAbbreviation = recipeItem.material?.usage_unit?.code || recipeItem.unit?.code || "units";
+  
+  // Get the selected material details (from linked materials or legacy direct material)
+  const selectedMaterial = linkedMaterials.find(m => m.id === selectedMaterialId) || recipeItem.material;
+  const unitAbbreviation = selectedMaterial?.usage_unit?.code || recipeItem.unit?.code || "units";
 
   // Get selected lot details
   const selectedLot = availableLots.find((lot) => lot.id === selectedLotId);
   const costPerUnit = selectedLot?.landed_cost?.cost_per_base_unit || 0;
 
-  // Check for allergens
-  const allergens = recipeItem.material?.allergens || [];
+  // Check for allergens from the selected material
+  const allergens = selectedMaterial?.allergens || [];
   const hasAllergens = allergens.length > 0;
+
+  // Display name: prefer listed material name, fall back to material name
+  const displayName = recipeItem.listed_material?.name || recipeItem.material?.name || "Unknown";
+  const displayCode = recipeItem.listed_material?.code || recipeItem.material?.code || "";
+
+  // Determine if we need material selection (has listed_material with multiple linked materials)
+  const needsMaterialSelection = recipeItem.listed_material_id && linkedMaterials.length > 1;
+  const hasSingleLinkedMaterial = recipeItem.listed_material_id && linkedMaterials.length === 1;
+
+  // Auto-select if only one linked material
+  useEffect(() => {
+    if (hasSingleLinkedMaterial && !selectedMaterialId && isActive) {
+      setSelectedMaterialId(linkedMaterials[0].id);
+    }
+  }, [hasSingleLinkedMaterial, linkedMaterials, selectedMaterialId, isActive]);
 
   useEffect(() => {
     if (hasAllergens && isActive && !allergenAcknowledged) {
@@ -75,12 +107,12 @@ export function IngredientWeighingCard({
     }
   }, [hasAllergens, isActive, allergenAcknowledged]);
 
-  // Auto-select first lot (FEFO)
+  // Auto-select first lot (FEFO) when material is selected
   useEffect(() => {
-    if (availableLots.length > 0 && !selectedLotId && isActive) {
+    if (availableLots.length > 0 && !selectedLotId && isActive && effectiveMaterialId) {
       setSelectedLotId(availableLots[0].id);
     }
-  }, [availableLots, selectedLotId, isActive]);
+  }, [availableLots, selectedLotId, isActive, effectiveMaterialId]);
 
   // Pre-fill required quantity
   useEffect(() => {
@@ -90,13 +122,13 @@ export function IngredientWeighingCard({
   }, [isActive, requiredQuantity, weighedQuantity]);
 
   const handleConfirm = () => {
-    if (!selectedLot || !weighedQuantity) return;
+    if (!selectedLot || !weighedQuantity || !effectiveMaterialId) return;
 
     const qty = parseFloat(weighedQuantity);
     onComplete({
       recipeItemId: recipeItem.id,
-      materialId: recipeItem.material_id,
-      materialName: recipeItem.material?.name || "",
+      materialId: effectiveMaterialId,
+      materialName: selectedMaterial?.name || displayName,
       requiredQuantity,
       unitAbbreviation,
       weighedQuantity: qty,
@@ -140,7 +172,7 @@ export function IngredientWeighingCard({
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white font-bold">
                 <CheckCircle2 className="h-5 w-5" />
               </div>
-              <CardTitle className="text-lg">{recipeItem.material?.name}</CardTitle>
+              <CardTitle className="text-lg">{displayName}</CardTitle>
             </div>
             <Badge variant="outline" className="border-green-500 text-green-700">
               Completed
@@ -184,8 +216,8 @@ export function IngredientWeighingCard({
               {stepNumber}
             </div>
             <div>
-              <CardTitle className="text-lg">{recipeItem.material?.name}</CardTitle>
-              <p className="text-sm text-muted-foreground font-mono">{recipeItem.material?.code}</p>
+              <CardTitle className="text-lg">{displayName}</CardTitle>
+              <p className="text-sm text-muted-foreground font-mono">{displayCode}</p>
             </div>
           </div>
           {hasAllergens && (
@@ -249,6 +281,45 @@ export function IngredientWeighingCard({
             </span>
           )}
         </div>
+
+        {/* Material Selection (for Listed Materials with multiple linked materials) */}
+        {needsMaterialSelection && (
+          <div className="space-y-2">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Select Material Supplier
+            </Label>
+            {linkedMaterialsLoading ? (
+              <div className="flex items-center gap-2 h-12 px-3 border rounded-md bg-muted">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-muted-foreground">Loading linked materials...</span>
+              </div>
+            ) : (
+              <Select
+                value={selectedMaterialId}
+                onValueChange={(id) => {
+                  setSelectedMaterialId(id);
+                  setSelectedLotId(""); // Reset lot when material changes
+                }}
+                disabled={!isActive}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Select a material supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {linkedMaterials.map((mat) => (
+                    <SelectItem key={mat.id} value={mat.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{mat.name}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{mat.code}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
 
         {/* Lot Selection */}
         <div className="space-y-2">

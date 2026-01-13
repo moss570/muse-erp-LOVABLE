@@ -28,12 +28,18 @@ export interface ProductRecipe {
 
 export interface RecipeItem {
   id: string;
-  material_id: string;
+  listed_material_id: string | null;
+  material_id: string | null; // Legacy for backward compatibility
   quantity_required: number;
   unit_id: string | null;
   wastage_percentage: number | null;
   sort_order: number | null;
   notes: string | null;
+  listed_material: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
   material: {
     id: string;
     name: string;
@@ -41,8 +47,17 @@ export interface RecipeItem {
     allergens: string[] | null;
     usage_unit_id: string | null;
     usage_unit?: { code: string; name: string } | null;
-  };
+  } | null;
   unit?: { code: string; name: string } | null;
+}
+
+export interface LinkedMaterial {
+  id: string;
+  name: string;
+  code: string;
+  allergens: string[] | null;
+  usage_unit_id: string | null;
+  usage_unit?: { code: string; name: string } | null;
 }
 
 export interface AvailableLot {
@@ -137,12 +152,16 @@ export function useRecipeItems(recipeId: string | null) {
         .from("product_recipe_items")
         .select(`
           id,
+          listed_material_id,
           material_id,
           quantity_required,
           unit_id,
           wastage_percentage,
           sort_order,
           notes,
+          listed_material:listed_material_names!product_recipe_items_listed_material_id_fkey(
+            id, name, code
+          ),
           material:materials!product_recipe_items_material_id_fkey(
             id,
             name,
@@ -160,6 +179,38 @@ export function useRecipeItems(recipeId: string | null) {
       return data as RecipeItem[];
     },
     enabled: !!recipeId,
+  });
+}
+
+// Fetch linked materials for a listed material
+export function useLinkedMaterials(listedMaterialId: string | null) {
+  return useQuery({
+    queryKey: ["linked-materials", listedMaterialId],
+    queryFn: async () => {
+      if (!listedMaterialId) return [];
+      
+      const { data, error } = await supabase
+        .from("material_listed_material_links")
+        .select(`
+          material:materials!material_listed_material_links_material_id_fkey(
+            id,
+            name,
+            code,
+            allergens,
+            usage_unit_id,
+            usage_unit:units_of_measure!materials_usage_unit_id_fkey(code, name)
+          )
+        `)
+        .eq("listed_material_id", listedMaterialId);
+
+      if (error) throw error;
+      
+      // Extract materials from the junction table result
+      return data
+        .map((link: any) => link.material)
+        .filter(Boolean) as LinkedMaterial[];
+    },
+    enabled: !!listedMaterialId,
   });
 }
 

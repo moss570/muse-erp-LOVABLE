@@ -4047,7 +4047,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          material_id: string
+          listed_material_id: string | null
+          material_id: string | null
           notes: string | null
           quantity_required: number
           recipe_id: string
@@ -4058,7 +4059,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          material_id: string
+          listed_material_id?: string | null
+          material_id?: string | null
           notes?: string | null
           quantity_required: number
           recipe_id: string
@@ -4069,7 +4071,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          material_id?: string
+          listed_material_id?: string | null
+          material_id?: string | null
           notes?: string | null
           quantity_required?: number
           recipe_id?: string
@@ -4078,6 +4081,13 @@ export type Database = {
           wastage_percentage?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_recipe_items_listed_material_id_fkey"
+            columns: ["listed_material_id"]
+            isOneToOne: false
+            referencedRelation: "listed_material_names"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_recipe_items_material_id_fkey"
             columns: ["material_id"]

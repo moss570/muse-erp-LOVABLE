@@ -75,12 +75,18 @@ interface Recipe {
 
 interface RecipeItem {
   id: string;
-  material_id: string;
+  listed_material_id: string | null;
+  material_id: string | null; // Legacy - for backward compatibility
   quantity_required: number;
   unit_id: string | null;
   wastage_percentage: number | null;
   sort_order: number | null;
   notes: string | null;
+  listed_material: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
   material: {
     id: string;
     name: string;
@@ -137,12 +143,16 @@ export default function RecipeManagement() {
         .from("product_recipe_items")
         .select(`
           id,
+          listed_material_id,
           material_id,
           quantity_required,
           unit_id,
           wastage_percentage,
           sort_order,
           notes,
+          listed_material:listed_material_names!product_recipe_items_listed_material_id_fkey(
+            id, name, code
+          ),
           material:materials!product_recipe_items_material_id_fkey(
             id, name, code,
             usage_unit:units_of_measure!materials_usage_unit_id_fkey(code, name)
@@ -158,16 +168,13 @@ export default function RecipeManagement() {
     enabled: !!selectedRecipeId,
   });
 
-  // Fetch materials for adding items
-  const { data: materials = [] } = useQuery({
-    queryKey: ["materials-for-recipe"],
+  // Fetch listed materials for adding items (BOMs use Listed Materials, not Materials directly)
+  const { data: listedMaterials = [] } = useQuery({
+    queryKey: ["listed-materials-for-recipe"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("materials")
-        .select(`
-          id, name, code,
-          usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name)
-        `)
+        .from("listed_material_names")
+        .select("id, name, code")
         .eq("is_active", true)
         .order("name");
 
@@ -222,11 +229,11 @@ export default function RecipeManagement() {
     },
   });
 
-  // Add recipe item mutation
+  // Add recipe item mutation - now uses listed_material_id instead of material_id
   const addItemMutation = useMutation({
     mutationFn: async (item: {
       recipe_id: string;
-      material_id: string;
+      listed_material_id: string;
       quantity_required: number;
       unit_id: string | null;
       wastage_percentage: number | null;
@@ -245,19 +252,24 @@ export default function RecipeManagement() {
       const { error } = await supabase
         .from("product_recipe_items")
         .insert({
-          ...item,
+          recipe_id: item.recipe_id,
+          listed_material_id: item.listed_material_id,
+          quantity_required: item.quantity_required,
+          unit_id: item.unit_id,
+          wastage_percentage: item.wastage_percentage,
+          notes: item.notes,
           sort_order: nextOrder,
-        });
+        } as any); // Cast needed because material_id is now optional but types not yet regenerated
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipe-items-detail", selectedRecipeId] });
       setAddItemDialogOpen(false);
-      toast({ title: "Material added to recipe" });
+      toast({ title: "Listed material added to recipe" });
     },
     onError: (error: any) => {
-      toast({ title: "Error adding material", description: error.message, variant: "destructive" });
+      toast({ title: "Error adding listed material", description: error.message, variant: "destructive" });
     },
   });
 
@@ -466,17 +478,17 @@ export default function RecipeManagement() {
                             {index + 1}
                           </TableCell>
                           <TableCell className="font-medium">
-                            {item.material?.name}
+                            {item.listed_material?.name || item.material?.name || "Unknown"}
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {item.material?.code}
+                            {item.listed_material?.code || item.material?.code || "-"}
                           </TableCell>
                           <TableCell className="text-right font-mono">
                             {item.quantity_required.toFixed(4)}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {item.unit?.code || item.material?.usage_unit?.code || "units"}
+                              {item.unit?.code || "units"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -554,17 +566,17 @@ export default function RecipeManagement() {
         <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Material to Recipe</DialogTitle>
+              <DialogTitle>Add Listed Material to Recipe</DialogTitle>
               <DialogDescription>
-                Add a new material to {selectedRecipe?.recipe_name}
+                Add a listed material to {selectedRecipe?.recipe_name}. During production, operators will select the actual material to use.
               </DialogDescription>
             </DialogHeader>
             {selectedRecipeId && (
               <AddItemForm
                 recipeId={selectedRecipeId}
-                materials={materials}
+                listedMaterials={listedMaterials}
                 units={units}
-                existingMaterialIds={recipeItems.map((i) => i.material_id)}
+                existingListedMaterialIds={recipeItems.map((i) => i.listed_material_id).filter(Boolean) as string[]}
                 onSave={(data) => addItemMutation.mutate(data)}
                 onCancel={() => setAddItemDialogOpen(false)}
                 isLoading={addItemMutation.isPending}
@@ -673,23 +685,23 @@ function EditItemForm({
   );
 }
 
-// Add Item Form Component
+// Add Item Form Component - Now uses Listed Materials instead of Materials
 function AddItemForm({
   recipeId,
-  materials,
+  listedMaterials,
   units,
-  existingMaterialIds,
+  existingListedMaterialIds,
   onSave,
   onCancel,
   isLoading,
 }: {
   recipeId: string;
-  materials: any[];
+  listedMaterials: { id: string; name: string; code: string }[];
   units: { id: string; code: string; name: string }[];
-  existingMaterialIds: string[];
+  existingListedMaterialIds: string[];
   onSave: (data: {
     recipe_id: string;
-    material_id: string;
+    listed_material_id: string;
     quantity_required: number;
     unit_id: string | null;
     wastage_percentage: number | null;
@@ -698,32 +710,21 @@ function AddItemForm({
   onCancel: () => void;
   isLoading: boolean;
 }) {
-  const [materialId, setMaterialId] = useState("");
+  const [listedMaterialId, setListedMaterialId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unitId, setUnitId] = useState("");
   const [wastage, setWastage] = useState("0");
   const [notes, setNotes] = useState("");
 
-  const availableMaterials = materials.filter(
-    (m) => !existingMaterialIds.includes(m.id)
+  const availableMaterials = listedMaterials.filter(
+    (m) => !existingListedMaterialIds.includes(m.id)
   );
-
-  const selectedMaterial = materials.find((m) => m.id === materialId);
-
-  // Auto-select material's usage unit
-  const handleMaterialChange = (id: string) => {
-    setMaterialId(id);
-    const mat = materials.find((m) => m.id === id);
-    if (mat?.usage_unit?.id) {
-      setUnitId(mat.usage_unit.id);
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       recipe_id: recipeId,
-      material_id: materialId,
+      listed_material_id: listedMaterialId,
       quantity_required: parseFloat(quantity) || 0,
       unit_id: unitId || null,
       wastage_percentage: parseFloat(wastage) || 0,
@@ -734,10 +735,10 @@ function AddItemForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="material">Material</Label>
-        <Select value={materialId} onValueChange={handleMaterialChange} required>
+        <Label htmlFor="listed-material">Listed Material</Label>
+        <Select value={listedMaterialId} onValueChange={setListedMaterialId} required>
           <SelectTrigger>
-            <SelectValue placeholder="Select a material" />
+            <SelectValue placeholder="Select a listed material" />
           </SelectTrigger>
           <SelectContent>
             {availableMaterials.map((mat) => (
@@ -750,7 +751,7 @@ function AddItemForm({
         {availableMaterials.length === 0 && (
           <p className="text-sm text-amber-600 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
-            All materials already added to this recipe
+            All listed materials already added to this recipe
           </p>
         )}
       </div>
@@ -767,7 +768,7 @@ function AddItemForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="unit">Unit</Label>
+          <Label htmlFor="unit">Unit (KG/GRAM)</Label>
           <Select value={unitId} onValueChange={setUnitId}>
             <SelectTrigger>
               <SelectValue placeholder="Select unit" />
@@ -805,9 +806,9 @@ function AddItemForm({
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading || !materialId || !quantity}>
+        <Button type="submit" disabled={isLoading || !listedMaterialId || !quantity}>
           {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Add Material
+          Add Listed Material
         </Button>
       </DialogFooter>
     </form>
