@@ -16,7 +16,7 @@ import {
   PALLET_TYPES,
   PalletType,
 } from "@/lib/palletCalculations";
-import { PalletTypeSelector, OptimizationRecommendationsPanel, PalletVisualizationTabs } from "./pallet";
+import { PalletTypeSelector, OptimizationRecommendationsPanel, PalletVisualizationTabs, PalletLabelPrintDialog } from "./pallet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler } from "lucide-react";
+import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 const STANDARD_PALLET_WEIGHT_KG = 20; // Standard wooden pallet ~20kg
@@ -36,6 +36,7 @@ interface EditProductSizeDialogProps {
   onOpenChange: (open: boolean) => void;
   productId: string;
   productSku: string;
+  productName?: string;
   size: ProductSize | null;
   onSave: () => void;
 }
@@ -45,6 +46,7 @@ export function EditProductSizeDialog({
   onOpenChange,
   productId,
   productSku,
+  productName = "Product",
   size,
   onSave,
 }: EditProductSizeDialogProps) {
@@ -77,6 +79,7 @@ export function EditProductSizeDialog({
   const [palletType, setPalletType] = useState<PalletType>('US_STANDARD');
   const [customPalletLengthIn, setCustomPalletLengthIn] = useState<number | null>(null);
   const [customPalletWidthIn, setCustomPalletWidthIn] = useState<number | null>(null);
+  const [showLabelPrintDialog, setShowLabelPrintDialog] = useState(false);
 
   // Get effective pallet dimensions based on type
   const effectivePalletDims = useMemo(() => {
@@ -892,6 +895,18 @@ export function EditProductSizeDialog({
                     palletWidthIn={effectivePalletDims.widthIn}
                     overhang={overhang}
                   />
+
+                  {/* Print Label Button */}
+                  <div className="flex justify-end pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowLabelPrintDialog(true)}
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Pallet Label
+                    </Button>
+                  </div>
                 </div>
               )}
             </CollapsibleContent>
@@ -928,6 +943,34 @@ export function EditProductSizeDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Pallet Label Print Dialog */}
+      {tiCount && hiCount && selectedContainer && (
+        <PalletLabelPrintDialog
+          open={showLabelPrintDialog}
+          onOpenChange={setShowLabelPrintDialog}
+          data={{
+            productName,
+            productSku: generatedSku || productSku,
+            sizeName: selectedContainer.name,
+            caseUpc: caseUpc || undefined,
+            tubUpc: tubUpc || undefined,
+            ti: tiCount,
+            hi: hiCount,
+            casesPerPallet: casesPerPallet || tiCount * hiCount,
+            unitsPerCase: unitsPerCase,
+            totalUnits: totalUnitsPerPallet || (tiCount * hiCount * unitsPerCase),
+            palletWeightKg: palletWeightKg || undefined,
+            palletWeightLbs: palletWeightKg ? palletWeightKg * 2.20462 : undefined,
+            caseWeightKg: caseWeightKg || undefined,
+            boxDimensions: selectedBoxMaterial 
+              ? `${selectedBoxMaterial.box_length_in}"×${selectedBoxMaterial.box_width_in}"×${selectedBoxMaterial.box_height_in}"`
+              : undefined,
+            palletType: palletType.replace('_', ' '),
+            stackHeightIn: palletMetrics?.stackHeightIn,
+          }}
+        />
+      )}
     </Dialog>
   );
 }

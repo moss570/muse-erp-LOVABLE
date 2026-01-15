@@ -148,6 +148,7 @@ export function ProductFormDialog({
                     <ProductSizesTab 
                       productId={product.id}
                       productSku={product.sku || ""}
+                      productName={product.name}
                       requiresUpc={product.requires_upc || false}
                     />
                   )}
