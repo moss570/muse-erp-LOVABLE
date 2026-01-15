@@ -17,10 +17,11 @@ import { toast } from "sonner";
 interface ProductSizesTabProps {
   productId: string;
   productSku?: string;
+  productName?: string;
   requiresUpc?: boolean;
 }
 
-export function ProductSizesTab({ productId, productSku = "", requiresUpc = false }: ProductSizesTabProps) {
+export function ProductSizesTab({ productId, productSku = "", productName = "Product", requiresUpc = false }: ProductSizesTabProps) {
   const { sizes, createSize, updateSize, deleteSize, isLoading } = useProductSizes(productId);
   const [isAddingSize, setIsAddingSize] = useState(false);
   const [generatingUpc, setGeneratingUpc] = useState<string | null>(null);
@@ -340,6 +341,7 @@ export function ProductSizesTab({ productId, productSku = "", requiresUpc = fals
         onOpenChange={setEditDialogOpen}
         productId={productId}
         productSku={productSku}
+        productName={productName}
         size={editingSize}
         onSave={() => {
           // Sizes are automatically refetched via query invalidation
