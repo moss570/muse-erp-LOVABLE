@@ -37,20 +37,6 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
     },
   });
 
-  // Fetch base products (products that can be flavor families)
-  const { data: baseProducts = [] } = useQuery({
-    queryKey: ["base-products"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, name, sku")
-        .eq("is_base_product", true)
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   // Get categories with SKU prefix for display
   const categoriesWithPrefix = useMemo(() => {
@@ -238,65 +224,34 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
         )}
       />
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="flavor_family_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Flavor Family (Base Product)</FormLabel>
-              <Select
-                value={field.value || "__none__"}
-                onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select base product" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="__none__">None (Standalone)</SelectItem>
-                  {baseProducts.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} ({product.sku})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="unit_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Base Unit</FormLabel>
-              <Select
-                value={field.value || "__none__"}
-                onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {units.map((unit) => (
-                    <SelectItem key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="unit_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Base Unit</FormLabel>
+            <Select
+              value={field.value || "__none__"}
+              onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {units.map((unit) => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    {unit.name} ({unit.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <FormField

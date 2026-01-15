@@ -20,7 +20,6 @@ const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   product_category_id: z.string().optional(),
-  flavor_family_id: z.string().optional(),
   unit_id: z.string().optional(),
   is_base_product: z.boolean().default(false),
   is_active: z.boolean().default(true),
@@ -41,7 +40,6 @@ interface ProductFormDialogProps {
     name: string;
     description?: string | null;
     product_category_id?: string | null;
-    flavor_family_id?: string | null;
     unit_id?: string | null;
     is_base_product?: boolean | null;
     is_active?: boolean | null;
@@ -71,7 +69,6 @@ export function ProductFormDialog({
       name: "",
       description: "",
       product_category_id: undefined,
-      flavor_family_id: undefined,
       unit_id: undefined,
       is_base_product: false,
       is_active: true,
@@ -89,7 +86,6 @@ export function ProductFormDialog({
         name: product.name || "",
         description: product.description || "",
         product_category_id: product.product_category_id || undefined,
-        flavor_family_id: product.flavor_family_id || undefined,
         unit_id: product.unit_id || undefined,
         is_base_product: product.is_base_product || false,
         is_active: product.is_active ?? true,
@@ -104,7 +100,6 @@ export function ProductFormDialog({
         name: "",
         description: "",
         product_category_id: undefined,
-        flavor_family_id: undefined,
         unit_id: undefined,
         is_base_product: false,
         is_active: true,

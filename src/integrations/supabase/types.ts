@@ -4860,7 +4860,6 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
-          flavor_family_id: string | null
           handling_instructions: string | null
           id: string
           is_active: boolean | null
@@ -4891,7 +4890,6 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
-          flavor_family_id?: string | null
           handling_instructions?: string | null
           id?: string
           is_active?: boolean | null
@@ -4922,7 +4920,6 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
-          flavor_family_id?: string | null
           handling_instructions?: string | null
           id?: string
           is_active?: boolean | null
@@ -4948,13 +4945,6 @@ export type Database = {
           {
             foreignKeyName: "products_base_product_id_fkey"
             columns: ["base_product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_flavor_family_id_fkey"
-            columns: ["flavor_family_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
