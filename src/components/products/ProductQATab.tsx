@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Download, Loader2, AlertTriangle, X } from "lucide-react";
@@ -43,8 +44,8 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     test_method: "",
   });
 
-  const [selectedAllergen, setSelectedAllergen] = useState("");
-  const [selectedClaim, setSelectedClaim] = useState("");
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
 
   const category = categories.find((c) => c.id === productCategoryId);
 
@@ -96,25 +97,49 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     setIsAddingReq(false);
   };
 
-  const handleAddAllergen = async () => {
-    if (!selectedAllergen) return;
-    await createAttribute.mutateAsync({
-      product_id: productId,
-      attribute_type: "allergen",
-      attribute_value: selectedAllergen,
-    });
-    setSelectedAllergen("");
+  const handleAddAllergens = async () => {
+    if (selectedAllergens.length === 0) return;
+    for (const allergen of selectedAllergens) {
+      await createAttribute.mutateAsync({
+        product_id: productId,
+        attribute_type: "allergen",
+        attribute_value: allergen,
+      });
+    }
+    setSelectedAllergens([]);
   };
 
-  const handleAddClaim = async () => {
-    if (!selectedClaim) return;
-    await createAttribute.mutateAsync({
-      product_id: productId,
-      attribute_type: "claim",
-      attribute_value: selectedClaim,
-    });
-    setSelectedClaim("");
+  const handleAddClaims = async () => {
+    if (selectedClaims.length === 0) return;
+    for (const claim of selectedClaims) {
+      await createAttribute.mutateAsync({
+        product_id: productId,
+        attribute_type: "claim",
+        attribute_value: claim,
+      });
+    }
+    setSelectedClaims([]);
   };
+
+  const toggleAllergen = (allergen: string) => {
+    setSelectedAllergens((prev) =>
+      prev.includes(allergen) ? prev.filter((a) => a !== allergen) : [...prev, allergen]
+    );
+  };
+
+  const toggleClaim = (claim: string) => {
+    setSelectedClaims((prev) =>
+      prev.includes(claim) ? prev.filter((c) => c !== claim) : [...prev, claim]
+    );
+  };
+
+  const availableAllergens = COMMON_ALLERGENS.filter(
+    (a) => !allergens.some((al) => al.attribute_value === a)
+  );
+
+  const availableClaims = COMMON_CLAIMS.filter(
+    (c) => !claims.some((cl) => cl.attribute_value === c)
+  );
 
   if (isLoading) {
     return (
@@ -308,25 +333,36 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                 <span className="text-sm text-muted-foreground">No allergens declared</span>
               )}
             </div>
-            <div className="flex gap-2">
-              <Select value={selectedAllergen} onValueChange={setSelectedAllergen}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select allergen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMMON_ALLERGENS.filter(
-                    (a) => !allergens.some((al) => al.attribute_value === a)
-                  ).map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {a}
-                    </SelectItem>
+            {availableAllergens.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                  {availableAllergens.map((a) => (
+                    <div key={a} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`allergen-${a}`}
+                        checked={selectedAllergens.includes(a)}
+                        onCheckedChange={() => toggleAllergen(a)}
+                      />
+                      <label
+                        htmlFor={`allergen-${a}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {a}
+                      </label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleAddAllergen} disabled={!selectedAllergen}>
-                Add
-              </Button>
-            </div>
+                </div>
+                <Button 
+                  onClick={handleAddAllergens} 
+                  disabled={selectedAllergens.length === 0}
+                  className="w-full"
+                >
+                  Add Selected ({selectedAllergens.length})
+                </Button>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">All allergens have been added</span>
+            )}
           </CardContent>
         </Card>
 
@@ -350,25 +386,36 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                 <span className="text-sm text-muted-foreground">No claims added</span>
               )}
             </div>
-            <div className="flex gap-2">
-              <Select value={selectedClaim} onValueChange={setSelectedClaim}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select claim" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMMON_CLAIMS.filter(
-                    (c) => !claims.some((cl) => cl.attribute_value === c)
-                  ).map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
+            {availableClaims.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                  {availableClaims.map((c) => (
+                    <div key={c} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`claim-${c}`}
+                        checked={selectedClaims.includes(c)}
+                        onCheckedChange={() => toggleClaim(c)}
+                      />
+                      <label
+                        htmlFor={`claim-${c}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {c}
+                      </label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleAddClaim} disabled={!selectedClaim}>
-                Add
-              </Button>
-            </div>
+                </div>
+                <Button 
+                  onClick={handleAddClaims} 
+                  disabled={selectedClaims.length === 0}
+                  className="w-full"
+                >
+                  Add Selected ({selectedClaims.length})
+                </Button>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">All claims have been added</span>
+            )}
           </CardContent>
         </Card>
       </div>
