@@ -27,6 +27,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
@@ -44,11 +51,20 @@ const materialNameSchema = z.object({
   code: z.string().min(1, 'Code is required'),
   name: z.string().min(1, 'Name is required').max(200, 'Name must be 200 characters or less'),
   description: z.string().max(500, 'Description must be 500 characters or less').optional(),
+  category_id: z.string().optional().nullable(),
   is_active: z.boolean().default(true),
 });
 
 type MaterialNameFormData = z.infer<typeof materialNameSchema>;
 type ListedMaterialName = Tables<'listed_material_names'>;
+
+interface ListedMaterialCategory {
+  id: string;
+  name: string;
+  code: string;
+  sort_order: number | null;
+  is_active: boolean | null;
+}
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'All Status' },
@@ -59,6 +75,7 @@ const STATUS_FILTER_OPTIONS = [
 export default function ListedMaterialNames() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLinkedDialogOpen, setIsLinkedDialogOpen] = useState(false);
   const [editingName, setEditingName] = useState<ListedMaterialName | null>(null);
@@ -75,6 +92,7 @@ export default function ListedMaterialNames() {
       code: '',
       name: '',
       description: '',
+      category_id: null,
       is_active: true,
     },
   });
@@ -89,16 +107,31 @@ export default function ListedMaterialNames() {
     return data as string;
   };
 
-  // Fetch listed material names with linked material counts
+  // Fetch listed material names with category join
   const { data: materialNames, isLoading, refetch } = useQuery({
-    queryKey: ['listed-material-names'],
+    queryKey: ['listed-material-names-with-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('listed_material_names')
-        .select('*')
+        .select('*, category:listed_material_categories(id, name, code)')
         .order('name');
       if (error) throw error;
-      return data as ListedMaterialName[];
+      return data as (ListedMaterialName & { category: ListedMaterialCategory | null })[];
+    },
+  });
+
+  // Fetch categories for dropdown
+  const { data: categories } = useQuery({
+    queryKey: ['listed-material-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('listed_material_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+        .order('name');
+      if (error) throw error;
+      return data as ListedMaterialCategory[];
     },
   });
 
@@ -126,14 +159,15 @@ export default function ListedMaterialNames() {
         code: data.code,
         name: data.name,
         description: data.description || null,
+        category_id: data.category_id || null,
         is_active: data.is_active,
       }]);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
+      queryClient.invalidateQueries({ queryKey: ['listed-material-names-with-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['category-material-counts'] });
       toast({ title: 'Material name created successfully' });
-      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating material name', description: error.message, variant: 'destructive' });
@@ -148,15 +182,16 @@ export default function ListedMaterialNames() {
           code: data.code,
           name: data.name,
           description: data.description || null,
+          category_id: data.category_id || null,
           is_active: data.is_active,
         })
         .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
+      queryClient.invalidateQueries({ queryKey: ['listed-material-names-with-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['category-material-counts'] });
       toast({ title: 'Material name updated successfully' });
-      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating material name', description: error.message, variant: 'destructive' });
@@ -169,7 +204,8 @@ export default function ListedMaterialNames() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listed-material-names'] });
+      queryClient.invalidateQueries({ queryKey: ['listed-material-names-with-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['category-material-counts'] });
       toast({ title: 'Material name deleted successfully' });
     },
     onError: (error: Error) => {
@@ -177,13 +213,14 @@ export default function ListedMaterialNames() {
     },
   });
 
-  const handleOpenDialog = async (materialName?: ListedMaterialName) => {
+  const handleOpenDialog = async (materialName?: ListedMaterialName & { category?: ListedMaterialCategory | null }) => {
     if (materialName) {
       setEditingName(materialName);
       form.reset({
         code: (materialName as any).code || '',
         name: materialName.name,
         description: materialName.description || '',
+        category_id: (materialName as any).category_id || null,
         is_active: materialName.is_active ?? true,
       });
     } else {
@@ -193,6 +230,7 @@ export default function ListedMaterialNames() {
         code: newCode,
         name: '',
         description: '',
+        category_id: null,
         is_active: true,
       });
     }
@@ -217,12 +255,17 @@ export default function ListedMaterialNames() {
   const filteredNames = materialNames?.filter((n) => {
     const matchesSearch = 
       n.name.toLowerCase().includes(search.toLowerCase()) ||
-      (n.description?.toLowerCase().includes(search.toLowerCase()) ?? false);
+      (n.description?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+      ((n as any).code?.toLowerCase().includes(search.toLowerCase()) ?? false);
     const matchesStatus = 
       statusFilter === 'all' ||
       (statusFilter === 'active' && n.is_active) ||
       (statusFilter === 'inactive' && !n.is_active);
-    return matchesSearch && matchesStatus;
+    const matchesCategory =
+      categoryFilter === 'all' ||
+      (categoryFilter === 'uncategorized' && !(n as any).category_id) ||
+      (n as any).category_id === categoryFilter;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const totalItems = filteredNames?.length || 0;
@@ -259,15 +302,34 @@ export default function ListedMaterialNames() {
         totalCount={materialNames?.length}
         filteredCount={filteredNames?.length}
         actions={
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-1.5"
-            onClick={() => navigate('/settings/import-export')}
-          >
-            <Upload className="h-4 w-4" />
-            Import / Export
-          </Button>
+          <div className="flex gap-2">
+            <Select value={categoryFilter} onValueChange={(value) => {
+              setCategoryFilter(value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="uncategorized">Uncategorized</SelectItem>
+                {categories?.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    [{cat.code}] {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1.5"
+              onClick={() => navigate('/settings/import-export')}
+            >
+              <Upload className="h-4 w-4" />
+              Import / Export
+            </Button>
+          </div>
         }
       />
 
@@ -282,7 +344,8 @@ export default function ListedMaterialNames() {
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead className="w-[100px]">Code</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="max-w-[200px]">Description</TableHead>
                   <TableHead className="text-center">Linked Materials</TableHead>
                   <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
@@ -290,7 +353,7 @@ export default function ListedMaterialNames() {
               <TableBody>
                 {paginatedNames?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                       <Tags className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No material names found</p>
                       <p className="text-sm">Try adjusting your search or filter</p>
@@ -310,7 +373,16 @@ export default function ListedMaterialNames() {
                         </TableCell>
                         <TableCell className="font-mono text-sm">{(materialName as any).code || '-'}</TableCell>
                         <TableCell className="font-medium">{materialName.name}</TableCell>
-                        <TableCell className="text-muted-foreground max-w-md truncate">
+                        <TableCell>
+                          {(materialName as any).category ? (
+                            <Badge variant="outline" className="font-mono">
+                              {(materialName as any).category.code}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate">
                           {materialName.description || '-'}
                         </TableCell>
                         <TableCell className="text-center">
@@ -428,6 +500,35 @@ export default function ListedMaterialNames() {
                     <FormControl>
                       <Input placeholder="e.g., Organic Cane Sugar" {...field} maxLength={200} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select 
+                      onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
+                      value={field.value || '__none__'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {categories?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            [{cat.code}] {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

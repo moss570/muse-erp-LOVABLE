@@ -28,6 +28,7 @@ import {
   CalendarCheck,
   Link2,
   Barcode,
+  FolderTree,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -86,6 +87,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Manage listed material names for standardization',
         href: '/settings/material-names',
         icon: Tags,
+        status: 'active',
+      },
+      {
+        title: 'Material Name Categories',
+        description: 'Organize listed materials into categories',
+        href: '/settings/material-name-categories',
+        icon: FolderTree,
         status: 'active',
       },
       {
