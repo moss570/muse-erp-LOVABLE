@@ -593,6 +593,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         box_allergen_free_adhesives: (material as any).box_allergen_free_adhesives ?? false,
         box_heavy_metals_coneg: (material as any).box_heavy_metals_coneg ?? false,
         box_foreign_material_control: (material as any).box_foreign_material_control ?? false,
+        // Box Physical Dimensions (for pallet configuration)
+        box_weight_kg: (material as any).box_weight_kg ?? null,
+        box_length_in: (material as any).box_length_in ?? null,
+        box_width_in: (material as any).box_width_in ?? null,
+        box_height_in: (material as any).box_height_in ?? null,
       });
       // Load default photo state
       setDefaultPhotoPath((material as any).photo_path || undefined);
