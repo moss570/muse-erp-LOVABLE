@@ -137,12 +137,12 @@ export default function QualityTests() {
                 className="pl-10"
               />
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter || 'all'} onValueChange={(v) => setCategoryFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {TEST_CATEGORIES.map((cat) => (
                   <SelectItem key={cat.value} value={cat.value}>
                     {cat.label}
@@ -150,12 +150,12 @@ export default function QualityTests() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={stageFilter} onValueChange={setStageFilter}>
+            <Select value={stageFilter || 'all'} onValueChange={(v) => setStageFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Stages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Stages</SelectItem>
+                <SelectItem value="all">All Stages</SelectItem>
                 {APPLICABLE_STAGES.map((stage) => (
                   <SelectItem key={stage.value} value={stage.value}>
                     {stage.label}
@@ -163,22 +163,22 @@ export default function QualityTests() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={activeFilter} onValueChange={setActiveFilter}>
+            <Select value={activeFilter || 'all'} onValueChange={(v) => setActiveFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={criticalFilter} onValueChange={setCriticalFilter}>
+            <Select value={criticalFilter || 'all'} onValueChange={(v) => setCriticalFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Tests" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Tests</SelectItem>
+                <SelectItem value="all">All Tests</SelectItem>
                 <SelectItem value="critical">Critical (CCP)</SelectItem>
                 <SelectItem value="non-critical">Non-Critical</SelectItem>
               </SelectContent>
