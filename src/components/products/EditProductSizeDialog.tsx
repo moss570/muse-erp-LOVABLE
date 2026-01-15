@@ -13,8 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Loader2, Wand2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ChevronDown, Loader2, Wand2, Layers, Scale } from "lucide-react";
 import { toast } from "sonner";
+import { PalletVisualizer } from "./PalletVisualizer";
+
+const STANDARD_PALLET_WEIGHT_KG = 20; // Standard wooden pallet ~20kg
 
 interface EditProductSizeDialogProps {
   open: boolean;
@@ -56,6 +60,9 @@ export function EditProductSizeDialog({
   const [isGeneratingUpc, setIsGeneratingUpc] = useState(false);
   const [weightSectionOpen, setWeightSectionOpen] = useState(false);
   const [upcSectionOpen, setUpcSectionOpen] = useState(false);
+  const [palletSectionOpen, setPalletSectionOpen] = useState(false);
+  const [tiCount, setTiCount] = useState<number | null>(null);
+  const [hiCount, setHiCount] = useState<number | null>(null);
 
   // Fetch box materials (materials with category = 'Boxes') with dimensions
   const { data: boxMaterials = [] } = useQuery({
@@ -114,6 +121,33 @@ export function EditProductSizeDialog({
     return Math.round((productWeight + boxWeight) * 100) / 100;
   }, [targetWeight, unitsPerCase, selectedBoxMaterial]);
 
+  // Calculate case cube in cubic feet for display
+  const caseCubeFt3 = useMemo(() => {
+    if (!selectedBoxMaterial?.box_length_in || !selectedBoxMaterial?.box_width_in || !selectedBoxMaterial?.box_height_in) {
+      return null;
+    }
+    const volumeIn3 = selectedBoxMaterial.box_length_in * selectedBoxMaterial.box_width_in * selectedBoxMaterial.box_height_in;
+    return volumeIn3 / 1728; // Convert cubic inches to cubic feet
+  }, [selectedBoxMaterial]);
+
+  // Calculate cases per pallet (Ti × Hi)
+  const casesPerPallet = useMemo(() => {
+    if (!tiCount || !hiCount) return null;
+    return tiCount * hiCount;
+  }, [tiCount, hiCount]);
+
+  // Calculate total units per pallet
+  const totalUnitsPerPallet = useMemo(() => {
+    if (!casesPerPallet) return null;
+    return casesPerPallet * unitsPerCase;
+  }, [casesPerPallet, unitsPerCase]);
+
+  // Calculate total pallet weight
+  const palletWeightKg = useMemo(() => {
+    if (!calculatedCaseWeightKg || !casesPerPallet) return null;
+    return (calculatedCaseWeightKg * casesPerPallet) + STANDARD_PALLET_WEIGHT_KG;
+  }, [calculatedCaseWeightKg, casesPerPallet]);
+
   // Reset form when dialog opens/closes or size changes
   useEffect(() => {
     if (open) {
@@ -140,6 +174,8 @@ export function EditProductSizeDialog({
         setCaseCubeM3(size.case_cube_m3 || null);
         setIsDefault(size.is_default || false);
         setIsActive(size.is_active);
+        setTiCount((size as any).ti_count || null);
+        setHiCount((size as any).hi_count || null);
       } else {
         // Reset to defaults for new size
         setContainerSizeId("");
@@ -155,9 +191,12 @@ export function EditProductSizeDialog({
         setCaseCubeM3(null);
         setIsDefault(false);
         setIsActive(true);
+        setTiCount(null);
+        setHiCount(null);
       }
       setWeightSectionOpen(false);
       setUpcSectionOpen(false);
+      setPalletSectionOpen(false);
     }
   }, [open, size]);
 
@@ -248,6 +287,8 @@ export function EditProductSizeDialog({
         case_cube_m3: caseCubeM3,
         is_default: isDefault,
         is_active: isActive,
+        ti_count: tiCount,
+        hi_count: hiCount,
       };
 
       if (isEditing && size) {
@@ -510,7 +551,106 @@ export function EditProductSizeDialog({
             </div>
           </div>
 
-          {/* Status Flags */}
+          {/* Pallet Configuration - Collapsible */}
+          <Collapsible open={palletSectionOpen} onOpenChange={setPalletSectionOpen}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
+              <span className="flex items-center gap-2">
+                <Layers className="h-4 w-4" />
+                Pallet Configuration
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2">
+              <p className="text-xs text-muted-foreground">
+                Configure how cases stack on a standard 48" × 40" pallet (GMA/ISO)
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Ti (Cases per Layer)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    placeholder="e.g., 8"
+                    value={tiCount ?? ""}
+                    onChange={(e) => setTiCount(e.target.value ? parseInt(e.target.value) : null)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cases that fit in one layer
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Hi (Number of Layers)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="20"
+                    placeholder="e.g., 5"
+                    value={hiCount ?? ""}
+                    onChange={(e) => setHiCount(e.target.value ? parseInt(e.target.value) : null)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Stacked layers on pallet
+                  </p>
+                </div>
+              </div>
+
+              {/* Pallet Summary */}
+              {(tiCount || hiCount) && (
+                <>
+                  <Separator />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-2 bg-muted/50 rounded-lg text-center">
+                      <Label className="text-muted-foreground text-xs">Cases/Pallet</Label>
+                      <p className="text-lg font-bold text-primary">
+                        {casesPerPallet ?? "—"}
+                      </p>
+                      {tiCount && hiCount && (
+                        <p className="text-xs text-muted-foreground">
+                          {tiCount}×{hiCount}
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-2 bg-muted/50 rounded-lg text-center">
+                      <Label className="text-muted-foreground text-xs">Total Units</Label>
+                      <p className="text-lg font-bold">
+                        {totalUnitsPerPallet ?? "—"}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-muted/50 rounded-lg text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Scale className="h-3 w-3 text-muted-foreground" />
+                        <Label className="text-muted-foreground text-xs">Pallet Wt</Label>
+                      </div>
+                      <p className="text-lg font-bold">
+                        {palletWeightKg ? `${palletWeightKg.toFixed(0)}kg` : "—"}
+                      </p>
+                      {palletWeightKg && (
+                        <p className="text-xs text-muted-foreground">
+                          {(palletWeightKg * 2.20462).toFixed(0)} lbs
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Pallet Visualization */}
+              {selectedBoxMaterial?.box_length_in && selectedBoxMaterial?.box_width_in && selectedBoxMaterial?.box_height_in && tiCount && hiCount && (
+                <div className="pt-2">
+                  <PalletVisualizer
+                    ti={tiCount}
+                    hi={hiCount}
+                    boxLengthIn={selectedBoxMaterial.box_length_in}
+                    boxWidthIn={selectedBoxMaterial.box_width_in}
+                    boxHeightIn={selectedBoxMaterial.box_height_in}
+                  />
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Switch
