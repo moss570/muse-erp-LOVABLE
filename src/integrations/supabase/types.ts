@@ -2589,8 +2589,39 @@ export type Database = {
           },
         ]
       }
+      listed_material_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       listed_material_names: {
         Row: {
+          category_id: string | null
           code: string | null
           created_at: string
           description: string | null
@@ -2600,6 +2631,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
           code?: string | null
           created_at?: string
           description?: string | null
@@ -2609,6 +2641,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
           code?: string | null
           created_at?: string
           description?: string | null
@@ -2617,7 +2650,15 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "listed_material_names_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "listed_material_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       locations: {
         Row: {

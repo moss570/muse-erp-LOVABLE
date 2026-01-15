@@ -357,17 +357,32 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     },
   });
 
-  // Fetch listed material names
+  // Fetch listed material names with categories
   const { data: listedMaterials } = useQuery({
-    queryKey: ['listed-material-names'],
+    queryKey: ['listed-material-names-with-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('listed_material_names')
-        .select('*')
+        .select('*, category:listed_material_categories(id, name, code)')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
-      return data as ListedMaterial[];
+      return data as (ListedMaterial & { category: { id: string; name: string; code: string } | null })[];
+    },
+  });
+
+  // Fetch categories for grouping
+  const { data: listedMaterialCategories } = useQuery({
+    queryKey: ['listed-material-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('listed_material_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; name: string; code: string; sort_order: number | null }[];
     },
   });
 

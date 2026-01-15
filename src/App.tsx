@@ -24,6 +24,7 @@ import SettingsHub from "./pages/settings/SettingsHub";
 import UnitsOfMeasure from "./pages/settings/UnitsOfMeasure";
 import Departments from "./pages/settings/Departments";
 import ListedMaterialNames from "./pages/settings/ListedMaterialNames";
+import MaterialNameCategories from "./pages/settings/MaterialNameCategories";
 import UserManagement from "./pages/settings/UserManagement";
 import ImportExport from "./pages/settings/ImportExport";
 import RolePermissions from "./pages/settings/RolePermissions";
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/settings/units" element={<AppLayout><UnitsOfMeasure /></AppLayout>} />
             <Route path="/settings/departments" element={<AppLayout><Departments /></AppLayout>} />
             <Route path="/settings/material-names" element={<AppLayout><ListedMaterialNames /></AppLayout>} />
+            <Route path="/settings/material-name-categories" element={<AppLayout><MaterialNameCategories /></AppLayout>} />
             <Route path="/settings/users" element={<AppLayout><UserManagement /></AppLayout>} />
             <Route path="/settings/permissions" element={<AppLayout><RolePermissions /></AppLayout>} />
             <Route path="/settings/import-export" element={<AppLayout><ImportExport /></AppLayout>} />
