@@ -6,6 +6,15 @@ import { usePackagingIndicators } from "@/hooks/usePackagingIndicators";
 import { useProductSizes, ProductSize } from "@/hooks/useProductSizes";
 import { generateProductSizeSKU } from "@/lib/skuGenerator";
 import { generateUPCPair } from "@/lib/upcGenerator";
+import {
+  validateTiConfiguration,
+  calculateOverhang,
+  getOverhangSeverity,
+  getOverhangColorClass,
+  calculatePalletMetrics,
+  getHeightWarning,
+  PALLET_TYPES,
+} from "@/lib/palletCalculations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { ChevronDown, Loader2, Wand2, Layers, Scale } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler } from "lucide-react";
 import { toast } from "sonner";
 import { PalletVisualizer } from "./PalletVisualizer";
 
@@ -130,23 +140,65 @@ export function EditProductSizeDialog({
     return volumeIn3 / 1728; // Convert cubic inches to cubic feet
   }, [selectedBoxMaterial]);
 
-  // Calculate cases per pallet (Ti × Hi)
-  const casesPerPallet = useMemo(() => {
+  // Ti validation with overhang detection
+  const tiValidation = useMemo(() => {
+    if (!tiCount || !selectedBoxMaterial?.box_length_in || !selectedBoxMaterial?.box_width_in) {
+      return null;
+    }
+    return validateTiConfiguration(
+      tiCount,
+      selectedBoxMaterial.box_length_in,
+      selectedBoxMaterial.box_width_in,
+      PALLET_TYPES.US_STANDARD.lengthIn,
+      PALLET_TYPES.US_STANDARD.widthIn
+    );
+  }, [tiCount, selectedBoxMaterial]);
+
+  // Calculate overhang
+  const overhang = useMemo(() => {
+    if (!tiCount || !selectedBoxMaterial?.box_length_in || !selectedBoxMaterial?.box_width_in) {
+      return null;
+    }
+    return calculateOverhang(
+      tiCount,
+      selectedBoxMaterial.box_length_in,
+      selectedBoxMaterial.box_width_in,
+      PALLET_TYPES.US_STANDARD.lengthIn,
+      PALLET_TYPES.US_STANDARD.widthIn
+    );
+  }, [tiCount, selectedBoxMaterial]);
+
+  const overhangSeverity = useMemo(() => {
+    if (!overhang) return 'none';
+    return getOverhangSeverity(overhang.maxOverhang);
+  }, [overhang]);
+
+  // Calculate comprehensive pallet metrics
+  const palletMetrics = useMemo(() => {
     if (!tiCount || !hiCount) return null;
-    return tiCount * hiCount;
-  }, [tiCount, hiCount]);
+    return calculatePalletMetrics(
+      tiCount,
+      hiCount,
+      unitsPerCase,
+      calculatedCaseWeightKg || 0,
+      selectedBoxMaterial?.box_length_in || 0,
+      selectedBoxMaterial?.box_width_in || 0,
+      selectedBoxMaterial?.box_height_in || 0,
+      PALLET_TYPES.US_STANDARD.lengthIn,
+      PALLET_TYPES.US_STANDARD.widthIn
+    );
+  }, [tiCount, hiCount, unitsPerCase, calculatedCaseWeightKg, selectedBoxMaterial]);
 
-  // Calculate total units per pallet
-  const totalUnitsPerPallet = useMemo(() => {
-    if (!casesPerPallet) return null;
-    return casesPerPallet * unitsPerCase;
-  }, [casesPerPallet, unitsPerCase]);
+  // Height warning
+  const heightWarning = useMemo(() => {
+    if (!palletMetrics) return null;
+    return getHeightWarning(palletMetrics.stackHeightIn);
+  }, [palletMetrics]);
 
-  // Calculate total pallet weight
-  const palletWeightKg = useMemo(() => {
-    if (!calculatedCaseWeightKg || !casesPerPallet) return null;
-    return (calculatedCaseWeightKg * casesPerPallet) + STANDARD_PALLET_WEIGHT_KG;
-  }, [calculatedCaseWeightKg, casesPerPallet]);
+  // Legacy calculations for backward compatibility
+  const casesPerPallet = palletMetrics?.casesPerPallet ?? null;
+  const totalUnitsPerPallet = palletMetrics?.totalUnits ?? null;
+  const palletWeightKg = palletMetrics?.totalWeightKg ?? null;
 
   // Reset form when dialog opens/closes or size changes
   useEffect(() => {
@@ -265,6 +317,18 @@ export function EditProductSizeDialog({
 
     if (targetWeight !== null && maxWeight !== null && targetWeight >= maxWeight) {
       toast.error("Target weight must be less than max weight");
+      return;
+    }
+
+    // Validate Ti configuration - prevent saving with dangerous overhang
+    if (tiValidation && !tiValidation.isValid) {
+      toast.error(tiValidation.message || "Invalid Ti configuration");
+      return;
+    }
+
+    // Warn but allow saving with dangerous overhang
+    if (overhangSeverity === 'danger') {
+      toast.error("Cannot save: Dangerous overhang detected (>1 inch). Please reduce Ti value.");
       return;
     }
 
@@ -557,6 +621,12 @@ export function EditProductSizeDialog({
               <span className="flex items-center gap-2">
                 <Layers className="h-4 w-4" />
                 Pallet Configuration
+                {overhangSeverity === 'danger' && (
+                  <Badge variant="destructive" className="text-xs">Overhang</Badge>
+                )}
+                {overhangSeverity === 'warning' && (
+                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Minor Overhang</Badge>
+                )}
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
             </CollapsibleTrigger>
@@ -567,7 +637,12 @@ export function EditProductSizeDialog({
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Ti (Cases per Layer)</Label>
+                  <Label className="flex items-center gap-2">
+                    Ti (Cases per Layer)
+                    {tiValidation?.optimalTi && tiCount === tiValidation.optimalTi && (
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    )}
+                  </Label>
                   <Input
                     type="number"
                     min="1"
@@ -575,10 +650,31 @@ export function EditProductSizeDialog({
                     placeholder="e.g., 8"
                     value={tiCount ?? ""}
                     onChange={(e) => setTiCount(e.target.value ? parseInt(e.target.value) : null)}
+                    className={tiValidation && !tiValidation.isValid ? "border-destructive" : ""}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Cases that fit in one layer
-                  </p>
+                  {/* Ti validation messages */}
+                  {tiValidation && !tiValidation.isValid && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {tiValidation.message}
+                    </p>
+                  )}
+                  {tiValidation?.isValid && tiValidation.message && (
+                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {tiValidation.message}
+                    </p>
+                  )}
+                  {selectedBoxMaterial?.box_length_in && tiValidation?.optimalTi && !tiCount && (
+                    <p className="text-xs text-muted-foreground">
+                      Suggested: {tiValidation.optimalTi} cases ({tiValidation.optimalArrangement?.cols}×{tiValidation.optimalArrangement?.rows})
+                    </p>
+                  )}
+                  {!selectedBoxMaterial?.box_length_in && (
+                    <p className="text-xs text-muted-foreground">
+                      Select box material to validate
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Hi (Number of Layers)</Label>
@@ -596,13 +692,58 @@ export function EditProductSizeDialog({
                 </div>
               </div>
 
-              {/* Pallet Summary */}
+              {/* Overhang Warning */}
+              {overhang && overhang.hasOverhang && (
+                <div className={`p-3 rounded-lg border ${
+                  overhangSeverity === 'danger' 
+                    ? 'bg-red-50 border-red-300 dark:bg-red-950/20' 
+                    : 'bg-amber-50 border-amber-300 dark:bg-amber-950/20'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className={`h-4 w-4 mt-0.5 ${
+                      overhangSeverity === 'danger' ? 'text-destructive' : 'text-amber-600'
+                    }`} />
+                    <div className="text-sm">
+                      <p className={`font-medium ${
+                        overhangSeverity === 'danger' ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'
+                      }`}>
+                        {overhangSeverity === 'danger' ? 'Dangerous Overhang' : 'Minor Overhang Detected'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cases extend {overhang.maxOverhang.toFixed(2)}" beyond pallet edge.
+                        {overhangSeverity === 'danger' && ' Reduce Ti to save configuration.'}
+                      </p>
+                      <div className="grid grid-cols-4 gap-2 mt-2 text-xs">
+                        {overhang.front > 0 && <span>Front: {overhang.front.toFixed(2)}"</span>}
+                        {overhang.back > 0 && <span>Back: {overhang.back.toFixed(2)}"</span>}
+                        {overhang.left > 0 && <span>Left: {overhang.left.toFixed(2)}"</span>}
+                        {overhang.right > 0 && <span>Right: {overhang.right.toFixed(2)}"</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* No Overhang Success */}
+              {overhang && !overhang.hasOverhang && tiCount && (
+                <div className="p-2 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950/20 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>No overhang - Cases fit within pallet boundaries</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Pallet Metrics */}
               {(tiCount || hiCount) && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div className="p-2 bg-muted/50 rounded-lg text-center">
-                      <Label className="text-muted-foreground text-xs">Cases/Pallet</Label>
+                      <div className="flex items-center justify-center gap-1">
+                        <Package className="h-3 w-3 text-muted-foreground" />
+                        <Label className="text-muted-foreground text-xs">Cases</Label>
+                      </div>
                       <p className="text-lg font-bold text-primary">
                         {casesPerPallet ?? "—"}
                       </p>
@@ -613,17 +754,24 @@ export function EditProductSizeDialog({
                       )}
                     </div>
                     <div className="p-2 bg-muted/50 rounded-lg text-center">
-                      <Label className="text-muted-foreground text-xs">Total Units</Label>
+                      <div className="flex items-center justify-center gap-1">
+                        <Box className="h-3 w-3 text-muted-foreground" />
+                        <Label className="text-muted-foreground text-xs">Units</Label>
+                      </div>
                       <p className="text-lg font-bold">
                         {totalUnitsPerPallet ?? "—"}
                       </p>
                     </div>
-                    <div className="p-2 bg-muted/50 rounded-lg text-center">
+                    <div className={`p-2 rounded-lg text-center ${
+                      palletMetrics?.isOverweight 
+                        ? 'bg-red-50 border border-red-200 dark:bg-red-950/20' 
+                        : 'bg-muted/50'
+                    }`}>
                       <div className="flex items-center justify-center gap-1">
                         <Scale className="h-3 w-3 text-muted-foreground" />
-                        <Label className="text-muted-foreground text-xs">Pallet Wt</Label>
+                        <Label className="text-muted-foreground text-xs">Weight</Label>
                       </div>
-                      <p className="text-lg font-bold">
+                      <p className={`text-lg font-bold ${palletMetrics?.isOverweight ? 'text-destructive' : ''}`}>
                         {palletWeightKg ? `${palletWeightKg.toFixed(0)}kg` : "—"}
                       </p>
                       {palletWeightKg && (
@@ -632,7 +780,59 @@ export function EditProductSizeDialog({
                         </p>
                       )}
                     </div>
+                    <div className={`p-2 rounded-lg text-center ${
+                      heightWarning 
+                        ? 'bg-amber-50 border border-amber-200 dark:bg-amber-950/20' 
+                        : 'bg-muted/50'
+                    }`}>
+                      <div className="flex items-center justify-center gap-1">
+                        <Ruler className="h-3 w-3 text-muted-foreground" />
+                        <Label className="text-muted-foreground text-xs">Height</Label>
+                      </div>
+                      <p className={`text-lg font-bold ${heightWarning ? 'text-amber-600' : ''}`}>
+                        {palletMetrics?.stackHeightIn ? `${palletMetrics.stackHeightIn.toFixed(1)}"` : "—"}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Weight Warning */}
+                  {palletMetrics?.weightWarning && (
+                    <div className="p-2 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/20">
+                      <div className="flex items-center gap-2 text-sm text-destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>{palletMetrics.weightWarning}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Height Warning */}
+                  {heightWarning && (
+                    <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/20">
+                      <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>{heightWarning}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Metrics */}
+                  {palletMetrics && (palletMetrics.cubicFeet > 0 || palletMetrics.cubeUtilization > 0) && (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex justify-between items-center px-2">
+                        <span className="text-muted-foreground">Cubic Feet:</span>
+                        <span className="font-medium">{palletMetrics.cubicFeet.toFixed(1)} ft³</span>
+                      </div>
+                      <div className="flex justify-between items-center px-2">
+                        <span className="text-muted-foreground">Cube Utilization:</span>
+                        <span className={`font-medium ${
+                          palletMetrics.cubeUtilization >= 70 ? 'text-green-600' :
+                          palletMetrics.cubeUtilization >= 50 ? 'text-amber-600' : 'text-muted-foreground'
+                        }`}>
+                          {palletMetrics.cubeUtilization.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -645,6 +845,7 @@ export function EditProductSizeDialog({
                     boxLengthIn={selectedBoxMaterial.box_length_in}
                     boxWidthIn={selectedBoxMaterial.box_width_in}
                     boxHeightIn={selectedBoxMaterial.box_height_in}
+                    overhang={overhang}
                   />
                 </div>
               )}

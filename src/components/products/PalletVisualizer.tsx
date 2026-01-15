@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OverhangResult, getOverhangSeverity } from "@/lib/palletCalculations";
 
 interface PalletVisualizerProps {
   ti: number; // Cases per layer (tier)
@@ -9,6 +10,7 @@ interface PalletVisualizerProps {
   boxHeightIn: number;
   palletLengthIn?: number; // Default 48"
   palletWidthIn?: number;  // Default 40"
+  overhang?: OverhangResult | null; // Overhang data for visualization
 }
 
 // Standard pallet dimensions (48" x 40")
@@ -24,7 +26,9 @@ export function PalletVisualizer({
   boxHeightIn,
   palletLengthIn = DEFAULT_PALLET_LENGTH_IN,
   palletWidthIn = DEFAULT_PALLET_WIDTH_IN,
+  overhang,
 }: PalletVisualizerProps) {
+  const overhangSeverity = overhang ? getOverhangSeverity(overhang.maxOverhang) : 'none';
   // Calculate optimal box arrangement
   const arrangement = useMemo(() => {
     if (!ti || !boxLengthIn || !boxWidthIn) return null;
@@ -171,8 +175,18 @@ export function PalletVisualizer({
                   y={20 + pos.y * topScale}
                   width={pos.w * topScale - 2}
                   height={pos.h * topScale - 2}
-                  fill="hsl(var(--primary) / 0.7)"
-                  stroke="hsl(var(--primary))"
+                  fill={overhangSeverity === 'danger' 
+                    ? "hsl(var(--destructive) / 0.7)" 
+                    : overhangSeverity === 'warning'
+                    ? "hsl(30 90% 50% / 0.7)"
+                    : "hsl(var(--primary) / 0.7)"
+                  }
+                  stroke={overhangSeverity === 'danger' 
+                    ? "hsl(var(--destructive))" 
+                    : overhangSeverity === 'warning'
+                    ? "hsl(30 90% 40%)"
+                    : "hsl(var(--primary))"
+                  }
                   strokeWidth={1}
                   rx={2}
                 />
@@ -189,6 +203,26 @@ export function PalletVisualizer({
                 </text>
               </g>
             ))}
+
+            {/* Overhang indicators */}
+            {overhang && overhang.hasOverhang && (
+              <>
+                {/* Visual overhang zone - draw bounding box of all cases */}
+                {arrangement && (
+                  <rect
+                    x={20 - (overhang.left * topScale)}
+                    y={20 - (overhang.front * topScale)}
+                    width={(palletLengthIn + overhang.left + overhang.right) * topScale}
+                    height={(palletWidthIn + overhang.front + overhang.back) * topScale}
+                    fill="none"
+                    stroke={overhangSeverity === 'danger' ? "hsl(var(--destructive))" : "hsl(30 90% 50%)"}
+                    strokeWidth={2}
+                    strokeDasharray="4,4"
+                    rx={2}
+                  />
+                )}
+              </>
+            )}
 
             {/* Dimension labels */}
             <text
