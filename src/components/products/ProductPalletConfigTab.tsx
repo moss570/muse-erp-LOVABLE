@@ -58,16 +58,38 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
     },
   });
 
+  // Fetch container sizes for target weight lookup
+  const { data: containerSizes = [], isLoading: loadingContainers } = useQuery({
+    queryKey: ["container-sizes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("container_sizes")
+        .select("id, name, sku_code, volume_gallons, target_weight_kg")
+        .eq("is_active", true);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Get selected size details
   const selectedSize = useMemo(() => {
     return sizes.find(s => s.id === selectedSizeId) as (ProductSize & {
       packaging_material_id?: string;
       ti_count?: number;
       hi_count?: number;
-      target_weight_kg?: number;
       box_material_id?: string;
     }) | undefined;
   }, [sizes, selectedSizeId]);
+
+  // Get the target weight from container size matching the selected size's size_value (volume)
+  const targetWeightKg = useMemo(() => {
+    if (!selectedSize) return null;
+    // Match by size_value (volume in gallons) to container_sizes
+    const container = containerSizes.find(c => 
+      Math.abs(c.volume_gallons - selectedSize.size_value) < 0.001
+    );
+    return container?.target_weight_kg ?? null;
+  }, [selectedSize, containerSizes]);
 
   // Get selected box material details
   const selectedBox = useMemo(() => {
@@ -110,13 +132,12 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
 
   // Calculate case weight: (units × target weight) + box weight
   const caseWeightKg = useMemo(() => {
-    const targetWeight = (selectedSize as any)?.target_weight_kg;
-    if (!targetWeight || !unitsPerCase) return null;
+    if (!targetWeightKg || !unitsPerCase) return null;
     
-    const productWeight = unitsPerCase * targetWeight;
+    const productWeight = unitsPerCase * targetWeightKg;
     const boxWeight = selectedBox?.box_weight_kg || 0;
     return productWeight + boxWeight;
-  }, [selectedSize, unitsPerCase, selectedBox]);
+  }, [targetWeightKg, unitsPerCase, selectedBox]);
 
   // Calculate cases per pallet
   const casesPerPallet = useMemo(() => {
@@ -167,7 +188,7 @@ export function ProductPalletConfigTab({ productId }: ProductPalletConfigTabProp
     }
   };
 
-  if (loadingSizes || loadingBoxes) {
+  if (loadingSizes || loadingBoxes || loadingContainers) {
     return (
       <div className="flex items-center justify-center h-48">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
