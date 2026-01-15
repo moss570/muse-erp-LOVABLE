@@ -19,6 +19,7 @@ export default function ProductCategories() {
   const [formData, setFormData] = useState<ProductCategoryInput>({
     name: "",
     code: "",
+    sku_prefix: "",
     description: "",
     qa_parameters: [],
     spec_sheet_sections: [],
@@ -31,6 +32,7 @@ export default function ProductCategories() {
     setFormData({
       name: "",
       code: "",
+      sku_prefix: "",
       description: "",
       qa_parameters: [],
       spec_sheet_sections: [],
@@ -45,6 +47,7 @@ export default function ProductCategories() {
     setFormData({
       name: category.name,
       code: category.code,
+      sku_prefix: (category as any).sku_prefix || "",
       description: category.description || "",
       qa_parameters: (category.qa_parameters || []) as unknown as ProductCategoryInput["qa_parameters"],
       spec_sheet_sections: (category.spec_sheet_sections || []) as unknown as ProductCategoryInput["spec_sheet_sections"],
@@ -222,6 +225,16 @@ export default function ProductCategories() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="sku_prefix">SKU Prefix</Label>
+              <Input
+                id="sku_prefix"
+                value={(formData as any).sku_prefix || ""}
+                onChange={(e) => setFormData({ ...formData, sku_prefix: e.target.value.toUpperCase() } as any)}
+                placeholder="e.g., G, IC14, IC10"
+                maxLength={5}
+              />
+              <p className="text-xs text-muted-foreground">This prefix will be used to generate product SKUs</p>
+            </div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"

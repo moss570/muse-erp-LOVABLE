@@ -501,6 +501,48 @@ export type Database = {
           },
         ]
       }
+      container_sizes: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          max_weight_kg: number | null
+          min_weight_kg: number | null
+          name: string
+          sku_code: string
+          sort_order: number | null
+          target_weight_kg: number | null
+          updated_at: string | null
+          volume_gallons: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_weight_kg?: number | null
+          min_weight_kg?: number | null
+          name: string
+          sku_code: string
+          sort_order?: number | null
+          target_weight_kg?: number | null
+          updated_at?: string | null
+          volume_gallons: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_weight_kg?: number | null
+          min_weight_kg?: number | null
+          name?: string
+          sku_code?: string
+          sort_order?: number | null
+          target_weight_kg?: number | null
+          updated_at?: string | null
+          volume_gallons?: number
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -4114,6 +4156,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           qa_parameters: Json | null
+          sku_prefix: string | null
           sort_order: number | null
           spec_sheet_sections: Json | null
           updated_at: string | null
@@ -4126,6 +4169,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           qa_parameters?: Json | null
+          sku_prefix?: string | null
           sort_order?: number | null
           spec_sheet_sections?: Json | null
           updated_at?: string | null
@@ -4138,6 +4182,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           qa_parameters?: Json | null
+          sku_prefix?: string | null
           sort_order?: number | null
           spec_sheet_sections?: Json | null
           updated_at?: string | null
@@ -4343,13 +4388,17 @@ export type Database = {
       }
       product_sizes: {
         Row: {
+          box_material_id: string | null
           case_cube_m3: number | null
           case_upc_code: string | null
           case_weight_kg: number | null
+          container_size_id: string | null
           created_at: string | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          max_weight_kg: number | null
+          min_weight_kg: number | null
           packaging_indicator: string | null
           product_id: string
           size_name: string
@@ -4357,18 +4406,23 @@ export type Database = {
           size_value: number
           sku: string | null
           sort_order: number | null
+          target_weight_kg: number | null
           units_per_case: number | null
           upc_code: string | null
           updated_at: string | null
         }
         Insert: {
+          box_material_id?: string | null
           case_cube_m3?: number | null
           case_upc_code?: string | null
           case_weight_kg?: number | null
+          container_size_id?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          max_weight_kg?: number | null
+          min_weight_kg?: number | null
           packaging_indicator?: string | null
           product_id: string
           size_name: string
@@ -4376,18 +4430,23 @@ export type Database = {
           size_value: number
           sku?: string | null
           sort_order?: number | null
+          target_weight_kg?: number | null
           units_per_case?: number | null
           upc_code?: string | null
           updated_at?: string | null
         }
         Update: {
+          box_material_id?: string | null
           case_cube_m3?: number | null
           case_upc_code?: string | null
           case_weight_kg?: number | null
+          container_size_id?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          max_weight_kg?: number | null
+          min_weight_kg?: number | null
           packaging_indicator?: string | null
           product_id?: string
           size_name?: string
@@ -4395,11 +4454,26 @@ export type Database = {
           size_value?: number
           sku?: string | null
           sort_order?: number | null
+          target_weight_kg?: number | null
           units_per_case?: number | null
           upc_code?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_sizes_box_material_id_fkey"
+            columns: ["box_material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_sizes_container_size_id_fkey"
+            columns: ["container_size_id"]
+            isOneToOne: false
+            referencedRelation: "container_sizes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_sizes_product_id_fkey"
             columns: ["product_id"]

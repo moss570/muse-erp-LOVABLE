@@ -61,6 +61,13 @@ const settingsCategories: SettingCategory[] = [
         status: 'active',
       },
       {
+        title: 'Container Sizes',
+        description: 'Configure container volumes, SKU codes, and weight specifications',
+        href: '/settings/container-sizes',
+        icon: Package,
+        status: 'active',
+      },
+      {
         title: 'Sub-Categories',
         description: 'Manage material sub-categories for different material types',
         href: '/settings/sub-categories',

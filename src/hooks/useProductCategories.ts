@@ -25,6 +25,7 @@ export interface ProductCategory {
 export interface ProductCategoryInput {
   name: string;
   code: string;
+  sku_prefix?: string | null;
   description?: string | null;
   qa_parameters?: Json;
   spec_sheet_sections?: Json;

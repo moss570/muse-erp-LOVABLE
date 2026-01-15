@@ -1,28 +1,31 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useProductSizes } from "@/hooks/useProductSizes";
+import { useProductSizes, ProductSize } from "@/hooks/useProductSizes";
 import { generateUPCPair } from "@/lib/upcGenerator";
 import { formatUPCForDisplay } from "@/lib/upcUtils";
+import { EditProductSizeDialog } from "./EditProductSizeDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Wand2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Wand2, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProductSizesTabProps {
   productId: string;
+  productSku?: string;
   requiresUpc?: boolean;
 }
 
-export function ProductSizesTab({ productId, requiresUpc = false }: ProductSizesTabProps) {
+export function ProductSizesTab({ productId, productSku = "", requiresUpc = false }: ProductSizesTabProps) {
   const { sizes, createSize, updateSize, deleteSize, isLoading } = useProductSizes(productId);
   const [isAddingSize, setIsAddingSize] = useState(false);
   const [generatingUpc, setGeneratingUpc] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingSize, setEditingSize] = useState<ProductSize | null>(null);
 
   // Form state for new size
   const [newSize, setNewSize] = useState({
