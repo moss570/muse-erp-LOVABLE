@@ -196,12 +196,12 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsSelectingTemplates(true)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsSelectingTemplates(true)}>
                 <FlaskConical className="h-4 w-4 mr-2" />
                 Select from Test Library
               </Button>
               {category && category.qa_parameters?.length > 0 && (
-                <Button variant="outline" size="sm" onClick={handleImportFromCategory}>
+                <Button type="button" variant="outline" size="sm" onClick={handleImportFromCategory}>
                   <Download className="h-4 w-4 mr-2" />
                   Import from {category.name}
                 </Button>
@@ -244,6 +244,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                   </TableCell>
                   <TableCell>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => deleteRequirement.mutate(req.id)}
@@ -329,10 +330,10 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button size="sm" onClick={handleAddRequirement}>
+                      <Button type="button" size="sm" onClick={handleAddRequirement}>
                         Add
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setIsAddingReq(false)}>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setIsAddingReq(false)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -343,7 +344,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
           </Table>
 
           {!isAddingReq && (
-            <Button variant="outline" className="mt-4" onClick={() => setIsAddingReq(true)}>
+            <Button type="button" variant="outline" className="mt-4" onClick={() => setIsAddingReq(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Requirement
             </Button>
@@ -393,6 +394,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                   ))}
                 </div>
                 <Button 
+                  type="button"
                   onClick={handleAddAllergens} 
                   disabled={selectedAllergens.length === 0}
                   className="w-full"
@@ -446,6 +448,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                   ))}
                 </div>
                 <Button 
+                  type="button"
                   onClick={handleAddClaims} 
                   disabled={selectedClaims.length === 0}
                   className="w-full"
