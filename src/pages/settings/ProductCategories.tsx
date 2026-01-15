@@ -235,6 +235,8 @@ export default function ProductCategories() {
               />
               <p className="text-xs text-muted-foreground">This prefix will be used to generate product SKUs</p>
             </div>
+
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"

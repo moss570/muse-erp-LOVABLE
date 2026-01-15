@@ -203,6 +203,17 @@ export function ProductSizesTab({ productId, productSku = "", requiresUpc = fals
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => {
+                          setEditingSize(size);
+                          setEditDialogOpen(true);
+                        }}
+                        title="Edit size"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleGenerateUPC(size.id)}
                         disabled={generatingUpc === size.id}
                         title="Generate UPC codes"
@@ -218,6 +229,7 @@ export function ProductSizesTab({ productId, productSku = "", requiresUpc = fals
                         size="icon"
                         onClick={() => deleteSize.mutate(size.id)}
                         className="text-destructive hover:text-destructive"
+                        title="Delete size"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -302,17 +314,32 @@ export function ProductSizesTab({ productId, productSku = "", requiresUpc = fals
           </Table>
 
           {!isAddingSize && (
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => setIsAddingSize(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Size
-            </Button>
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingSize(null);
+                  setEditDialogOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Size
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      <EditProductSizeDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        productId={productId}
+        productSku={productSku}
+        size={editingSize}
+        onSave={() => {
+          // Sizes are automatically refetched via query invalidation
+        }}
+      />
     </div>
   );
 }

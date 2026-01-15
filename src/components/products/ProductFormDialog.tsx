@@ -145,13 +145,14 @@ export function ProductFormDialog({
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleFormSubmit)} id="product-form">
                 <TabsContent value="basic" className="mt-0">
-                  <ProductBasicInfoTab form={form} />
+                  <ProductBasicInfoTab form={form} isEditing={isEditing} />
                 </TabsContent>
 
                 <TabsContent value="sizes" className="mt-0">
                   {product?.id && (
                     <ProductSizesTab 
-                      productId={product.id} 
+                      productId={product.id}
+                      productSku={product.sku || ""}
                       requiresUpc={product.requires_upc || false}
                     />
                   )}
