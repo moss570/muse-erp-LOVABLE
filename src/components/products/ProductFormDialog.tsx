@@ -14,6 +14,7 @@ import { ProductBOMTab } from "./ProductBOMTab";
 import { ProductSpecSheetTab } from "./ProductSpecSheetTab";
 import { ProductInventoryTab } from "./ProductInventoryTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
+import { ProductPalletConfigTab } from "./ProductPalletConfigTab";
 
 const productSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
@@ -126,9 +127,10 @@ export function ProductFormDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="sizes" disabled={!isEditing}>Sizes & UPC</TabsTrigger>
+            <TabsTrigger value="pallet" disabled={!isEditing}>Pallet</TabsTrigger>
             <TabsTrigger value="qa" disabled={!isEditing}>QA</TabsTrigger>
             <TabsTrigger value="bom" disabled={!isEditing}>Recipe</TabsTrigger>
             <TabsTrigger value="spec" disabled={!isEditing}>Spec Sheet</TabsTrigger>
@@ -150,6 +152,12 @@ export function ProductFormDialog({
                       productSku={product.sku || ""}
                       requiresUpc={product.requires_upc || false}
                     />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="pallet" className="mt-0">
+                  {product?.id && (
+                    <ProductPalletConfigTab productId={product.id} />
                   )}
                 </TabsContent>
 

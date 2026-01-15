@@ -3127,11 +3127,15 @@ export type Database = {
           box_flute_type: string | null
           box_foreign_material_control: boolean | null
           box_heavy_metals_coneg: boolean | null
+          box_height_cm: number | null
           box_joint_style: string | null
+          box_length_cm: number | null
           box_recycled_content_verified: boolean | null
           box_strength_type: string | null
           box_strength_value: string | null
           box_style_code: string | null
+          box_weight_kg: number | null
+          box_width_cm: number | null
           ca_prop65_prohibited: boolean | null
           category: string | null
           coa_critical_limits: Json | null
@@ -3195,11 +3199,15 @@ export type Database = {
           box_flute_type?: string | null
           box_foreign_material_control?: boolean | null
           box_heavy_metals_coneg?: boolean | null
+          box_height_cm?: number | null
           box_joint_style?: string | null
+          box_length_cm?: number | null
           box_recycled_content_verified?: boolean | null
           box_strength_type?: string | null
           box_strength_value?: string | null
           box_style_code?: string | null
+          box_weight_kg?: number | null
+          box_width_cm?: number | null
           ca_prop65_prohibited?: boolean | null
           category?: string | null
           coa_critical_limits?: Json | null
@@ -3263,11 +3271,15 @@ export type Database = {
           box_flute_type?: string | null
           box_foreign_material_control?: boolean | null
           box_heavy_metals_coneg?: boolean | null
+          box_height_cm?: number | null
           box_joint_style?: string | null
+          box_length_cm?: number | null
           box_recycled_content_verified?: boolean | null
           box_strength_type?: string | null
           box_strength_value?: string | null
           box_style_code?: string | null
+          box_weight_kg?: number | null
+          box_width_cm?: number | null
           ca_prop65_prohibited?: boolean | null
           category?: string | null
           coa_critical_limits?: Json | null
@@ -4435,12 +4447,14 @@ export type Database = {
           case_weight_kg: number | null
           container_size_id: string | null
           created_at: string | null
+          hi_count: number | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
           max_weight_kg: number | null
           min_weight_kg: number | null
           packaging_indicator: string | null
+          packaging_material_id: string | null
           product_id: string
           size_name: string
           size_unit_id: string | null
@@ -4448,6 +4462,7 @@ export type Database = {
           sku: string | null
           sort_order: number | null
           target_weight_kg: number | null
+          ti_count: number | null
           units_per_case: number | null
           upc_code: string | null
           updated_at: string | null
@@ -4459,12 +4474,14 @@ export type Database = {
           case_weight_kg?: number | null
           container_size_id?: string | null
           created_at?: string | null
+          hi_count?: number | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
           max_weight_kg?: number | null
           min_weight_kg?: number | null
           packaging_indicator?: string | null
+          packaging_material_id?: string | null
           product_id: string
           size_name: string
           size_unit_id?: string | null
@@ -4472,6 +4489,7 @@ export type Database = {
           sku?: string | null
           sort_order?: number | null
           target_weight_kg?: number | null
+          ti_count?: number | null
           units_per_case?: number | null
           upc_code?: string | null
           updated_at?: string | null
@@ -4483,12 +4501,14 @@ export type Database = {
           case_weight_kg?: number | null
           container_size_id?: string | null
           created_at?: string | null
+          hi_count?: number | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
           max_weight_kg?: number | null
           min_weight_kg?: number | null
           packaging_indicator?: string | null
+          packaging_material_id?: string | null
           product_id?: string
           size_name?: string
           size_unit_id?: string | null
@@ -4496,6 +4516,7 @@ export type Database = {
           sku?: string | null
           sort_order?: number | null
           target_weight_kg?: number | null
+          ti_count?: number | null
           units_per_case?: number | null
           upc_code?: string | null
           updated_at?: string | null
@@ -4513,6 +4534,13 @@ export type Database = {
             columns: ["container_size_id"]
             isOneToOne: false
             referencedRelation: "container_sizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_sizes_packaging_material_id_fkey"
+            columns: ["packaging_material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
             referencedColumns: ["id"]
           },
           {

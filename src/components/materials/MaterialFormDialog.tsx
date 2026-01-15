@@ -139,6 +139,12 @@ const materialFormSchema = z.object({
   box_joint_style: z.string().optional().nullable(),
   box_style_code: z.string().optional().nullable(),
   
+  // Box Physical Dimensions (for pallet configuration)
+  box_weight_kg: z.coerce.number().optional().nullable(),
+  box_length_cm: z.coerce.number().optional().nullable(),
+  box_width_cm: z.coerce.number().optional().nullable(),
+  box_height_cm: z.coerce.number().optional().nullable(),
+  
   // Box-Specific Specifications (Food Safety)
   box_recycled_content_verified: z.boolean().default(false),
   box_allergen_free_adhesives: z.boolean().default(false),
@@ -2397,6 +2403,116 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                                 )}
                               />
                             </div>
+                          </div>
+
+                          {/* Physical Dimensions Section (for pallet configuration) */}
+                          <div className="border rounded-lg p-4 bg-card">
+                            <h4 className="text-sm font-semibold mb-4 text-primary">📐 Physical Dimensions (for Pallet Configuration)</h4>
+                            <p className="text-xs text-muted-foreground mb-4">
+                              These dimensions are used to calculate case cube and pallet configurations for products.
+                            </p>
+                            
+                            <div className="grid grid-cols-4 gap-4 mb-4">
+                              <FormField
+                                control={form.control}
+                                name="box_weight_kg"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Box Weight (kg)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="e.g., 0.5" 
+                                        {...field} 
+                                        value={field.value ?? ''} 
+                                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                                      />
+                                    </FormControl>
+                                    <FormDescription className="text-xs">
+                                      Empty box weight
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_length_cm"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Length (cm)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number"
+                                        step="0.1"
+                                        placeholder="e.g., 40" 
+                                        {...field} 
+                                        value={field.value ?? ''} 
+                                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_width_cm"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Width (cm)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number"
+                                        step="0.1"
+                                        placeholder="e.g., 30" 
+                                        {...field} 
+                                        value={field.value ?? ''} 
+                                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="box_height_cm"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Height (cm)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number"
+                                        step="0.1"
+                                        placeholder="e.g., 25" 
+                                        {...field} 
+                                        value={field.value ?? ''} 
+                                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Calculated Case Cube Display */}
+                            {form.watch('box_length_cm') && form.watch('box_width_cm') && form.watch('box_height_cm') && (
+                              <div className="p-3 bg-muted/50 rounded-lg">
+                                <div className="flex items-center gap-4">
+                                  <div>
+                                    <span className="text-xs text-muted-foreground">Calculated Case Cube:</span>
+                                    <span className="ml-2 font-semibold">
+                                      {((form.watch('box_length_cm')! * form.watch('box_width_cm')! * form.watch('box_height_cm')!) / 1000000).toFixed(6)} m³
+                                    </span>
+                                    <span className="ml-2 text-muted-foreground">
+                                      ({((form.watch('box_length_cm')! * form.watch('box_width_cm')! * form.watch('box_height_cm')!) / 1000000 * 35.3147).toFixed(3)} ft³)
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {/* Food Safety Section */}
