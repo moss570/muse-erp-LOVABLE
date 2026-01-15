@@ -203,7 +203,9 @@ export function ProductSizesTab({ productId, productSku = "", requiresUpc = fals
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                           setEditingSize(size);
                           setEditDialogOpen(true);
                         }}
