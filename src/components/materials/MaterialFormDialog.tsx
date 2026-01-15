@@ -891,6 +891,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           box_allergen_free_adhesives: data.box_allergen_free_adhesives ?? false,
           box_heavy_metals_coneg: data.box_heavy_metals_coneg ?? false,
           box_foreign_material_control: data.box_foreign_material_control ?? false,
+          // Box Physical Dimensions (for pallet configuration)
+          box_weight_kg: data.box_weight_kg ?? null,
+          box_length_in: data.box_length_in ?? null,
+          box_width_in: data.box_width_in ?? null,
+          box_height_in: data.box_height_in ?? null,
           // COA Limits
           coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         }])
@@ -1032,6 +1037,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
           box_allergen_free_adhesives: data.box_allergen_free_adhesives ?? false,
           box_heavy_metals_coneg: data.box_heavy_metals_coneg ?? false,
           box_foreign_material_control: data.box_foreign_material_control ?? false,
+          // Box Physical Dimensions (for pallet configuration)
+          box_weight_kg: data.box_weight_kg ?? null,
+          box_length_in: data.box_length_in ?? null,
+          box_width_in: data.box_width_in ?? null,
+          box_height_in: data.box_height_in ?? null,
           // COA Limits
           coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
         })
