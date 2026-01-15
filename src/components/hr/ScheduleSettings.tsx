@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -20,8 +19,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { FormDialogFooter } from '@/components/ui/form-dialog-footer';
 import { toast } from 'sonner';
 
 const settingsFormSchema = z.object({
@@ -73,7 +72,6 @@ export function ScheduleSettings({ open, onOpenChange }: ScheduleSettingsProps) 
     // In a real implementation, this would save to database
     localStorage.setItem('schedule_settings', JSON.stringify(data));
     toast.success('Settings saved');
-    onOpenChange(false);
   };
 
   return (
@@ -226,12 +224,18 @@ export function ScheduleSettings({ open, onOpenChange }: ScheduleSettingsProps) 
               />
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Settings</Button>
-            </DialogFooter>
+          <FormDialogFooter
+            onClose={() => onOpenChange(false)}
+            onSave={() => form.handleSubmit(onSubmit)()}
+            onSaveAndClose={() => {
+              form.handleSubmit((values) => {
+                onSubmit(values);
+                onOpenChange(false);
+              })();
+            }}
+            saveLabel="Save Settings"
+            saveAndCloseLabel="Save & Close"
+          />
           </form>
         </Form>
       </DialogContent>

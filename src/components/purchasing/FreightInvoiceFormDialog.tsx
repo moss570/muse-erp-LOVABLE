@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { FormDialogFooter } from '@/components/ui/form-dialog-footer';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -116,7 +117,6 @@ export function FreightInvoiceFormDialog({
       queryClient.invalidateQueries({ queryKey: ['po-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['freight-invoices'] });
       toast.success('Freight invoice created');
-      onOpenChange(false);
       form.reset();
     },
     onError: (error: Error) => {
@@ -296,21 +296,19 @@ export function FreightInvoiceFormDialog({
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createFreightInvoice.isPending}>
-                {createFreightInvoice.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Freight Invoice'
-                )}
-              </Button>
-            </div>
+            <FormDialogFooter
+              onClose={() => onOpenChange(false)}
+              onSave={() => form.handleSubmit(handleSubmit)()}
+              onSaveAndClose={() => {
+                const values = form.getValues();
+                createFreightInvoice.mutate(values, {
+                  onSuccess: () => onOpenChange(false),
+                });
+              }}
+              isSaving={createFreightInvoice.isPending}
+              saveLabel="Create Invoice"
+              saveAndCloseLabel="Create & Close"
+            />
           </form>
         </Form>
       </DialogContent>

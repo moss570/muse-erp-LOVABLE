@@ -83,8 +83,6 @@ export function PublishScheduleDialog({
         description: `${shiftsByEmployee.length} employees notified of their schedule` 
       });
     }
-
-    onOpenChange(false);
   };
 
   const handleUnpublish = async () => {
@@ -95,7 +93,6 @@ export function PublishScheduleDialog({
 
     const shiftIds = publishedShifts.map(s => s.id);
     await unpublishShifts.mutateAsync({ shiftIds });
-    onOpenChange(false);
   };
 
   return (
@@ -187,9 +184,12 @@ export function PublishScheduleDialog({
         </div>
 
         <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
           {publishedShifts.length > 0 && (
             <Button 
-              variant="outline" 
+              variant="destructive" 
               onClick={handleUnpublish}
               disabled={unpublishShifts.isPending}
             >

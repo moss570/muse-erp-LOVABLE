@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { FormDialogFooter } from '@/components/ui/form-dialog-footer';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -938,7 +939,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       queryClient.invalidateQueries({ queryKey: ['material-documents'] });
       toast({ title: 'Material created successfully' });
-      onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating material', description: error.message, variant: 'destructive' });
@@ -1115,7 +1115,6 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
       queryClient.invalidateQueries({ queryKey: ['material-suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['material-documents'] });
       toast({ title: 'Material updated successfully' });
-      onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating material', description: error.message, variant: 'destructive' });
@@ -3855,14 +3854,22 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {material ? 'Update' : 'Create'} Material
-              </Button>
-            </div>
+            <FormDialogFooter
+              onClose={() => onOpenChange(false)}
+              onSave={() => {}}
+              onSaveAndClose={() => {
+                form.handleSubmit((data) => {
+                  if (material) {
+                    updateMutation.mutate(data, { onSuccess: () => onOpenChange(false) });
+                  } else {
+                    createMutation.mutate(data, { onSuccess: () => onOpenChange(false) });
+                  }
+                })();
+              }}
+              isSaving={isLoading}
+              saveLabel={material ? 'Update Material' : 'Create Material'}
+              saveAndCloseLabel={material ? 'Update & Close' : 'Create & Close'}
+            />
           </form>
         </Form>
 

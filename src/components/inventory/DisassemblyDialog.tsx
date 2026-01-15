@@ -5,11 +5,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { FormDialogFooter } from '@/components/ui/form-dialog-footer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -136,8 +135,6 @@ export function DisassemblyDialog({ open, onOpenChange, lotId }: DisassemblyDial
     });
 
     // TODO: Handle label printing if printLabel is true
-    
-    onOpenChange(false);
     setNotes('');
   };
 
@@ -227,17 +224,18 @@ export function DisassemblyDialog({ open, onOpenChange, lotId }: DisassemblyDial
           <div className="py-8 text-center text-muted-foreground">Lot not found</div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!lot || createDisassembly.isPending || lot.container_status === 'opened'}
-          >
-            {createDisassembly.isPending ? 'Opening...' : 'Open Container'}
-          </Button>
-        </DialogFooter>
+        <FormDialogFooter
+          onClose={() => onOpenChange(false)}
+          onSave={handleSubmit}
+          onSaveAndClose={async () => {
+            await handleSubmit();
+            onOpenChange(false);
+          }}
+          isSaving={createDisassembly.isPending}
+          disabled={!lot || lot.container_status === 'opened'}
+          saveLabel="Open Container"
+          saveAndCloseLabel="Open & Close"
+        />
       </DialogContent>
     </Dialog>
   );

@@ -5,10 +5,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormDialogFooter } from "@/components/ui/form-dialog-footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,7 +103,6 @@ export function PickRequestDialog({
       },
       {
         onSuccess: () => {
-          onOpenChange(false);
           resetForm();
         },
       }
@@ -235,24 +234,33 @@ export function PickRequestDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit || createPickRequest.isPending}
-          >
-            {createPickRequest.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              "Create Pick Request"
-            )}
-          </Button>
-        </DialogFooter>
+        <FormDialogFooter
+          onClose={() => onOpenChange(false)}
+          onSave={handleSubmit}
+          onSaveAndClose={() => {
+            const validItems = items.filter((item) => item.productId && item.quantity > 0);
+            if (validItems.length === 0) return;
+            createPickRequest.mutate(
+              {
+                locationId,
+                customerId: customerId || undefined,
+                priority,
+                notes: notes || undefined,
+                items: validItems,
+              },
+              {
+                onSuccess: () => {
+                  resetForm();
+                  onOpenChange(false);
+                },
+              }
+            );
+          }}
+          isSaving={createPickRequest.isPending}
+          disabled={!canSubmit}
+          saveLabel="Create Pick Request"
+          saveAndCloseLabel="Create & Close"
+        />
       </DialogContent>
     </Dialog>
   );

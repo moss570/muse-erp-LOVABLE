@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,7 +119,6 @@ export function PickExecutionDialog({
 
   const handleComplete = async () => {
     await completeRequest.mutateAsync(pickRequestId);
-    onOpenChange(false);
   };
 
   const allItemsComplete = items.every(
@@ -250,27 +250,38 @@ export function PickExecutionDialog({
             </Card>
           )}
 
-          {/* Complete Button */}
-          {allItemsComplete && (
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={handleComplete}
-              disabled={completeRequest.isPending}
-            >
-              {completeRequest.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Completing...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Complete Pick Request
-                </>
-              )}
+          {/* Footer */}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
             </Button>
-          )}
+            {allItemsComplete && (
+              <>
+                <Button
+                  onClick={handleComplete}
+                  disabled={completeRequest.isPending}
+                >
+                  {completeRequest.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Complete
+                </Button>
+                <Button
+                  onClick={async () => {
+                    await handleComplete();
+                    onOpenChange(false);
+                  }}
+                  disabled={completeRequest.isPending}
+                >
+                  {completeRequest.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Complete & Close
+                </Button>
+              </>
+            )}
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
