@@ -20,6 +20,15 @@ export interface ProductSize {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  // Additional fields for pallet configuration
+  container_size_id?: string | null;
+  box_material_id?: string | null;
+  packaging_material_id?: string | null;
+  ti_count?: number | null;
+  hi_count?: number | null;
+  target_weight_kg?: number | null;
+  min_weight_kg?: number | null;
+  max_weight_kg?: number | null;
   size_unit?: {
     id: string;
     name: string;

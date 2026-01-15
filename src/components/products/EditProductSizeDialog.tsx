@@ -265,9 +265,7 @@ export function EditProductSizeDialog({
     }
   };
 
-  if (loadingContainers) {
-    return null;
-  }
+  const isLoading = loadingContainers;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -281,6 +279,11 @@ export function EditProductSizeDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
         <div className="space-y-4">
           {/* Container Size */}
           <div className="space-y-2">
@@ -527,12 +530,13 @@ export function EditProductSizeDialog({
             </div>
           </div>
         </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving || isLoading}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEditing ? "Save Changes" : "Add Size"}
           </Button>
