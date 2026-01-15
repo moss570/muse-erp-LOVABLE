@@ -101,6 +101,7 @@ export default function RecipeManagement() {
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editRecipeDialogOpen, setEditRecipeDialogOpen] = useState(false);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RecipeItem | null>(null);
   
@@ -292,6 +293,62 @@ export default function RecipeManagement() {
     },
   });
 
+  // Update recipe mutation
+  const updateRecipeMutation = useMutation({
+    mutationFn: async (data: {
+      id: string;
+      recipe_name: string;
+      recipe_version: string;
+      batch_size: number;
+      batch_unit_id: string | null;
+      instructions: string | null;
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("product_recipes")
+        .update({
+          recipe_name: data.recipe_name,
+          recipe_version: data.recipe_version,
+          batch_size: data.batch_size,
+          batch_unit_id: data.batch_unit_id,
+          instructions: data.instructions,
+          is_active: data.is_active,
+        })
+        .eq("id", data.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-recipes"] });
+      setEditRecipeDialogOpen(false);
+      toast({ title: "Recipe updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error updating recipe", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Delete recipe mutation
+  const deleteRecipeMutation = useMutation({
+    mutationFn: async (recipeId: string) => {
+      const { error } = await supabase
+        .from("product_recipes")
+        .delete()
+        .eq("id", recipeId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-recipes"] });
+      setViewDialogOpen(false);
+      setSelectedRecipeId(null);
+      toast({ title: "Recipe deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error deleting recipe", description: error.message, variant: "destructive" });
+    },
+  });
+
   const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
 
   const filteredRecipes = recipes.filter(
@@ -304,6 +361,12 @@ export default function RecipeManagement() {
   const handleViewRecipe = (recipeId: string) => {
     setSelectedRecipeId(recipeId);
     setViewDialogOpen(true);
+  };
+
+  const handleDeleteRecipe = () => {
+    if (selectedRecipeId && confirm("Are you sure you want to delete this recipe? This will also delete all recipe items.")) {
+      deleteRecipeMutation.mutate(selectedRecipeId);
+    }
   };
 
   return (
@@ -426,14 +489,39 @@ export default function RecipeManagement() {
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                {selectedRecipe?.recipe_name}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedRecipe?.product?.name} ({selectedRecipe?.product?.sku}) • 
-                Batch Size: {selectedRecipe?.batch_size} {selectedRecipe?.batch_unit?.code || "units"}
-              </DialogDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    {selectedRecipe?.recipe_name}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {selectedRecipe?.product?.name} ({selectedRecipe?.product?.sku}) • 
+                    Batch Size: {selectedRecipe?.batch_size} {selectedRecipe?.batch_unit?.code || "units"}
+                  </DialogDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditRecipeDialogOpen(true)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit Recipe
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteRecipe}
+                    disabled={deleteRecipeMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
             </DialogHeader>
 
             <div className="flex-1 overflow-hidden">
@@ -442,7 +530,7 @@ export default function RecipeManagement() {
                   <Package className="h-4 w-4" />
                   Bill of Materials
                 </h3>
-                <Button size="sm" onClick={() => setAddItemDialogOpen(true)}>
+                <Button type="button" size="sm" onClick={() => setAddItemDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add Material
                 </Button>
@@ -580,6 +668,27 @@ export default function RecipeManagement() {
                 onSave={(data) => addItemMutation.mutate(data)}
                 onCancel={() => setAddItemDialogOpen(false)}
                 isLoading={addItemMutation.isPending}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Recipe Dialog */}
+        <Dialog open={editRecipeDialogOpen} onOpenChange={setEditRecipeDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Recipe</DialogTitle>
+              <DialogDescription>
+                Update recipe details for {selectedRecipe?.recipe_name}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedRecipe && (
+              <EditRecipeForm
+                recipe={selectedRecipe}
+                units={units}
+                onSave={(data) => updateRecipeMutation.mutate({ id: selectedRecipe.id, ...data })}
+                onCancel={() => setEditRecipeDialogOpen(false)}
+                isLoading={updateRecipeMutation.isPending}
               />
             )}
           </DialogContent>
@@ -809,6 +918,126 @@ function AddItemForm({
         <Button type="submit" disabled={isLoading || !listedMaterialId || !quantity}>
           {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Add Listed Material
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+// Edit Recipe Form Component
+function EditRecipeForm({
+  recipe,
+  units,
+  onSave,
+  onCancel,
+  isLoading,
+}: {
+  recipe: Recipe;
+  units: { id: string; code: string; name: string }[];
+  onSave: (data: {
+    recipe_name: string;
+    recipe_version: string;
+    batch_size: number;
+    batch_unit_id: string | null;
+    instructions: string | null;
+    is_active: boolean;
+  }) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const [recipeName, setRecipeName] = useState(recipe.recipe_name);
+  const [recipeVersion, setRecipeVersion] = useState(recipe.recipe_version || "1.0");
+  const [batchSize, setBatchSize] = useState(recipe.batch_size.toString());
+  const [batchUnitId, setBatchUnitId] = useState(recipe.batch_unit_id || "");
+  const [instructions, setInstructions] = useState(recipe.instructions || "");
+  const [isActive, setIsActive] = useState(recipe.is_active ?? true);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      recipe_name: recipeName,
+      recipe_version: recipeVersion,
+      batch_size: parseFloat(batchSize) || 0,
+      batch_unit_id: batchUnitId || null,
+      instructions: instructions || null,
+      is_active: isActive,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="recipe-name">Recipe Name</Label>
+        <Input
+          id="recipe-name"
+          value={recipeName}
+          onChange={(e) => setRecipeName(e.target.value)}
+          required
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="recipe-version">Version</Label>
+          <Input
+            id="recipe-version"
+            value={recipeVersion}
+            onChange={(e) => setRecipeVersion(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="batch-size">Batch Size</Label>
+          <Input
+            id="batch-size"
+            type="number"
+            step="0.01"
+            value={batchSize}
+            onChange={(e) => setBatchSize(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="batch-unit">Batch Unit</Label>
+        <Select value={batchUnitId} onValueChange={setBatchUnitId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select unit" />
+          </SelectTrigger>
+          <SelectContent>
+            {units.map((unit) => (
+              <SelectItem key={unit.id} value={unit.id}>
+                {unit.name} ({unit.code})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="instructions">Instructions</Label>
+        <Textarea
+          id="instructions"
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Recipe instructions..."
+          rows={4}
+        />
+      </div>
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="is-active"
+          checked={isActive}
+          onChange={(e) => setIsActive(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300"
+        />
+        <Label htmlFor="is-active">Active</Label>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading || !recipeName}>
+          {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Changes
         </Button>
       </DialogFooter>
     </form>
