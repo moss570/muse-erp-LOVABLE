@@ -16,7 +16,7 @@ import {
   PALLET_TYPES,
   PalletType,
 } from "@/lib/palletCalculations";
-import { PalletTypeSelector, OptimizationRecommendationsPanel } from "./pallet";
+import { PalletTypeSelector, OptimizationRecommendationsPanel, PalletVisualizationTabs } from "./pallet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler } from "lucide-react";
 import { toast } from "sonner";
-import { PalletVisualizer } from "./PalletVisualizer";
 
 const STANDARD_PALLET_WEIGHT_KG = 20; // Standard wooden pallet ~20kg
 
@@ -883,7 +882,7 @@ export function EditProductSizeDialog({
               {/* Pallet Visualization */}
               {selectedBoxMaterial?.box_length_in && selectedBoxMaterial?.box_width_in && selectedBoxMaterial?.box_height_in && tiCount && hiCount && (
                 <div className="pt-2">
-                  <PalletVisualizer
+                  <PalletVisualizationTabs
                     ti={tiCount}
                     hi={hiCount}
                     boxLengthIn={selectedBoxMaterial.box_length_in}
