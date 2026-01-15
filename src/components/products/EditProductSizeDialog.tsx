@@ -57,13 +57,13 @@ export function EditProductSizeDialog({
   const [weightSectionOpen, setWeightSectionOpen] = useState(false);
   const [upcSectionOpen, setUpcSectionOpen] = useState(false);
 
-  // Fetch box materials (materials with category = 'Boxes')
+  // Fetch box materials (materials with category = 'Boxes') with dimensions
   const { data: boxMaterials = [] } = useQuery({
-    queryKey: ["box-materials"],
+    queryKey: ["box-materials-with-dims"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("materials")
-        .select("id, code, name, sub_category")
+        .select("id, code, name, sub_category, box_weight_kg, box_length_in, box_width_in, box_height_in")
         .eq("category", "Boxes")
         .eq("is_active", true)
         .order("name");
@@ -85,11 +85,34 @@ export function EditProductSizeDialog({
     return activeContainerSizes.find(c => c.id === containerSizeId);
   }, [activeContainerSizes, containerSizeId]);
 
+  // Get selected box material details
+  const selectedBoxMaterial = useMemo(() => {
+    return boxMaterials.find(b => b.id === boxMaterialId);
+  }, [boxMaterials, boxMaterialId]);
+
   // Generate SKU based on selections
   const generatedSku = useMemo(() => {
     if (!selectedContainer || !productSku) return "";
     return generateProductSizeSKU(productSku, selectedContainer.sku_code, unitsPerCase);
   }, [productSku, selectedContainer, unitsPerCase]);
+
+  // Auto-calculate Case Cube from box dimensions (box dims are in inches)
+  const calculatedCaseCubeM3 = useMemo(() => {
+    if (!selectedBoxMaterial?.box_length_in || !selectedBoxMaterial?.box_width_in || !selectedBoxMaterial?.box_height_in) {
+      return null;
+    }
+    // Convert cubic inches to cubic meters: 1 in³ = 0.0000163871 m³
+    const volumeIn3 = selectedBoxMaterial.box_length_in * selectedBoxMaterial.box_width_in * selectedBoxMaterial.box_height_in;
+    return Math.round(volumeIn3 * 0.0000163871 * 1000000) / 1000000; // Round to 6 decimals
+  }, [selectedBoxMaterial]);
+
+  // Auto-calculate Case Weight: (units × target weight) + box weight
+  const calculatedCaseWeightKg = useMemo(() => {
+    if (!targetWeight || !unitsPerCase) return null;
+    const productWeight = unitsPerCase * targetWeight;
+    const boxWeight = selectedBoxMaterial?.box_weight_kg || 0;
+    return Math.round((productWeight + boxWeight) * 100) / 100;
+  }, [targetWeight, unitsPerCase, selectedBoxMaterial]);
 
   // Reset form when dialog opens/closes or size changes
   useEffect(() => {
@@ -148,6 +171,20 @@ export function EditProductSizeDialog({
       setMaxWeight(calculatedMax);
     }
   }, [targetWeight, variancePercent]);
+
+  // Auto-update Case Weight when dependencies change
+  useEffect(() => {
+    if (calculatedCaseWeightKg !== null) {
+      setCaseWeightKg(calculatedCaseWeightKg);
+    }
+  }, [calculatedCaseWeightKg]);
+
+  // Auto-update Case Cube when dependencies change
+  useEffect(() => {
+    if (calculatedCaseCubeM3 !== null) {
+      setCaseCubeM3(calculatedCaseCubeM3);
+    }
+  }, [calculatedCaseCubeM3]);
 
   const handleGenerateUpc = async () => {
     setIsGeneratingUpc(true);
@@ -428,27 +465,45 @@ export function EditProductSizeDialog({
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Case Specifications */}
+          {/* Case Specifications - Auto-calculated */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Case Weight (kg)</Label>
+              <Label className={calculatedCaseWeightKg !== null ? "text-muted-foreground" : ""}>
+                Case Weight (kg){calculatedCaseWeightKg !== null ? " - calculated" : ""}
+              </Label>
               <Input
                 type="number"
                 step="0.01"
                 value={caseWeightKg ?? ""}
                 onChange={(e) => setCaseWeightKg(e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="Total case weight"
+                placeholder={calculatedCaseWeightKg !== null ? "Auto-calculated" : "Total case weight"}
+                readOnly={calculatedCaseWeightKg !== null}
+                className={calculatedCaseWeightKg !== null ? "bg-muted" : ""}
               />
+              {calculatedCaseWeightKg === null && targetWeight && (
+                <p className="text-xs text-muted-foreground">
+                  Select box material to auto-calculate
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Case Cube (m³)</Label>
+              <Label className={calculatedCaseCubeM3 !== null ? "text-muted-foreground" : ""}>
+                Case Cube (m³){calculatedCaseCubeM3 !== null ? " - calculated" : ""}
+              </Label>
               <Input
                 type="number"
                 step="0.0001"
                 value={caseCubeM3 ?? ""}
                 onChange={(e) => setCaseCubeM3(e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="Cubic volume"
+                placeholder={calculatedCaseCubeM3 !== null ? "Auto-calculated" : "Cubic volume"}
+                readOnly={calculatedCaseCubeM3 !== null}
+                className={calculatedCaseCubeM3 !== null ? "bg-muted" : ""}
               />
+              {calculatedCaseCubeM3 === null && boxMaterialId && (
+                <p className="text-xs text-amber-600">
+                  Box dimensions not set in Materials
+                </p>
+              )}
             </div>
           </div>
 
