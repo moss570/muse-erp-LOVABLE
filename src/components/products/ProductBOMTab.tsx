@@ -71,6 +71,18 @@ interface ProductBOMTabProps {
   productName: string;
 }
 
+interface PrimaryMaterialLink {
+  id: string;
+  is_primary: boolean;
+  material: {
+    id: string;
+    name: string;
+    code: string;
+    cost_per_base_unit: number | null;
+    usage_unit_conversion: number | null;
+  };
+}
+
 interface RecipeItem {
   id: string;
   listed_material_id: string | null;
@@ -84,7 +96,7 @@ interface RecipeItem {
     id: string;
     name: string;
     code: string;
-    primary_material_cost: number | null;
+    material_listed_material_links: PrimaryMaterialLink[];
   } | null;
   material: {
     id: string;
@@ -92,6 +104,7 @@ interface RecipeItem {
     code: string;
     label_copy: string | null;
     cost_per_base_unit: number | null;
+    usage_unit_conversion: number | null;
   } | null;
   unit: { id: string; code: string; name: string } | null;
 }
@@ -204,10 +217,14 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
           sort_order,
           notes,
           listed_material:listed_material_names!product_recipe_items_listed_material_id_fkey(
-            id, name, code
+            id, name, code,
+            material_listed_material_links(
+              id, is_primary,
+              material:materials(id, name, code, cost_per_base_unit, usage_unit_conversion)
+            )
           ),
           material:materials!product_recipe_items_material_id_fkey(
-            id, name, code, label_copy, cost_per_base_unit
+            id, name, code, label_copy, cost_per_base_unit, usage_unit_conversion
           ),
           unit:units_of_measure!product_recipe_items_unit_id_fkey(id, code, name)
         `)
@@ -877,9 +894,30 @@ function BOMTable({
   onEditItem: (item: RecipeItem) => void;
   onDeleteItem: (itemId: string) => void;
 }) {
-  // Calculate unit cost - prefer material cost, otherwise show 0
+  // Calculate cost per usage unit
+  // For listed materials: get the primary linked material's cost_per_base_unit / usage_unit_conversion
+  // For direct materials: use cost_per_base_unit / usage_unit_conversion
   const getUnitCost = (item: RecipeItem): number => {
-    return item.material?.cost_per_base_unit || 0;
+    // If using a listed material, find the primary linked material
+    if (item.listed_material?.material_listed_material_links) {
+      const primaryLink = item.listed_material.material_listed_material_links.find(
+        (link) => link.is_primary
+      );
+      if (primaryLink?.material) {
+        const costPerBase = primaryLink.material.cost_per_base_unit || 0;
+        const usageConversion = primaryLink.material.usage_unit_conversion || 1;
+        return costPerBase / usageConversion;
+      }
+    }
+    
+    // Fallback to direct material cost
+    if (item.material) {
+      const costPerBase = item.material.cost_per_base_unit || 0;
+      const usageConversion = item.material.usage_unit_conversion || 1;
+      return costPerBase / usageConversion;
+    }
+    
+    return 0;
   };
 
   // Calculate line total (quantity * unit cost)
