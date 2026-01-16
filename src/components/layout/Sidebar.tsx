@@ -147,7 +147,6 @@ const navItems: NavItem[] = [
     requiredRole: 'manager',
     children: [
       { title: 'Settings Hub', href: '/settings' },
-      { title: 'Product Categories', href: '/settings/product-categories' },
       { title: 'Company Settings', href: '/settings/company' },
       { title: 'Users', href: '/settings/users' },
       { title: 'Permissions', href: '/settings/permissions' },
