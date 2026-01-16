@@ -14,11 +14,22 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Search, Link, Unlink } from 'lucide-react';
+import { Package, Search, Link, Unlink, Star, StarOff } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type ListedMaterialName = Tables<'listed_material_names'>;
+
+interface MaterialLink {
+  material_id: string;
+  is_primary: boolean;
+}
 
 interface LinkedMaterialsDialogProps {
   open: boolean;
@@ -42,7 +53,7 @@ export function LinkedMaterialsDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('materials')
-        .select('id, code, name, category, is_active, manufacturer, item_number')
+        .select('id, code, name, category, is_active, manufacturer, item_number, label_copy')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
@@ -51,27 +62,42 @@ export function LinkedMaterialsDialog({
     enabled: open,
   });
 
-  // Fetch existing links for this listed material
+  // Fetch existing links for this listed material (including is_primary)
   const { data: existingLinks } = useQuery({
     queryKey: ['material-listed-links', listedMaterial?.id],
     queryFn: async () => {
       if (!listedMaterial?.id) return [];
       const { data, error } = await supabase
         .from('material_listed_material_links')
-        .select('material_id')
+        .select('material_id, is_primary')
         .eq('listed_material_id', listedMaterial.id);
       if (error) throw error;
-      return data.map(l => l.material_id);
+      return data as MaterialLink[];
     },
     enabled: open && !!listedMaterial?.id,
   });
 
-  const linkedMaterialIds = new Set(existingLinks || []);
+  // Create a map for quick lookup
+  const linkMap = new Map<string, MaterialLink>();
+  existingLinks?.forEach(link => {
+    linkMap.set(link.material_id, link);
+  });
+
+  const linkedMaterialIds = new Set(existingLinks?.map(l => l.material_id) || []);
 
   // Materials linked to this listed material
   const linkedMaterials = allMaterials?.filter(
     m => linkedMaterialIds.has(m.id)
   ) || [];
+
+  // Sort linked materials: primary first
+  const sortedLinkedMaterials = [...linkedMaterials].sort((a, b) => {
+    const aIsPrimary = linkMap.get(a.id)?.is_primary || false;
+    const bIsPrimary = linkMap.get(b.id)?.is_primary || false;
+    if (aIsPrimary && !bIsPrimary) return -1;
+    if (!aIsPrimary && bIsPrimary) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   // All active materials available for linking (can be linked to multiple listed materials)
   const availableMaterials = allMaterials?.filter(
@@ -80,7 +106,7 @@ export function LinkedMaterialsDialog({
 
   // Filter based on search - includes name, code, and manufacturer
   const searchLower = search.toLowerCase();
-  const filteredLinked = linkedMaterials.filter(
+  const filteredLinked = sortedLinkedMaterials.filter(
     m => m.name.toLowerCase().includes(searchLower) ||
          m.code.toLowerCase().includes(searchLower) ||
          (m.manufacturer && m.manufacturer.toLowerCase().includes(searchLower))
@@ -145,6 +171,28 @@ export function LinkedMaterialsDialog({
     },
   });
 
+  // Set primary material mutation
+  const setPrimaryMutation = useMutation({
+    mutationFn: async (materialId: string) => {
+      if (!listedMaterial?.id) throw new Error('No listed material selected');
+      
+      // The database trigger will handle unsetting other primaries
+      const { error } = await supabase
+        .from('material_listed_material_links')
+        .update({ is_primary: true })
+        .eq('material_id', materialId)
+        .eq('listed_material_id', listedMaterial.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['material-listed-links'] });
+      toast({ title: 'Primary material updated', description: 'This material\'s Label Copy will be used in ingredient statements.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error setting primary material', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const handleToggleSelection = (materialId: string) => {
     const newSet = new Set(selectedMaterials);
     if (newSet.has(materialId)) {
@@ -170,7 +218,7 @@ export function LinkedMaterialsDialog({
             Linked Materials
           </DialogTitle>
           <DialogDescription>
-            Manage materials linked to "{listedMaterial?.name}". Materials can be linked to multiple listed materials.
+            Manage materials linked to "{listedMaterial?.name}". The <Star className="h-3 w-3 inline text-amber-500 fill-amber-500" /> PRIMARY material's Label Copy is used for ingredient statements.
           </DialogDescription>
         </DialogHeader>
 
@@ -191,52 +239,93 @@ export function LinkedMaterialsDialog({
               <Badge variant="secondary">{linkedMaterials.length}</Badge>
               Currently Linked
             </h4>
-            <ScrollArea className="h-40 rounded-md border">
+            <ScrollArea className="h-48 rounded-md border">
               {filteredLinked.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground text-sm">
                   No materials linked yet
                 </div>
               ) : (
                 <div className="p-2 space-y-1">
-                  {filteredLinked.map((material) => (
-                    <div
-                      key={material.id}
-                      className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50"
-                    >
-                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="font-mono text-sm">{material.code}</span>
-                          <span className="text-sm truncate">{material.name}</span>
-                          {material.category && (
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              {material.category}
-                            </Badge>
-                          )}
-                        </div>
-                        {(material.manufacturer || material.item_number) && (
-                          <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
-                            {material.manufacturer && (
-                              <span>Mfr: {material.manufacturer}</span>
+                  {filteredLinked.map((material) => {
+                    const isPrimary = linkMap.get(material.id)?.is_primary || false;
+                    return (
+                      <div
+                        key={material.id}
+                        className={`flex items-center justify-between p-2 rounded-md hover:bg-muted/50 ${isPrimary ? 'bg-amber-50 border border-amber-200' : ''}`}
+                      >
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {isPrimary ? (
+                              <Star className="h-4 w-4 text-amber-500 fill-amber-500 shrink-0" />
+                            ) : (
+                              <Package className="h-4 w-4 text-muted-foreground shrink-0" />
                             )}
-                            {material.item_number && (
-                              <span>• Item #: {material.item_number}</span>
+                            <span className="font-mono text-sm">{material.code}</span>
+                            <span className="text-sm truncate">{material.name}</span>
+                            {isPrimary && (
+                              <Badge variant="default" className="bg-amber-500 text-white text-xs shrink-0">
+                                Primary
+                              </Badge>
+                            )}
+                            {material.category && (
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {material.category}
+                              </Badge>
                             )}
                           </div>
-                        )}
+                          {(material.manufacturer || material.item_number || material.label_copy) && (
+                            <div className="flex flex-col gap-0.5 pl-6 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                {material.manufacturer && (
+                                  <span>Mfr: {material.manufacturer}</span>
+                                )}
+                                {material.item_number && (
+                                  <span>• Item #: {material.item_number}</span>
+                                )}
+                              </div>
+                              {material.label_copy && (
+                                <span className="text-primary">Label: {material.label_copy}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={isPrimary ? "secondary" : "ghost"}
+                                  size="sm"
+                                  className={`h-7 ${isPrimary ? 'text-amber-600' : 'text-muted-foreground hover:text-amber-500'}`}
+                                  onClick={() => setPrimaryMutation.mutate(material.id)}
+                                  disabled={isPrimary || setPrimaryMutation.isPending}
+                                >
+                                  {isPrimary ? (
+                                    <Star className="h-3 w-3 fill-current" />
+                                  ) : (
+                                    <StarOff className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isPrimary ? 'This is the primary material' : 'Set as primary for ingredient statements'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => unlinkMutation.mutate(material.id)}
+                            disabled={unlinkMutation.isPending}
+                          >
+                            <Unlink className="h-3 w-3 mr-1" />
+                            Unlink
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-muted-foreground hover:text-destructive shrink-0"
-                        onClick={() => unlinkMutation.mutate(material.id)}
-                        disabled={unlinkMutation.isPending}
-                      >
-                        <Unlink className="h-3 w-3 mr-1" />
-                        Unlink
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
@@ -276,13 +365,18 @@ export function LinkedMaterialsDialog({
                             </Badge>
                           )}
                         </div>
-                        {(material.manufacturer || material.item_number) && (
-                          <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
-                            {material.manufacturer && (
-                              <span>Mfr: {material.manufacturer}</span>
-                            )}
-                            {material.item_number && (
-                              <span>• Item #: {material.item_number}</span>
+                        {(material.manufacturer || material.item_number || material.label_copy) && (
+                          <div className="flex flex-col gap-0.5 pl-6 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              {material.manufacturer && (
+                                <span>Mfr: {material.manufacturer}</span>
+                              )}
+                              {material.item_number && (
+                                <span>• Item #: {material.item_number}</span>
+                              )}
+                            </div>
+                            {material.label_copy && (
+                              <span className="text-primary">Label: {material.label_copy}</span>
                             )}
                           </div>
                         )}
