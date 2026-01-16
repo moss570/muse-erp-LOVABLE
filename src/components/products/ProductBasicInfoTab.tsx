@@ -314,23 +314,6 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="is_base_product"
-          render={({ field }) => (
-            <FormItem className="flex items-center gap-2">
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <FormLabel className="!mt-0">Is Base Product</FormLabel>
-            </FormItem>
-          )}
-        />
-
         <FormField
           control={form.control}
           name="is_active"

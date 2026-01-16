@@ -266,7 +266,7 @@ export default function Products() {
                       </TableCell>
                       <TableCell>{product.units_of_measure?.code || '-'}</TableCell>
                       <TableCell>
-                        {product.is_base_product ? (
+                        {product.product_category?.code === 'BASE' ? (
                           <Badge className="bg-blue-100 text-blue-800">Base</Badge>
                         ) : '-'}
                       </TableCell>
