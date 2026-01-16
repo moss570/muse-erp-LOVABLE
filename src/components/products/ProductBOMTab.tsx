@@ -599,8 +599,8 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               defaultValues={{
                 recipe_name: `${productName} Recipe`,
                 recipe_version: "1.0",
-                batch_size: 100,
-                batch_unit_id: null,
+                batch_size: 1,
+                batch_unit_id: units.find(u => u.code === 'KG')?.id || null,
                 instructions: null,
               }}
               units={units}
@@ -787,8 +787,8 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
             defaultValues={{
               recipe_name: `${productName} Sub ${subRecipes.length + 1}`,
               recipe_version: "1.0",
-              batch_size: activePrimaryRecipe?.batch_size || 100,
-              batch_unit_id: activePrimaryRecipe?.batch_unit_id || null,
+              batch_size: activePrimaryRecipe?.batch_size || 1,
+              batch_unit_id: activePrimaryRecipe?.batch_unit_id || units.find(u => u.code === 'KG')?.id || null,
               instructions: null,
             }}
             units={units}
