@@ -1319,9 +1319,9 @@ function AddItemForm({
   const [notes, setNotes] = useState("");
   const [open, setOpen] = useState(false);
 
-  // Filter out already added materials
+  // Filter out already added materials and those without linked materials
   const availableMaterials = listedMaterials.filter(
-    (m) => !existingListedMaterialIds.includes(m.id)
+    (m) => !existingListedMaterialIds.includes(m.id) && m.linkedMaterialsCount > 0
   );
 
   const selectedMaterial = listedMaterials.find((m) => m.id === listedMaterialId);
