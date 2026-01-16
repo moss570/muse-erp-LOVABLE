@@ -135,9 +135,9 @@ export function ProductFormDialog({
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="basic">Basic</TabsTrigger>
-            <TabsTrigger value="sizes" disabled={!isEditing}>Sizes & UPC</TabsTrigger>
-            <TabsTrigger value="qa" disabled={!isEditing}>QA</TabsTrigger>
             <TabsTrigger value="bom" disabled={!isEditing}>Recipe</TabsTrigger>
+            <TabsTrigger value="qa" disabled={!isEditing}>QA</TabsTrigger>
+            <TabsTrigger value="sizes" disabled={!isEditing}>Sizes & UPC</TabsTrigger>
             <TabsTrigger value="spec" disabled={!isEditing}>Spec Sheet</TabsTrigger>
             <TabsTrigger value="inventory" disabled={!isEditing}>Inventory</TabsTrigger>
             <TabsTrigger value="analytics" disabled={!isEditing}>Analytics</TabsTrigger>
