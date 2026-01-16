@@ -2,11 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface RecipeItem {
   quantity_required: number;
-  material: {
-    id: string;
-    name: string;
-    label_copy: string | null;
-  } | null;
+  listed_material_id: string | null;
   listed_material: {
     id: string;
     name: string;
@@ -19,10 +15,19 @@ interface Recipe {
   product_recipe_items: RecipeItem[];
 }
 
+interface PrimaryMaterialLink {
+  material_id: string;
+  materials: {
+    id: string;
+    name: string;
+    label_copy: string | null;
+  };
+}
+
 /**
  * Generates an ingredient statement from a product's BOM/recipe
- * Ingredients are listed in descending order by quantity used
- * Uses the label_copy field from materials, or listed_material name as fallback
+ * Ingredients are listed in descending order by quantity (heaviest first)
+ * Uses the label_copy field from the PRIMARY material linked to each listed material
  */
 export async function generateIngredientStatement(productId: string): Promise<string> {
   // Fetch the recipe and its items for the product
@@ -33,11 +38,7 @@ export async function generateIngredientStatement(productId: string): Promise<st
       recipe_name,
       product_recipe_items (
         quantity_required,
-        material:materials (
-          id,
-          name,
-          label_copy
-        ),
+        listed_material_id,
         listed_material:listed_material_names (
           id,
           name
@@ -46,6 +47,7 @@ export async function generateIngredientStatement(productId: string): Promise<st
     `)
     .eq("product_id", productId)
     .eq("is_active", true)
+    .eq("recipe_type", "primary")
     .order("created_at", { ascending: false })
     .limit(1);
 
@@ -56,20 +58,74 @@ export async function generateIngredientStatement(productId: string): Promise<st
   const recipe = recipes[0] as unknown as Recipe;
   const items = recipe.product_recipe_items || [];
 
-  // Sort by quantity descending (largest first)
+  if (items.length === 0) {
+    return "";
+  }
+
+  // Get all listed material IDs from the recipe
+  const listedMaterialIds = items
+    .map((item) => item.listed_material_id)
+    .filter(Boolean) as string[];
+
+  if (listedMaterialIds.length === 0) {
+    return "";
+  }
+
+  // Fetch primary materials for each listed material
+  const { data: primaryLinks, error: linksError } = await supabase
+    .from("material_listed_material_links")
+    .select(`
+      listed_material_id,
+      material_id,
+      materials (
+        id,
+        name,
+        label_copy
+      )
+    `)
+    .in("listed_material_id", listedMaterialIds)
+    .eq("is_primary", true);
+
+  if (linksError) {
+    console.error("Error fetching primary materials:", linksError);
+    return "";
+  }
+
+  // Create a map of listed_material_id -> primary material's label_copy
+  const primaryMaterialMap = new Map<string, { label_copy: string | null; name: string }>();
+  if (primaryLinks) {
+    for (const link of primaryLinks) {
+      const material = (link as any).materials;
+      if (material) {
+        primaryMaterialMap.set(link.listed_material_id, {
+          label_copy: material.label_copy,
+          name: material.name,
+        });
+      }
+    }
+  }
+
+  // Sort by quantity descending (heaviest first)
   const sortedItems = [...items].sort((a, b) => (b.quantity_required || 0) - (a.quantity_required || 0));
 
-  // Build ingredient list using label_copy, material name, or listed_material name
+  // Build ingredient list using primary material's label_copy, fallback to listed material name
   const ingredients = sortedItems
-    .filter((item) => item.material || item.listed_material)
+    .filter((item) => item.listed_material)
     .map((item) => {
-      // Prefer material's label_copy, then material name, then listed_material name
-      if (item.material) {
-        return item.material.label_copy || item.material.name;
+      const listedMaterialId = item.listed_material_id;
+      
+      // Check if we have a primary material for this listed material
+      if (listedMaterialId && primaryMaterialMap.has(listedMaterialId)) {
+        const primaryMaterial = primaryMaterialMap.get(listedMaterialId)!;
+        // Prefer label_copy, fallback to material name
+        return primaryMaterial.label_copy || primaryMaterial.name;
       }
+      
+      // Fallback to listed material name if no primary material found
       if (item.listed_material) {
         return item.listed_material.name;
       }
+      
       return null;
     })
     .filter(Boolean);

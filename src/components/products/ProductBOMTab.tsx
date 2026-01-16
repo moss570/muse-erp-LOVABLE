@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +61,7 @@ import {
   ChevronsUpDown,
   Settings2,
   AlertTriangle,
+  Copy,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -106,6 +107,9 @@ interface Recipe {
   instructions: string | null;
   created_at: string;
   updated_at: string;
+  recipe_type: string;
+  parent_recipe_id: string | null;
+  sub_recipe_number: number | null;
   batch_unit: {
     id: string;
     code: string;
@@ -126,11 +130,13 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
   const [editingItem, setEditingItem] = useState<RecipeItem | null>(null);
   const [deleteRecipeDialogOpen, setDeleteRecipeDialogOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [activeRecipeTab, setActiveRecipeTab] = useState<string>("primary");
+  const [createSubRecipeDialogOpen, setCreateSubRecipeDialogOpen] = useState(false);
   
   const queryClient = useQueryClient();
 
-  // Fetch recipes for this product
-  const { data: recipes = [], isLoading } = useQuery({
+  // Fetch all recipes for this product (primary and sub)
+  const { data: allRecipes = [], isLoading } = useQuery({
     queryKey: ["product-recipes", productId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -146,6 +152,9 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
           is_default,
           standard_labor_hours,
           standard_machine_hours,
+          recipe_type,
+          parent_recipe_id,
+          sub_recipe_number,
           created_at,
           updated_at,
           batch_unit:units_of_measure!product_recipes_batch_unit_id_fkey (
@@ -155,7 +164,8 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
           )
         `)
         .eq("product_id", productId)
-        .order("is_active", { ascending: false })
+        .order("recipe_type", { ascending: true })
+        .order("sub_recipe_number", { ascending: true, nullsFirst: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -163,13 +173,22 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
     },
   });
 
-  const activeRecipe = recipes.find((r) => r.is_active);
+  // Separate primary and sub recipes
+  const primaryRecipes = allRecipes.filter((r) => r.recipe_type === "primary");
+  const subRecipes = allRecipes.filter((r) => r.recipe_type === "sub");
+  
+  const activePrimaryRecipe = primaryRecipes.find((r) => r.is_active);
+  
+  // Get the currently selected recipe based on tab
+  const selectedRecipe = activeRecipeTab === "primary" 
+    ? activePrimaryRecipe 
+    : allRecipes.find((r) => r.id === activeRecipeTab);
 
-  // Fetch recipe items for active recipe
+  // Fetch recipe items for selected recipe
   const { data: recipeItems = [], isLoading: itemsLoading } = useQuery({
-    queryKey: ["recipe-items", activeRecipe?.id],
+    queryKey: ["recipe-items", selectedRecipe?.id],
     queryFn: async () => {
-      if (!activeRecipe?.id) return [];
+      if (!selectedRecipe?.id) return [];
       
       const { data, error } = await supabase
         .from("product_recipe_items")
@@ -190,13 +209,13 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
           ),
           unit:units_of_measure!product_recipe_items_unit_id_fkey(id, code, name)
         `)
-        .eq("recipe_id", activeRecipe.id)
+        .eq("recipe_id", selectedRecipe.id)
         .order("sort_order", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
       return data as RecipeItem[];
     },
-    enabled: !!activeRecipe?.id,
+    enabled: !!selectedRecipe?.id,
   });
 
   // Fetch listed materials for adding items
@@ -239,16 +258,16 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
     },
   });
 
-  // Load ingredient statement
+  // Load ingredient statement (only from primary recipe)
   useEffect(() => {
     async function loadIngredientStatement() {
       const result = await getIngredientStatementPreview(productId);
       setIngredientStatement(result);
     }
     loadIngredientStatement();
-  }, [productId, recipeItems]);
+  }, [productId, recipeItems, activeRecipeTab]);
 
-  // Create recipe mutation
+  // Create primary recipe mutation
   const createRecipeMutation = useMutation({
     mutationFn: async (data: {
       recipe_name: string;
@@ -268,6 +287,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
           instructions: data.instructions,
           is_active: true,
           is_default: true,
+          recipe_type: "primary",
         });
 
       if (error) throw error;
@@ -279,6 +299,48 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
     },
     onError: (error: any) => {
       toast({ title: "Error creating recipe", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Create sub recipe mutation
+  const createSubRecipeMutation = useMutation({
+    mutationFn: async (data: {
+      recipe_name: string;
+      recipe_version: string;
+      batch_size: number;
+      batch_unit_id: string | null;
+      instructions: string | null;
+    }) => {
+      if (!activePrimaryRecipe) throw new Error("No primary recipe found");
+      
+      // Get next sub recipe number
+      const nextSubNumber = subRecipes.length + 1;
+
+      const { error } = await supabase
+        .from("product_recipes")
+        .insert({
+          product_id: productId,
+          recipe_name: data.recipe_name,
+          recipe_version: data.recipe_version,
+          batch_size: data.batch_size,
+          batch_unit_id: data.batch_unit_id,
+          instructions: data.instructions,
+          is_active: true,
+          is_default: false,
+          recipe_type: "sub",
+          parent_recipe_id: activePrimaryRecipe.id,
+          sub_recipe_number: nextSubNumber,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-recipes", productId] });
+      setCreateSubRecipeDialogOpen(false);
+      toast({ title: "Sub BOM created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error creating sub BOM", description: error.message, variant: "destructive" });
     },
   });
 
@@ -330,6 +392,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["product-recipes", productId] });
       setDeleteRecipeDialogOpen(false);
+      setActiveRecipeTab("primary");
       toast({ title: "Recipe deleted successfully" });
     },
     onError: (error: any) => {
@@ -372,7 +435,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipe-items", activeRecipe?.id] });
+      queryClient.invalidateQueries({ queryKey: ["recipe-items", selectedRecipe?.id] });
       queryClient.invalidateQueries({ queryKey: ["product-recipes", productId] });
       setAddItemDialogOpen(false);
       toast({ title: "Material added to recipe" });
@@ -404,7 +467,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipe-items", activeRecipe?.id] });
+      queryClient.invalidateQueries({ queryKey: ["recipe-items", selectedRecipe?.id] });
       setEditingItem(null);
       toast({ title: "Recipe item updated" });
     },
@@ -424,7 +487,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recipe-items", activeRecipe?.id] });
+      queryClient.invalidateQueries({ queryKey: ["recipe-items", selectedRecipe?.id] });
       setDeleteItemId(null);
       toast({ title: "Material removed from recipe" });
     },
@@ -441,6 +504,95 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
     );
   }
 
+  // If no primary recipe exists, show create recipe UI
+  if (!activePrimaryRecipe) {
+    return (
+      <div className="space-y-6">
+        {/* Ingredient Statement - Empty State */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Ingredient Statement
+            </CardTitle>
+            <CardDescription>
+              Auto-generated from recipe ingredients, sorted by quantity
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <AlertCircle className="h-4 w-4" />
+              <span>No recipe found. Create a recipe to generate an ingredient statement.</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Create Recipe Prompt */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  No Recipe
+                </CardTitle>
+                <CardDescription>
+                  Create a recipe to manage the bill of materials for this product
+                </CardDescription>
+              </div>
+              <Button onClick={() => setCreateRecipeDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Recipe
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No recipe has been created for this product.</p>
+              <p className="text-sm">Click "Create Recipe" to get started.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Create Recipe Dialog */}
+        <Dialog open={createRecipeDialogOpen} onOpenChange={setCreateRecipeDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Recipe</DialogTitle>
+              <DialogDescription>
+                Create a new recipe for {productName}
+              </DialogDescription>
+            </DialogHeader>
+            <RecipeForm
+              defaultValues={{
+                recipe_name: `${productName} Recipe`,
+                recipe_version: "1.0",
+                batch_size: 100,
+                batch_unit_id: null,
+                instructions: null,
+              }}
+              units={units}
+              onSave={(data) => createRecipeMutation.mutate(data)}
+              onCancel={() => setCreateRecipeDialogOpen(false)}
+              isLoading={createRecipeMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Recipe tabs for primary + sub BOMs
+  const recipeTabs = [
+    { id: "primary", label: "Primary BOM", recipe: activePrimaryRecipe },
+    ...subRecipes.map((sub) => ({
+      id: sub.id,
+      label: `Sub ${sub.sub_recipe_number}`,
+      recipe: sub,
+    })),
+  ];
+
   return (
     <div className="space-y-6">
       {/* Ingredient Statement */}
@@ -451,7 +603,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
             Ingredient Statement
           </CardTitle>
           <CardDescription>
-            Auto-generated from recipe ingredients, sorted by quantity
+            Auto-generated from Primary BOM ingredients, sorted by quantity (heaviest first)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -461,175 +613,79 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
                 {ingredientStatement.statement}
               </p>
               <p className="text-xs text-muted-foreground">
-                {ingredientStatement.itemCount} ingredients from active recipe
+                {ingredientStatement.itemCount} ingredients from primary recipe
               </p>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
-              <span>No recipe found. Create a recipe to generate an ingredient statement.</span>
+              <span>No materials in Primary BOM. Add ingredients to generate an ingredient statement.</span>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Active Recipe / Create Recipe */}
+      {/* Recipe Tabs Section */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                {activeRecipe ? activeRecipe.recipe_name : "No Recipe"}
+                Recipe / Bill of Materials
               </CardTitle>
               <CardDescription>
-                {activeRecipe
-                  ? `Version ${activeRecipe.recipe_version || "1.0"} • Yields ${activeRecipe.batch_size} ${activeRecipe.batch_unit?.code || "units"}`
-                  : "Create a recipe to manage the bill of materials for this product"}
+                Manage primary and backup BOMs for this product
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              {activeRecipe ? (
-                <>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setEditRecipeDialogOpen(true)}
-                  >
-                    <Settings2 className="h-4 w-4 mr-1" />
-                    Edit Recipe
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setAddItemDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Material
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setCreateRecipeDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Recipe
-                </Button>
-              )}
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCreateSubRecipeDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Sub BOM
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          {activeRecipe ? (
-            itemsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : recipeItems.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No materials added to this recipe yet.</p>
-                <p className="text-sm">Click "Add Material" to add ingredients to the BOM.</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Wastage %</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recipeItems.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-mono text-muted-foreground">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {item.listed_material?.name || item.material?.name || (
-                          <span className="text-destructive flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Unknown
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          {item.listed_material?.code || item.material?.code || "-"}
-                        </code>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {item.quantity_required.toFixed(4)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {item.unit?.code || "units"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.wastage_percentage || 0}%
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
-                        {item.notes || "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingItem(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteItemId(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No recipe has been created for this product.</p>
-              <p className="text-sm">Click "Create Recipe" to get started.</p>
-            </div>
-          )}
-          
-          {activeRecipe?.instructions && (
-            <>
-              <Separator className="my-4" />
-              <div>
-                <h4 className="font-semibold mb-2">Instructions</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-4 rounded-lg">
-                  {activeRecipe.instructions}
-                </p>
-              </div>
-            </>
-          )}
+        <CardContent className="pt-0">
+          <Tabs value={activeRecipeTab} onValueChange={setActiveRecipeTab}>
+            <TabsList className="mb-4">
+              {recipeTabs.map((tab) => (
+                <TabsTrigger key={tab.id} value={tab.id}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {recipeTabs.map((tab) => (
+              <TabsContent key={tab.id} value={tab.id} className="mt-0">
+                <RecipeContent
+                  recipe={tab.recipe}
+                  recipeItems={recipeItems}
+                  itemsLoading={itemsLoading && selectedRecipe?.id === tab.recipe.id}
+                  isPrimary={tab.id === "primary"}
+                  onEditRecipe={() => setEditRecipeDialogOpen(true)}
+                  onAddMaterial={() => setAddItemDialogOpen(true)}
+                  onEditItem={setEditingItem}
+                  onDeleteItem={setDeleteItemId}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
         </CardContent>
       </Card>
 
-      {/* Recipe History */}
-      {recipes.length > 1 && (
+      {/* Recipe History - Only show inactive primary recipes */}
+      {primaryRecipes.filter((r) => !r.is_active).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Recipe History</CardTitle>
-            <CardDescription>Previous versions of this recipe</CardDescription>
+            <CardDescription>Previous versions of the primary recipe</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {recipes
+              {primaryRecipes
                 .filter((r) => !r.is_active)
                 .map((recipe) => (
                   <div
@@ -652,61 +708,62 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
         </Card>
       )}
 
-      {/* Create Recipe Dialog */}
-      <Dialog open={createRecipeDialogOpen} onOpenChange={setCreateRecipeDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Recipe</DialogTitle>
-            <DialogDescription>
-              Create a new recipe for {productName}
-            </DialogDescription>
-          </DialogHeader>
-          <RecipeForm
-            defaultValues={{
-              recipe_name: `${productName} Recipe`,
-              recipe_version: "1.0",
-              batch_size: 100,
-              batch_unit_id: null,
-              instructions: null,
-            }}
-            units={units}
-            onSave={(data) => createRecipeMutation.mutate(data)}
-            onCancel={() => setCreateRecipeDialogOpen(false)}
-            isLoading={createRecipeMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Recipe Dialog */}
       <Dialog open={editRecipeDialogOpen} onOpenChange={setEditRecipeDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Recipe</DialogTitle>
+            <DialogTitle>Edit {selectedRecipe?.recipe_type === "sub" ? "Sub BOM" : "Recipe"}</DialogTitle>
             <DialogDescription>
-              Update recipe details for {activeRecipe?.recipe_name}
+              Update details for {selectedRecipe?.recipe_name}
             </DialogDescription>
           </DialogHeader>
-          {activeRecipe && (
+          {selectedRecipe && (
             <RecipeForm
               defaultValues={{
-                recipe_name: activeRecipe.recipe_name,
-                recipe_version: activeRecipe.recipe_version || "1.0",
-                batch_size: activeRecipe.batch_size,
-                batch_unit_id: activeRecipe.batch_unit_id,
-                instructions: activeRecipe.instructions,
-                is_active: activeRecipe.is_active ?? true,
+                recipe_name: selectedRecipe.recipe_name,
+                recipe_version: selectedRecipe.recipe_version || "1.0",
+                batch_size: selectedRecipe.batch_size,
+                batch_unit_id: selectedRecipe.batch_unit_id,
+                instructions: selectedRecipe.instructions,
+                is_active: selectedRecipe.is_active ?? true,
               }}
               units={units}
-              onSave={(data) => updateRecipeMutation.mutate({ id: activeRecipe.id, ...data, is_active: data.is_active ?? true })}
+              onSave={(data) => updateRecipeMutation.mutate({ id: selectedRecipe.id, ...data, is_active: data.is_active ?? true })}
               onCancel={() => setEditRecipeDialogOpen(false)}
               isLoading={updateRecipeMutation.isPending}
               showActiveToggle
-              onDelete={() => {
+              onDelete={selectedRecipe.recipe_type === "sub" ? () => {
                 setEditRecipeDialogOpen(false);
                 setDeleteRecipeDialogOpen(true);
-              }}
+              } : undefined}
+              showDeleteButton={selectedRecipe.recipe_type === "sub"}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Sub Recipe Dialog */}
+      <Dialog open={createSubRecipeDialogOpen} onOpenChange={setCreateSubRecipeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Sub BOM</DialogTitle>
+            <DialogDescription>
+              Create a backup/alternative BOM for {productName}
+            </DialogDescription>
+          </DialogHeader>
+          <RecipeForm
+            defaultValues={{
+              recipe_name: `${productName} Sub ${subRecipes.length + 1}`,
+              recipe_version: "1.0",
+              batch_size: activePrimaryRecipe?.batch_size || 100,
+              batch_unit_id: activePrimaryRecipe?.batch_unit_id || null,
+              instructions: null,
+            }}
+            units={units}
+            onSave={(data) => createSubRecipeMutation.mutate(data)}
+            onCancel={() => setCreateSubRecipeDialogOpen(false)}
+            isLoading={createSubRecipeMutation.isPending}
+          />
         </DialogContent>
       </Dialog>
 
@@ -714,15 +771,15 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       <AlertDialog open={deleteRecipeDialogOpen} onOpenChange={setDeleteRecipeDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Recipe?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {selectedRecipe?.recipe_type === "sub" ? "Sub BOM" : "Recipe"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the recipe "{activeRecipe?.recipe_name}" and all its materials. This action cannot be undone.
+              This will permanently delete "{selectedRecipe?.recipe_name}" and all its materials. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => activeRecipe && deleteRecipeMutation.mutate(activeRecipe.id)}
+              onClick={() => selectedRecipe && deleteRecipeMutation.mutate(selectedRecipe.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteRecipeMutation.isPending ? (
@@ -739,14 +796,14 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Material to Recipe</DialogTitle>
+            <DialogTitle>Add Material to {selectedRecipe?.recipe_type === "sub" ? "Sub BOM" : "Recipe"}</DialogTitle>
             <DialogDescription>
-              Add a listed material to {activeRecipe?.recipe_name}. During production, operators will select the actual material to use.
+              Add a listed material to {selectedRecipe?.recipe_name}. During production, operators will select the actual material to use.
             </DialogDescription>
           </DialogHeader>
-          {activeRecipe && (
+          {selectedRecipe && (
             <AddItemForm
-              recipeId={activeRecipe.id}
+              recipeId={selectedRecipe.id}
               listedMaterials={listedMaterials}
               units={units}
               existingListedMaterialIds={recipeItems.map((i) => i.listed_material_id).filter(Boolean) as string[]}
@@ -807,6 +864,146 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
   );
 }
 
+// Recipe Content Component - Displays the recipe details and BOM table
+function RecipeContent({
+  recipe,
+  recipeItems,
+  itemsLoading,
+  isPrimary,
+  onEditRecipe,
+  onAddMaterial,
+  onEditItem,
+  onDeleteItem,
+}: {
+  recipe: Recipe;
+  recipeItems: RecipeItem[];
+  itemsLoading: boolean;
+  isPrimary: boolean;
+  onEditRecipe: () => void;
+  onAddMaterial: () => void;
+  onEditItem: (item: RecipeItem) => void;
+  onDeleteItem: (itemId: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {/* Recipe Header */}
+      <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
+        <div>
+          <h3 className="font-semibold">{recipe.recipe_name}</h3>
+          <p className="text-sm text-muted-foreground">
+            Version {recipe.recipe_version || "1.0"} • Yields {recipe.batch_size} {recipe.batch_unit?.code || "units"}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onEditRecipe}>
+            <Settings2 className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
+          <Button size="sm" onClick={onAddMaterial}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Material
+          </Button>
+        </div>
+      </div>
+
+      {/* BOM Table */}
+      {itemsLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      ) : recipeItems.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No materials added to this {isPrimary ? "recipe" : "sub BOM"} yet.</p>
+          <p className="text-sm">Click "Add Material" to add ingredients to the BOM.</p>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Material</TableHead>
+              <TableHead>Code</TableHead>
+              <TableHead className="text-right">Quantity</TableHead>
+              <TableHead>Unit</TableHead>
+              <TableHead className="text-right">Wastage %</TableHead>
+              <TableHead>Notes</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {recipeItems.map((item, index) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-mono text-muted-foreground">
+                  {index + 1}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {item.listed_material?.name || item.material?.name || (
+                    <span className="text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Unknown
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                    {item.listed_material?.code || item.material?.code || "-"}
+                  </code>
+                </TableCell>
+                <TableCell className="text-right font-mono">
+                  {item.quantity_required.toFixed(4)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {item.unit?.code || "units"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {item.wastage_percentage || 0}%
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
+                  {item.notes || "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEditItem(item)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteItem(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      {/* Instructions */}
+      {recipe.instructions && (
+        <>
+          <Separator />
+          <div>
+            <h4 className="font-semibold mb-2">Instructions</h4>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-4 rounded-lg">
+              {recipe.instructions}
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Recipe Form Component
 function RecipeForm({
   defaultValues,
@@ -816,6 +1013,7 @@ function RecipeForm({
   isLoading,
   showActiveToggle = false,
   onDelete,
+  showDeleteButton = false,
 }: {
   defaultValues: {
     recipe_name: string;
@@ -838,6 +1036,7 @@ function RecipeForm({
   isLoading: boolean;
   showActiveToggle?: boolean;
   onDelete?: () => void;
+  showDeleteButton?: boolean;
 }) {
   const [recipeName, setRecipeName] = useState(defaultValues.recipe_name);
   const [recipeVersion, setRecipeVersion] = useState(defaultValues.recipe_version);
@@ -929,10 +1128,10 @@ function RecipeForm({
       )}
       <DialogFooter className="flex justify-between">
         <div>
-          {onDelete && (
+          {showDeleteButton && onDelete && (
             <Button type="button" variant="destructive" onClick={onDelete}>
               <Trash2 className="h-4 w-4 mr-1" />
-              Delete Recipe
+              Delete
             </Button>
           )}
         </div>
@@ -982,6 +1181,7 @@ function AddItemForm({
   const [notes, setNotes] = useState("");
   const [open, setOpen] = useState(false);
 
+  // Filter out already added materials
   const availableMaterials = listedMaterials.filter(
     (m) => !existingListedMaterialIds.includes(m.id)
   );

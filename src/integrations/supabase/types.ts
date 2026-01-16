@@ -2896,6 +2896,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_primary: boolean
           listed_material_id: string
           material_id: string
         }
@@ -2903,6 +2904,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_primary?: boolean
           listed_material_id: string
           material_id: string
         }
@@ -2910,6 +2912,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_primary?: boolean
           listed_material_id?: string
           material_id?: string
         }
@@ -4392,11 +4395,14 @@ export type Database = {
           instructions: string | null
           is_active: boolean | null
           is_default: boolean | null
+          parent_recipe_id: string | null
           product_id: string
           recipe_name: string
+          recipe_type: string
           recipe_version: string | null
           standard_labor_hours: number | null
           standard_machine_hours: number | null
+          sub_recipe_number: number | null
           updated_at: string
         }
         Insert: {
@@ -4408,11 +4414,14 @@ export type Database = {
           instructions?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          parent_recipe_id?: string | null
           product_id: string
           recipe_name: string
+          recipe_type?: string
           recipe_version?: string | null
           standard_labor_hours?: number | null
           standard_machine_hours?: number | null
+          sub_recipe_number?: number | null
           updated_at?: string
         }
         Update: {
@@ -4424,11 +4433,14 @@ export type Database = {
           instructions?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          parent_recipe_id?: string | null
           product_id?: string
           recipe_name?: string
+          recipe_type?: string
           recipe_version?: string | null
           standard_labor_hours?: number | null
           standard_machine_hours?: number | null
+          sub_recipe_number?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -4444,6 +4456,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipes_parent_recipe_id_fkey"
+            columns: ["parent_recipe_id"]
+            isOneToOne: false
+            referencedRelation: "product_recipes"
             referencedColumns: ["id"]
           },
           {
