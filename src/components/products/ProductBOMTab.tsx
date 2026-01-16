@@ -639,6 +639,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               </CardDescription>
             </div>
             <Button 
+              type="button"
               variant="outline" 
               size="sm" 
               onClick={() => setCreateSubRecipeDialogOpen(true)}

@@ -79,6 +79,7 @@ export function ProductFormDialog({
     },
   });
 
+  // Reset form when product changes, but only reset tab when dialog first opens
   useEffect(() => {
     if (product) {
       form.reset({
@@ -109,8 +110,14 @@ export function ProductFormDialog({
         handling_instructions: "",
       });
     }
-    setActiveTab("basic");
-  }, [product, form, open]);
+  }, [product, form]);
+
+  // Only reset to basic tab when the main dialog opens (not child dialogs)
+  useEffect(() => {
+    if (open) {
+      setActiveTab("basic");
+    }
+  }, [open]);
 
   const handleFormSubmit = (data: ProductFormData) => {
     onSubmit(data);
@@ -137,49 +144,51 @@ export function ProductFormDialog({
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleFormSubmit)} id="product-form">
-                <TabsContent value="basic" className="mt-0">
+            {/* Basic tab is inside the form for submission */}
+            <TabsContent value="basic" className="mt-0">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleFormSubmit)} id="product-form">
                   <ProductBasicInfoTab form={form} isEditing={isEditing} />
-                </TabsContent>
+                </form>
+              </Form>
+            </TabsContent>
 
-                <TabsContent value="sizes" className="mt-0">
-                  {product?.id && (
-                    <ProductSizesTab 
-                      productId={product.id}
-                      productSku={product.sku || ""}
-                      productName={product.name}
-                      requiresUpc={product.requires_upc || false}
-                    />
-                  )}
-                </TabsContent>
+            {/* Other tabs are outside the form to prevent button conflicts */}
+            <TabsContent value="sizes" className="mt-0">
+              {product?.id && (
+                <ProductSizesTab 
+                  productId={product.id}
+                  productSku={product.sku || ""}
+                  productName={product.name}
+                  requiresUpc={product.requires_upc || false}
+                />
+              )}
+            </TabsContent>
 
-                <TabsContent value="qa" className="mt-0">
-                  {product?.id && (
-                    <ProductQATab 
-                      productId={product.id} 
-                      productCategoryId={product.product_category_id || undefined}
-                    />
-                  )}
-                </TabsContent>
+            <TabsContent value="qa" className="mt-0">
+              {product?.id && (
+                <ProductQATab 
+                  productId={product.id} 
+                  productCategoryId={product.product_category_id || undefined}
+                />
+              )}
+            </TabsContent>
 
-                <TabsContent value="bom" className="mt-0">
-                  {product?.id && <ProductBOMTab productId={product.id} productName={product.name} />}
-                </TabsContent>
+            <TabsContent value="bom" className="mt-0">
+              {product?.id && <ProductBOMTab productId={product.id} productName={product.name} />}
+            </TabsContent>
 
-                <TabsContent value="spec" className="mt-0">
-                  {product?.id && <ProductSpecSheetTab productId={product.id} productName={product.name} />}
-                </TabsContent>
+            <TabsContent value="spec" className="mt-0">
+              {product?.id && <ProductSpecSheetTab productId={product.id} productName={product.name} />}
+            </TabsContent>
 
-                <TabsContent value="inventory" className="mt-0">
-                  {product?.id && <ProductInventoryTab productId={product.id} />}
-                </TabsContent>
+            <TabsContent value="inventory" className="mt-0">
+              {product?.id && <ProductInventoryTab productId={product.id} />}
+            </TabsContent>
 
-                <TabsContent value="analytics" className="mt-0">
-                  {product?.id && <ProductAnalyticsTab productId={product.id} productName={product.name} />}
-                </TabsContent>
-              </form>
-            </Form>
+            <TabsContent value="analytics" className="mt-0">
+              {product?.id && <ProductAnalyticsTab productId={product.id} productName={product.name} />}
+            </TabsContent>
           </div>
         </Tabs>
 
