@@ -50,7 +50,7 @@ import CloseDay from "./pages/operations/CloseDay";
 import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
 import TimeClockKiosk from "./pages/hr/TimeClockKiosk";
 import PayrollExport from "./pages/hr/PayrollExport";
-import RecipeManagement from "./pages/manufacturing/RecipeManagement";
+
 import ProductCategories from "./pages/settings/ProductCategories";
 import PackagingIndicators from "./pages/settings/PackagingIndicators";
 import ContainerSizes from "./pages/settings/ContainerSizes";
@@ -135,7 +135,8 @@ const App = () => (
             <Route path="/manufacturing/work-orders" element={<WorkOrders />} />
             <Route path="/manufacturing/base-production" element={<BaseProduction />} />
             <Route path="/manufacturing/finishing" element={<FinishingProduction />} />
-            <Route path="/manufacturing/recipes" element={<RecipeManagement />} />
+            {/* Recipe management is now in Product Edit dialog - redirect to products */}
+            <Route path="/manufacturing/recipes" element={<AppLayout><Products /></AppLayout>} />
             <Route path="/manufacturing/qa-tests" element={<BatchQATests />} />
             <Route
               path="/manufacturing/*"

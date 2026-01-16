@@ -63,7 +63,6 @@ const navItems: NavItem[] = [
       { title: 'Finishing Production', href: '/manufacturing/finishing' },
       { title: 'QA Testing', href: '/manufacturing/qa-tests' },
       { title: 'Batch Tracking', href: '/manufacturing/batches' },
-      { title: 'Recipes / BOMs', href: '/manufacturing/recipes' },
     ],
   },
   {
