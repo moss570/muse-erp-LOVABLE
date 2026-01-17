@@ -344,11 +344,16 @@ export default function Suppliers() {
     enabled: !!editingSupplier?.id,
   });
 
-  // Load existing documents when editing and auto-calculate missing expiry dates
+  // Load existing documents when editing and auto-fill missing dates
   useEffect(() => {
     if (existingDocuments) {
       setDocuments(existingDocuments.map(doc => {
-        const dateReviewed = doc.date_reviewed || undefined;
+        // Auto-fill date_reviewed from created_at if missing
+        let dateReviewed = doc.date_reviewed || undefined;
+        if (!dateReviewed && doc.created_at) {
+          dateReviewed = doc.created_at.split('T')[0]; // Extract date portion
+        }
+        
         let expiryDate = doc.expiry_date || undefined;
         
         // Auto-calculate expiry date if date_reviewed exists but expiry_date is missing
