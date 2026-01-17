@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, EyeOff, AlertTriangle, ImageIcon, ShieldCheck, Archive, ArchiveRestore, ChevronsUpDown, Check } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, EyeOff, AlertTriangle, ImageIcon, ShieldCheck, Archive, ArchiveRestore, ChevronsUpDown, Check, Pencil } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,16 @@ import { MaterialNutritionTab } from './MaterialNutritionTab';
 import type { Tables, Json } from '@/integrations/supabase/types';
 import { differenceInMonths } from 'date-fns';
 import { calculateExpiryDate, isAutoCalculatedExpiry } from '@/lib/documentDateUtils';
+import { 
+  StagedEditProvider, 
+  StagedFormField, 
+  StagedEditActionBar, 
+  EditButton, 
+  UnsavedChangesDialog, 
+  EditModeIndicator,
+  ViewModeValue 
+} from '@/components/ui/staged-edit';
+import { useStagedEditContext } from '@/components/ui/staged-edit/StagedEditProvider';
 type Material = Tables<'materials'>;
 type Unit = Tables<'units_of_measure'>;
 type DropdownOption = Tables<'dropdown_options'>;
@@ -1597,45 +1607,302 @@ export function MaterialFormDialog({
     return null;
   };
   const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
+  const isNewMaterial = !material;
+  
   return <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pb-20">
+        <StagedEditProvider
+          form={form}
+          resourceId={material?.id}
+          resourceType="materials"
+          tableName="materials"
+          initialData={material || null}
+          resourceName={material?.name || 'New Material'}
+          enabled={!!material}
+        >
+          <MaterialFormContent
+            material={material}
+            form={form}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            units={units}
+            dropdownOptions={dropdownOptions}
+            listedMaterials={listedMaterials}
+            listedMaterialCategories={listedMaterialCategories}
+            suppliers={suppliers}
+            manufacturers={manufacturers}
+            subCategories={subCategories}
+            glAccounts={glAccounts}
+            categoryGlDefaults={categoryGlDefaults}
+            documentRequirements={documentRequirements}
+            unitVariants={unitVariants}
+            setUnitVariants={setUnitVariants}
+            materialSuppliers={materialSuppliers}
+            setMaterialSuppliers={setMaterialSuppliers}
+            documents={documents}
+            setDocuments={setDocuments}
+            coaLimits={coaLimits}
+            setCoaLimits={setCoaLimits}
+            showArchivedDocs={showArchivedDocs}
+            setShowArchivedDocs={setShowArchivedDocs}
+            defaultPhotoFile={defaultPhotoFile}
+            setDefaultPhotoFile={setDefaultPhotoFile}
+            defaultPhotoPath={defaultPhotoPath}
+            defaultPhotoUrl={defaultPhotoUrl}
+            defaultPhotoAddedAt={defaultPhotoAddedAt}
+            listedMaterialPopoverOpen={listedMaterialPopoverOpen}
+            setListedMaterialPopoverOpen={setListedMaterialPopoverOpen}
+            createUnitOpen={createUnitOpen}
+            setCreateUnitOpen={setCreateUnitOpen}
+            pendingUnitField={pendingUnitField}
+            setPendingUnitField={setPendingUnitField}
+            pendingSupplierIndex={pendingSupplierIndex}
+            setPendingSupplierIndex={setPendingSupplierIndex}
+            handleSave={handleSave}
+            addUnitVariant={addUnitVariant}
+            removeUnitVariant={removeUnitVariant}
+            updateUnitVariant={updateUnitVariant}
+            handleUnitVariantPhotoUpload={handleUnitVariantPhotoUpload}
+            addMaterialSupplier={addMaterialSupplier}
+            removeMaterialSupplier={removeMaterialSupplier}
+            updateMaterialSupplier={updateMaterialSupplier}
+            autoPopulateSuppliersForManufacturer={autoPopulateSuppliersForManufacturer}
+            addDocument={addDocument}
+            removeDocument={removeDocument}
+            updateDocument={updateDocument}
+            handleFileUpload={handleFileUpload}
+            downloadDocument={downloadDocument}
+            handleArchiveClick={handleArchiveClick}
+            restoreDocument={restoreDocument}
+            getCalculatedUsageCost={getCalculatedUsageCost}
+            isPhotoStale={isPhotoStale}
+            isLoading={isLoading}
+            isSubmittingRef={isSubmittingRef}
+            onOpenChange={onOpenChange}
+            supplierWarningOpen={supplierWarningOpen}
+            setSupplierWarningOpen={setSupplierWarningOpen}
+            warningSupplierName={warningSupplierName}
+            setWarningSupplierName={setWarningSupplierName}
+          />
+        </StagedEditProvider>
+      </DialogContent>
+    </Dialog>
+
+    {/* Archive Non-Expired Document Confirmation Dialog */}
+    <AlertDialog open={!!documentToArchive} onOpenChange={open => !open && setDocumentToArchive(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Archive Document?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This document has not expired yet. Are you sure you want to archive "{documentToArchive?.name || 'this document'}"?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>No</AlertDialogCancel>
+          <AlertDialogAction onClick={() => {
+            if (documentToArchive) {
+              archiveDocument(documentToArchive.index);
+            }
+            setDocumentToArchive(null);
+          }}>
+            Yes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Supplier Warning Dialog */}
+    <SupplierWarningDialog open={supplierWarningOpen} onOpenChange={setSupplierWarningOpen} supplierName={warningSupplierName} />
+  </>;
+}
+
+// Inner component that has access to StagedEditContext
+interface MaterialFormContentProps {
+  material: Material | null | undefined;
+  form: ReturnType<typeof useForm<MaterialFormData>>;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  units: Unit[] | undefined;
+  dropdownOptions: DropdownOption[] | undefined;
+  listedMaterials: (ListedMaterial & { category: { id: string; name: string; code: string } | null })[] | undefined;
+  listedMaterialCategories: { id: string; name: string; code: string; sort_order: number | null }[] | undefined;
+  suppliers: Supplier[] | undefined;
+  manufacturers: Supplier[] | undefined;
+  subCategories: { id: string; category: string; name: string }[] | undefined;
+  glAccounts: any[] | undefined;
+  categoryGlDefaults: any[] | undefined;
+  documentRequirements: DocumentRequirement[] | undefined;
+  unitVariants: UnitVariant[];
+  setUnitVariants: React.Dispatch<React.SetStateAction<UnitVariant[]>>;
+  materialSuppliers: MaterialSupplier[];
+  setMaterialSuppliers: React.Dispatch<React.SetStateAction<MaterialSupplier[]>>;
+  documents: DocumentUpload[];
+  setDocuments: React.Dispatch<React.SetStateAction<DocumentUpload[]>>;
+  coaLimits: CoaLimit[];
+  setCoaLimits: React.Dispatch<React.SetStateAction<CoaLimit[]>>;
+  showArchivedDocs: boolean;
+  setShowArchivedDocs: React.Dispatch<React.SetStateAction<boolean>>;
+  defaultPhotoFile: File | null;
+  setDefaultPhotoFile: React.Dispatch<React.SetStateAction<File | null>>;
+  defaultPhotoPath: string | undefined;
+  defaultPhotoUrl: string | undefined;
+  defaultPhotoAddedAt: string | undefined;
+  listedMaterialPopoverOpen: boolean;
+  setListedMaterialPopoverOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  createUnitOpen: boolean;
+  setCreateUnitOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  pendingUnitField: 'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null;
+  setPendingUnitField: React.Dispatch<React.SetStateAction<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>>;
+  pendingSupplierIndex: number | null;
+  setPendingSupplierIndex: React.Dispatch<React.SetStateAction<number | null>>;
+  handleSave: (data: MaterialFormData, closeAfterSave: boolean) => Promise<void>;
+  addUnitVariant: () => void;
+  removeUnitVariant: (index: number) => void;
+  updateUnitVariant: (index: number, field: keyof UnitVariant, value: string | number | boolean | File | undefined) => void;
+  handleUnitVariantPhotoUpload: (index: number, file: File | undefined) => void;
+  addMaterialSupplier: () => void;
+  removeMaterialSupplier: (index: number) => void;
+  updateMaterialSupplier: (index: number, field: keyof MaterialSupplier, value: string | number | boolean | undefined) => void;
+  autoPopulateSuppliersForManufacturer: (manufacturerId: string, manufacturerItemNumber?: string) => void;
+  addDocument: () => void;
+  removeDocument: (index: number) => Promise<void>;
+  updateDocument: (index: number, field: keyof DocumentUpload, value: string | undefined) => void;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, index: number) => Promise<void>;
+  downloadDocument: (doc: DocumentUpload) => Promise<void>;
+  handleArchiveClick: (index: number, docName: string, expiryDate: string | undefined) => void;
+  restoreDocument: (index: number) => Promise<void>;
+  getCalculatedUsageCost: (costPerUnit: number | undefined, purchaseUnitId: string | undefined) => number | null;
+  isPhotoStale: (photoAddedAt: string | undefined) => boolean;
+  isLoading: boolean;
+  isSubmittingRef: React.MutableRefObject<boolean>;
+  onOpenChange: (open: boolean) => void;
+  supplierWarningOpen: boolean;
+  setSupplierWarningOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  warningSupplierName: string | undefined;
+  setWarningSupplierName: React.Dispatch<React.SetStateAction<string | undefined>>;
+}
+
+function MaterialFormContent({
+  material,
+  form,
+  activeTab,
+  setActiveTab,
+  units,
+  dropdownOptions,
+  listedMaterials,
+  listedMaterialCategories,
+  suppliers,
+  manufacturers,
+  subCategories,
+  glAccounts,
+  categoryGlDefaults,
+  documentRequirements,
+  unitVariants,
+  setUnitVariants,
+  materialSuppliers,
+  setMaterialSuppliers,
+  documents,
+  setDocuments,
+  coaLimits,
+  setCoaLimits,
+  showArchivedDocs,
+  setShowArchivedDocs,
+  defaultPhotoFile,
+  setDefaultPhotoFile,
+  defaultPhotoPath,
+  defaultPhotoUrl,
+  defaultPhotoAddedAt,
+  listedMaterialPopoverOpen,
+  setListedMaterialPopoverOpen,
+  createUnitOpen,
+  setCreateUnitOpen,
+  pendingUnitField,
+  setPendingUnitField,
+  pendingSupplierIndex,
+  setPendingSupplierIndex,
+  handleSave,
+  addUnitVariant,
+  removeUnitVariant,
+  updateUnitVariant,
+  handleUnitVariantPhotoUpload,
+  addMaterialSupplier,
+  removeMaterialSupplier,
+  updateMaterialSupplier,
+  autoPopulateSuppliersForManufacturer,
+  addDocument,
+  removeDocument,
+  updateDocument,
+  handleFileUpload,
+  downloadDocument,
+  handleArchiveClick,
+  restoreDocument,
+  getCalculatedUsageCost,
+  isPhotoStale,
+  isLoading,
+  isSubmittingRef,
+  onOpenChange,
+  supplierWarningOpen,
+  setSupplierWarningOpen,
+  warningSupplierName,
+  setWarningSupplierName,
+}: MaterialFormContentProps) {
+  const { isEditing, startEdit, isSaving } = useStagedEditContext();
+  
+  // Group dropdown options by type
+  const allergenOptions = dropdownOptions?.filter(o => o.dropdown_type === 'allergen') || [];
+  const foodClaimOptions = dropdownOptions?.filter(o => o.dropdown_type === 'food_claim') || [];
+  const fraudVulnerabilityOptions = dropdownOptions?.filter(o => o.dropdown_type === 'fraud_vulnerability') || [];
+  const supplyChainOptions = dropdownOptions?.filter(o => o.dropdown_type === 'supply_chain_complexity') || [];
+  const authMethodOptions = dropdownOptions?.filter(o => o.dropdown_type === 'authentication_method') || [];
+
+  const currentCategory = form.watch('category');
+  const hideQualityTabs = ['Supplies', 'Maintenance', 'Direct Sale'].includes(currentCategory);
+  const showNutritionTab = FOOD_CATEGORIES.includes(currentCategory);
+  // Base: 6 tabs, +3 for quality tabs, +1 for nutrition tab
+  const tabCount = 6 + (hideQualityTabs ? 0 : 3) + (showNutritionTab ? 1 : 0);
+
+  return (
+    <>
+      <DialogHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-3">
           <DialogTitle>
-            {material ? 'Edit Material' : 'Add New Material'}
-            {material?.name && (
-              <span className="ml-2 text-muted-foreground font-normal">— {material.name}</span>
-            )}
+            {material ? material.name : 'Add New Material'}
           </DialogTitle>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {(() => {
-                const currentCategory = form.watch('category');
-                const hideQualityTabs = ['Supplies', 'Maintenance', 'Direct Sale'].includes(currentCategory);
-                const showNutritionTab = FOOD_CATEGORIES.includes(currentCategory);
-                // Base: 6 tabs, +3 for quality tabs, +1 for nutrition tab
-                const tabCount = 6 + (hideQualityTabs ? 0 : 3) + (showNutritionTab ? 1 : 0);
-                return <TabsList className={`grid w-full grid-cols-${tabCount}`} style={{
-                  gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`
-                }}>
-                    <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                    <TabsTrigger value="specifications">Specs</TabsTrigger>
-                    {showNutritionTab && <TabsTrigger value="nutrition">Nutrition</TabsTrigger>}
-                    {!hideQualityTabs && <TabsTrigger value="food-safety">Food Safety</TabsTrigger>}
-                    {!hideQualityTabs && <TabsTrigger value="haccp">HACCP</TabsTrigger>}
-                    {!hideQualityTabs && <TabsTrigger value="coa-limits">COA Limits</TabsTrigger>}
-                    <TabsTrigger value="unit-variants">Units</TabsTrigger>
-                    <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-                    <TabsTrigger value="documents">Documents</TabsTrigger>
-                    <TabsTrigger value="qa-workflow" className="flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3" />
-                      QA
-                    </TabsTrigger>
-                  </TabsList>;
-              })()}
+          {material && (
+            <Badge variant="outline" className="font-mono">
+              {material.code}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <EditModeIndicator />
+          {material && !isEditing && (
+            <EditButton />
+          )}
+        </div>
+      </DialogHeader>
+      
+      <Form {...form}>
+        <form className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className={`grid w-full`} style={{
+              gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`
+            }}>
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="specifications">Specs</TabsTrigger>
+              {showNutritionTab && <TabsTrigger value="nutrition">Nutrition</TabsTrigger>}
+              {!hideQualityTabs && <TabsTrigger value="food-safety">Food Safety</TabsTrigger>}
+              {!hideQualityTabs && <TabsTrigger value="haccp">HACCP</TabsTrigger>}
+              {!hideQualityTabs && <TabsTrigger value="coa-limits">COA Limits</TabsTrigger>}
+              <TabsTrigger value="unit-variants">Units</TabsTrigger>
+              <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="qa-workflow" className="flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3" />
+                QA
+              </TabsTrigger>
+            </TabsList>
 
               {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4 mt-4">
@@ -3410,11 +3677,14 @@ export function MaterialFormDialog({
               </TabsContent>
             </Tabs>
 
-            <FormDialogFooter onClose={() => onOpenChange(false)} onSave={() => {
-              form.handleSubmit(data => handleSave(data, false))();
-            }} onSaveAndClose={() => {
-              form.handleSubmit(data => handleSave(data, true))();
-            }} isSaving={isLoading} saveLabel={material ? 'Update Material' : 'Create Material'} saveAndCloseLabel={material ? 'Update & Close' : 'Create & Close'} disabled={isSubmittingRef.current} />
+            <StagedEditActionBar
+              onSave={async () => {
+                await form.handleSubmit(data => handleSave(data, false))();
+              }}
+              saveLabel={material ? 'Update Material' : 'Create Material'}
+            />
+
+            
           </form>
         </Form>
 
@@ -3431,33 +3701,8 @@ export function MaterialFormDialog({
           }
           setPendingUnitField(null);
         }} />
-      </DialogContent>
-    </Dialog>
 
-    {/* Archive Non-Expired Document Confirmation Dialog */}
-    <AlertDialog open={!!documentToArchive} onOpenChange={open => !open && setDocumentToArchive(null)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Archive Document?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This document has not expired yet. Are you sure you want to archive "{documentToArchive?.name || 'this document'}"?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>No</AlertDialogCancel>
-          <AlertDialogAction onClick={() => {
-            if (documentToArchive) {
-              archiveDocument(documentToArchive.index);
-            }
-            setDocumentToArchive(null);
-          }}>
-            Yes
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-
-      {/* Supplier Warning Dialog */}
-      <SupplierWarningDialog open={supplierWarningOpen} onOpenChange={setSupplierWarningOpen} supplierName={warningSupplierName} />
-  </>;
+        <SupplierWarningDialog open={supplierWarningOpen} onOpenChange={setSupplierWarningOpen} supplierName={warningSupplierName} />
+      </>
+    );
 }

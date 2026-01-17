@@ -1,8 +1,6 @@
 import React from 'react';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -23,6 +21,7 @@ interface UnsavedChangesDialogProps {
 
 /**
  * Dialog shown when user tries to close/navigate away with unsaved changes.
+ * Requires explicit props - does not use context.
  */
 export function UnsavedChangesDialog({
   open,
@@ -73,3 +72,5 @@ export function UnsavedChangesDialog({
     </AlertDialog>
   );
 }
+
+export type { UnsavedChangesDialogProps };
