@@ -45,7 +45,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, EyeOff, AlertTriangle, ImageIcon, ShieldCheck, Archive, ArchiveRestore } from 'lucide-react';
+import { X, Plus, Trash2, PlusCircle, Star, Upload, FileText, Download, Eye, EyeOff, AlertTriangle, ImageIcon, ShieldCheck, Archive, ArchiveRestore, ChevronsUpDown, Check } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import {
   ApprovalStatusBadge,
   ApprovalActionsDropdown,
@@ -262,6 +265,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [createUnitOpen, setCreateUnitOpen] = useState(false);
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
+  const [listedMaterialPopoverOpen, setListedMaterialPopoverOpen] = useState(false);
   
   // Default item photo state
   const [defaultPhotoFile, setDefaultPhotoFile] = useState<File | null>(null);
@@ -1699,33 +1703,84 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                 <FormField
                   control={form.control}
                   name="listed_material_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Listed Material Name</FormLabel>
-                      <Select 
-                        onValueChange={(val) => field.onChange(val === '__none__' ? null : val)} 
-                        value={field.value || '__none__'}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select listed material (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="__none__">None</SelectItem>
-                          {listedMaterials?.map((lm) => (
-                            <SelectItem key={lm.id} value={lm.id}>
-                              {lm.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Link to a standardized material name for reporting
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedMaterial = listedMaterials?.find(lm => lm.id === field.value);
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Link a Listed Material</FormLabel>
+                        <Popover open={listedMaterialPopoverOpen} onOpenChange={setListedMaterialPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={listedMaterialPopoverOpen}
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {selectedMaterial 
+                                  ? `${selectedMaterial.code ? `${selectedMaterial.code} - ` : ''}${selectedMaterial.name}`
+                                  : "Select listed material (optional)"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[500px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search by name, code, or description..." />
+                              <CommandList>
+                                <CommandEmpty>No listed material found.</CommandEmpty>
+                                <CommandGroup>
+                                  <CommandItem
+                                    value="__none__"
+                                    onSelect={() => {
+                                      field.onChange(null);
+                                      setListedMaterialPopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        !field.value ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    None
+                                  </CommandItem>
+                                  {listedMaterials?.map((lm) => (
+                                    <CommandItem
+                                      key={lm.id}
+                                      value={`${lm.code || ''} ${lm.name} ${lm.description || ''}`}
+                                      onSelect={() => {
+                                        field.onChange(lm.id);
+                                        setListedMaterialPopoverOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === lm.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <span className="font-medium text-muted-foreground mr-2">
+                                        {lm.code || '—'}
+                                      </span>
+                                      <span>{lm.name}</span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          Select one of the Listed Material names to associate this material for use in the BOM / Recipe.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
