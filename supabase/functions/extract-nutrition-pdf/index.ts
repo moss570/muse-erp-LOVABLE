@@ -48,8 +48,8 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Accept image types (PDFs are now converted to images on the client)
-    if (!mimeType || typeof mimeType !== 'string' || !mimeType.startsWith('image/')) {
+    // Accept images and PDFs
+    if (!mimeType || typeof mimeType !== 'string' || !(mimeType.startsWith('image/') || mimeType === 'application/pdf')) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Unsupported file type. Please upload an image (PNG/JPG) or PDF.',
@@ -115,16 +115,20 @@ Return ONLY valid JSON (no code fences, no commentary) for this schema:
                 text: prompt,
               },
               {
+                // Gemini supports PDFs as an input modality; we pass it as a data: URL.
                 type: 'image_url',
                 image_url: {
-                  url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`,
+                  url: `data:${mimeType};base64,${imageBase64}`,
                 },
               },
             ],
           },
         ],
-        max_tokens: 2000,
-        temperature: 0.1,
+        // Prevent truncated JSON
+        max_tokens: 4096,
+        temperature: 0,
+        // Hint strict JSON (gateway may ignore for Gemini, but helps when supported)
+        response_format: { type: 'json_object' },
       }),
     });
 
@@ -165,26 +169,40 @@ Return ONLY valid JSON (no code fences, no commentary) for this schema:
 
     console.log('Raw AI response content:', content.substring(0, 500));
 
-    // Parse the JSON response - handle various markdown formats
+    // Parse the JSON response - be resilient to code fences / surrounding text
     let nutritionData: NutritionData;
     try {
-      // Remove markdown code blocks with various patterns
-      let cleanedContent = content
+      let cleanedContent = String(content)
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
-      
-      // Try to extract JSON object if there's surrounding text
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanedContent = jsonMatch[0];
+
+      // Best effort: extract the first JSON object by brace matching (handles trailing text better than regex)
+      const firstBrace = cleanedContent.indexOf('{');
+      if (firstBrace !== -1) {
+        let depth = 0;
+        let endIndex = -1;
+        for (let i = firstBrace; i < cleanedContent.length; i++) {
+          const ch = cleanedContent[i];
+          if (ch === '{') depth++;
+          if (ch === '}') {
+            depth--;
+            if (depth === 0) {
+              endIndex = i;
+              break;
+            }
+          }
+        }
+        if (endIndex !== -1) {
+          cleanedContent = cleanedContent.slice(firstBrace, endIndex + 1);
+        }
       }
-      
+
       nutritionData = JSON.parse(cleanedContent);
     } catch (parseError) {
       console.error('Failed to parse AI response:', content);
       console.error('Parse error:', parseError);
-      throw new Error('Failed to parse nutrition data from image. Please try with a clearer image.');
+      throw new Error('Failed to parse nutrition data from file. Please try again (higher-resolution label / clearer scan).');
     }
 
     console.log('Extracted nutrition data:', nutritionData);
