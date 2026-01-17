@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.xero-sync-fg-completion]
 verify_jwt = false
+
+[functions.usda-food-search]
+verify_jwt = false
