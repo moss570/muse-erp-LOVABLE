@@ -25,7 +25,7 @@ interface PrimaryMaterialLink {
 }
 
 /**
- * Generates an ingredient statement from a product's BOM/recipe
+ * Generates an ingredient statement from a product's primary BOM/recipe
  * Ingredients are listed in descending order by quantity (heaviest first)
  * Uses the label_copy field from the PRIMARY material linked to each listed material
  */
@@ -56,8 +56,39 @@ export async function generateIngredientStatement(productId: string): Promise<st
   }
 
   const recipe = recipes[0] as unknown as Recipe;
-  const items = recipe.product_recipe_items || [];
+  return generateStatementFromRecipeItems(recipe.product_recipe_items);
+}
 
+/**
+ * Generates an ingredient statement for a SPECIFIC recipe/BOM by ID
+ * Ingredients are listed in descending order by quantity (heaviest first)
+ * Uses the label_copy field from the PRIMARY material linked to each listed material
+ */
+export async function generateIngredientStatementForRecipe(recipeId: string): Promise<string> {
+  // Fetch the recipe items for this specific recipe
+  const { data: items, error } = await supabase
+    .from("product_recipe_items")
+    .select(`
+      quantity_required,
+      listed_material_id,
+      listed_material:listed_material_names (
+        id,
+        name
+      )
+    `)
+    .eq("recipe_id", recipeId);
+
+  if (error || !items || items.length === 0) {
+    return "";
+  }
+
+  return generateStatementFromRecipeItems(items as RecipeItem[]);
+}
+
+/**
+ * Internal helper: Generate ingredient statement from recipe items array
+ */
+async function generateStatementFromRecipeItems(items: RecipeItem[]): Promise<string> {
   if (items.length === 0) {
     return "";
   }
@@ -135,7 +166,7 @@ export async function generateIngredientStatement(productId: string): Promise<st
 }
 
 /**
- * Gets a preview of the ingredient statement for display
+ * Gets a preview of the ingredient statement for a product (uses primary recipe)
  * Returns the statement or a placeholder message
  */
 export async function getIngredientStatementPreview(productId: string): Promise<{
@@ -159,5 +190,33 @@ export async function getIngredientStatementPreview(productId: string): Promise<
     statement,
     itemCount,
     hasRecipe: true,
+  };
+}
+
+/**
+ * Gets a preview of the ingredient statement for a specific recipe/BOM
+ * Returns the statement or a placeholder message
+ */
+export async function getIngredientStatementPreviewForRecipe(recipeId: string): Promise<{
+  statement: string;
+  itemCount: number;
+  hasItems: boolean;
+}> {
+  const statement = await generateIngredientStatementForRecipe(recipeId);
+  
+  if (!statement) {
+    return {
+      statement: "No ingredients in BOM. Add materials to generate ingredient statement.",
+      itemCount: 0,
+      hasItems: false,
+    };
+  }
+
+  const itemCount = statement.split(",").length;
+  
+  return {
+    statement,
+    itemCount,
+    hasItems: true,
   };
 }
