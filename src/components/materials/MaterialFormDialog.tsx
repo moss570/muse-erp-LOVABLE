@@ -59,6 +59,7 @@ import {
   DocumentExpiryBadge,
 } from '@/components/approval';
 import { CreateUnitDialog } from './CreateUnitDialog';
+import { MaterialNutritionTab } from './MaterialNutritionTab';
 import type { Tables, Json } from '@/integrations/supabase/types';
 import { differenceInMonths } from 'date-fns';
 
@@ -1534,12 +1535,15 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
               {(() => {
                 const currentCategory = form.watch('category');
                 const hideQualityTabs = ['Supplies', 'Maintenance', 'Direct Sale'].includes(currentCategory);
-                const tabCount = hideQualityTabs ? 6 : 9;
+                const showNutritionTab = FOOD_CATEGORIES.includes(currentCategory);
+                // Base: 6 tabs, +3 for quality tabs, +1 for nutrition tab
+                const tabCount = 6 + (hideQualityTabs ? 0 : 3) + (showNutritionTab ? 1 : 0);
                 
                 return (
                   <TabsList className={`grid w-full grid-cols-${tabCount}`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
                     <TabsTrigger value="basic">Basic Info</TabsTrigger>
                     <TabsTrigger value="specifications">Specs</TabsTrigger>
+                    {showNutritionTab && <TabsTrigger value="nutrition">Nutrition</TabsTrigger>}
                     {!hideQualityTabs && <TabsTrigger value="food-safety">Food Safety</TabsTrigger>}
                     {!hideQualityTabs && <TabsTrigger value="haccp">HACCP</TabsTrigger>}
                     {!hideQualityTabs && <TabsTrigger value="coa-limits">COA Limits</TabsTrigger>}
@@ -2817,6 +2821,14 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
                     </>
                   );
                 })()}
+              </TabsContent>
+
+              {/* Nutrition Tab - Only for food categories */}
+              <TabsContent value="nutrition" className="mt-4">
+                <MaterialNutritionTab 
+                  materialId={material?.id} 
+                  isNewMaterial={!material}
+                />
               </TabsContent>
 
               {/* Food Safety (VACCP) Tab */}
