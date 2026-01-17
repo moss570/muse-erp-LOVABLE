@@ -859,137 +859,170 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
   const createMutation = useMutation({
     mutationFn: async (data: MaterialFormData) => {
-      const { data: newMaterial, error } = await supabase
-        .from('materials')
-        .insert([{
-          code: data.code,
-          name: data.name,
-          listed_material_id: data.listed_material_id || null,
-          description: data.description || null,
-          category: data.category || null,
-          sub_category: data.sub_category || null,
-          gl_account_id: data.gl_account_id || null,
-          base_unit_id: data.base_unit_id,
-          usage_unit_id: data.usage_unit_id || null,
-          usage_unit_conversion: data.usage_unit_conversion || null,
-          is_active: data.is_active,
-          allergens: data.allergens.length > 0 ? data.allergens : null,
-          food_claims: data.food_claims.length > 0 ? data.food_claims : null,
-          receiving_temperature_min: data.receiving_temperature_min || null,
-          receiving_temperature_max: data.receiving_temperature_max || null,
-          storage_temperature_min: data.storage_temperature_min || null,
-          storage_temperature_max: data.storage_temperature_max || null,
-          density: data.density || null,
-          label_copy: data.label_copy || null,
-          country_of_origin: data.country_of_origin || null,
-          manufacturer: data.manufacturer || null,
-          item_number: data.item_number || null,
-          fraud_vulnerability_score: data.fraud_vulnerability_score || null,
-          supply_chain_complexity: data.supply_chain_complexity || null,
-          authentication_method: data.authentication_method.length > 0 ? data.authentication_method : null,
-          other_hazards: data.other_hazards || null,
-          ca_prop65_prohibited: data.ca_prop65_prohibited,
-          coa_required: data.coa_required,
-          cost_per_base_unit: null, // Cost is now on suppliers
-          min_stock_level: data.min_stock_level || null,
-          approval_status: data.approval_status || 'Draft',
-          // HACCP fields
-          haccp_kill_step_applied: data.haccp_kill_step_applied ?? null,
-          haccp_rte_or_kill_step: data.haccp_rte_or_kill_step || null,
-          haccp_new_allergen: data.haccp_new_allergen ?? null,
-          haccp_new_allergen_name: data.haccp_new_allergen_name || null,
-          haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
-          haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
-          // Packaging fields
-          pkg_fda_food_contact: data.pkg_fda_food_contact ?? false,
-          pkg_material_type: data.pkg_material_type || null,
-          pkg_food_grade_suitable: data.pkg_food_grade_suitable ?? false,
-          pkg_pcr_fda_approved: data.pkg_pcr_fda_approved ?? false,
-          pkg_heavy_metals_compliant: data.pkg_heavy_metals_compliant ?? false,
-          pkg_weight_kg: data.pkg_weight_kg ?? null,
-          pkg_volume: data.pkg_volume ?? null,
-          pkg_volume_uom_id: data.pkg_volume_uom_id || null,
-          pkg_recyclable: data.pkg_recyclable ?? false,
-          // Box-Specific fields
-          box_strength_type: data.box_strength_type || null,
-          box_strength_value: data.box_strength_value || null,
-          box_flute_type: data.box_flute_type || null,
-          box_dimensions_internal: data.box_dimensions_internal || null,
-          box_joint_style: data.box_joint_style || null,
-          box_style_code: data.box_style_code || null,
-          box_recycled_content_verified: data.box_recycled_content_verified ?? false,
-          box_allergen_free_adhesives: data.box_allergen_free_adhesives ?? false,
-          box_heavy_metals_coneg: data.box_heavy_metals_coneg ?? false,
-          box_foreign_material_control: data.box_foreign_material_control ?? false,
-          // Box Physical Dimensions (for pallet configuration)
-          box_weight_kg: data.box_weight_kg ?? null,
-          box_length_in: data.box_length_in ?? null,
-          box_width_in: data.box_width_in ?? null,
-          box_height_in: data.box_height_in ?? null,
-          // COA Limits
-          coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
-        }])
-        .select()
-        .single();
-      if (error) throw error;
+      // Retry logic for handling duplicate code errors
+      const MAX_RETRIES = 3;
+      let lastError: Error | null = null;
+      let codeToUse = data.code;
       
-      // Upload default photo and update material
-      const defaultPhotoData = await uploadDefaultPhoto(newMaterial.id);
-      if (defaultPhotoData.photo_path) {
-        await supabase.from('materials').update({
-          photo_path: defaultPhotoData.photo_path,
-          photo_url: defaultPhotoData.photo_url,
-          photo_added_at: defaultPhotoData.photo_added_at,
-        }).eq('id', newMaterial.id);
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        // On retry, regenerate the code to get a fresh one
+        if (attempt > 0 && data.category) {
+          const { data: freshCode, error: codeError } = await supabase
+            .rpc('generate_material_code', { p_category: data.category });
+          if (!codeError && freshCode) {
+            codeToUse = freshCode;
+          }
+        }
+        
+        const { data: newMaterial, error } = await supabase
+          .from('materials')
+          .insert([{
+            code: codeToUse,
+            name: data.name,
+            listed_material_id: data.listed_material_id || null,
+            description: data.description || null,
+            category: data.category || null,
+            sub_category: data.sub_category || null,
+            gl_account_id: data.gl_account_id || null,
+            base_unit_id: data.base_unit_id,
+            usage_unit_id: data.usage_unit_id || null,
+            usage_unit_conversion: data.usage_unit_conversion || null,
+            is_active: data.is_active,
+            allergens: data.allergens.length > 0 ? data.allergens : null,
+            food_claims: data.food_claims.length > 0 ? data.food_claims : null,
+            receiving_temperature_min: data.receiving_temperature_min || null,
+            receiving_temperature_max: data.receiving_temperature_max || null,
+            storage_temperature_min: data.storage_temperature_min || null,
+            storage_temperature_max: data.storage_temperature_max || null,
+            density: data.density || null,
+            label_copy: data.label_copy || null,
+            country_of_origin: data.country_of_origin || null,
+            manufacturer: data.manufacturer || null,
+            item_number: data.item_number || null,
+            fraud_vulnerability_score: data.fraud_vulnerability_score || null,
+            supply_chain_complexity: data.supply_chain_complexity || null,
+            authentication_method: data.authentication_method.length > 0 ? data.authentication_method : null,
+            other_hazards: data.other_hazards || null,
+            ca_prop65_prohibited: data.ca_prop65_prohibited,
+            coa_required: data.coa_required,
+            cost_per_base_unit: null, // Cost is now on suppliers
+            min_stock_level: data.min_stock_level || null,
+            approval_status: data.approval_status || 'Draft',
+            // HACCP fields
+            haccp_kill_step_applied: data.haccp_kill_step_applied ?? null,
+            haccp_rte_or_kill_step: data.haccp_rte_or_kill_step || null,
+            haccp_new_allergen: data.haccp_new_allergen ?? null,
+            haccp_new_allergen_name: data.haccp_new_allergen_name || null,
+            haccp_heavy_metal_limits: data.haccp_heavy_metal_limits ?? null,
+            haccp_foreign_material_controls: data.haccp_foreign_material_controls.length > 0 ? data.haccp_foreign_material_controls : null,
+            // Packaging fields
+            pkg_fda_food_contact: data.pkg_fda_food_contact ?? false,
+            pkg_material_type: data.pkg_material_type || null,
+            pkg_food_grade_suitable: data.pkg_food_grade_suitable ?? false,
+            pkg_pcr_fda_approved: data.pkg_pcr_fda_approved ?? false,
+            pkg_heavy_metals_compliant: data.pkg_heavy_metals_compliant ?? false,
+            pkg_weight_kg: data.pkg_weight_kg ?? null,
+            pkg_volume: data.pkg_volume ?? null,
+            pkg_volume_uom_id: data.pkg_volume_uom_id || null,
+            pkg_recyclable: data.pkg_recyclable ?? false,
+            // Box-Specific fields
+            box_strength_type: data.box_strength_type || null,
+            box_strength_value: data.box_strength_value || null,
+            box_flute_type: data.box_flute_type || null,
+            box_dimensions_internal: data.box_dimensions_internal || null,
+            box_joint_style: data.box_joint_style || null,
+            box_style_code: data.box_style_code || null,
+            box_recycled_content_verified: data.box_recycled_content_verified ?? false,
+            box_allergen_free_adhesives: data.box_allergen_free_adhesives ?? false,
+            box_heavy_metals_coneg: data.box_heavy_metals_coneg ?? false,
+            box_foreign_material_control: data.box_foreign_material_control ?? false,
+            // Box Physical Dimensions (for pallet configuration)
+            box_weight_kg: data.box_weight_kg ?? null,
+            box_length_in: data.box_length_in ?? null,
+            box_width_in: data.box_width_in ?? null,
+            box_height_in: data.box_height_in ?? null,
+            // COA Limits
+            coa_critical_limits: coaLimits.filter(l => l.parameter || l.target_spec || l.min || l.max) as unknown as Json,
+          }])
+          .select()
+          .single();
+        
+        // Check for duplicate code error
+        if (error) {
+          const isDuplicateCodeError = error.message?.includes('materials_code_key') || 
+            error.message?.includes('duplicate key') ||
+            error.code === '23505';
+          
+          if (isDuplicateCodeError && attempt < MAX_RETRIES - 1) {
+            // Retry with a new code
+            lastError = error;
+            continue;
+          }
+          throw error;
+        }
+        
+        // Success! Continue with the rest of the creation process
+        // Upload default photo and update material
+        const defaultPhotoData = await uploadDefaultPhoto(newMaterial.id);
+        if (defaultPhotoData.photo_path) {
+          await supabase.from('materials').update({
+            photo_path: defaultPhotoData.photo_path,
+            photo_url: defaultPhotoData.photo_url,
+            photo_added_at: defaultPhotoData.photo_added_at,
+          }).eq('id', newMaterial.id);
+        }
+        
+        // Upload unit variant photos
+        await uploadUnitVariantPhotos(newMaterial.id);
+        
+        // Insert unit variants (purchase units)
+        if (unitVariants.length > 0 && newMaterial) {
+          const { error: puError } = await supabase
+            .from('material_purchase_units')
+            .insert(unitVariants.map(uv => ({
+              material_id: newMaterial.id,
+              code: uv.code,
+              unit_id: uv.unit_id,
+              conversion_to_base: uv.conversion_to_base,
+              is_default: uv.is_default,
+              item_number: uv.item_number || null,
+              photo_path: uv.photo_path || null,
+              photo_url: uv.photo_url || null,
+              photo_added_at: uv.photo_added_at || null,
+            })));
+          if (puError) throw puError;
+        }
+        
+        // Insert material suppliers
+        if (materialSuppliers.length > 0 && newMaterial) {
+          const { error: msError } = await supabase
+            .from('material_suppliers')
+            .insert(materialSuppliers.map(ms => ({
+              material_id: newMaterial.id,
+              supplier_id: ms.supplier_id,
+              is_primary: ms.is_primary,
+              supplier_item_number: ms.supplier_item_number || null,
+              cost_per_unit: ms.cost_per_unit ?? null,
+              unit_id: ms.unit_id || null,
+              purchase_unit_id: ms.purchase_unit_id || null,
+              lead_time_days: ms.lead_time_days ?? null,
+              min_order_quantity: ms.min_order_quantity ?? null,
+              notes: ms.notes || null,
+              is_active: ms.is_active,
+            })));
+          if (msError) throw msError;
+        }
+        
+        // Upload documents
+        if (documents.length > 0 && newMaterial) {
+          await uploadDocuments(newMaterial.id);
+        }
+        
+        return newMaterial;
       }
       
-      // Upload unit variant photos
-      await uploadUnitVariantPhotos(newMaterial.id);
-      
-      // Insert unit variants (purchase units)
-      if (unitVariants.length > 0 && newMaterial) {
-        const { error: puError } = await supabase
-          .from('material_purchase_units')
-          .insert(unitVariants.map(uv => ({
-            material_id: newMaterial.id,
-            code: uv.code,
-            unit_id: uv.unit_id,
-            conversion_to_base: uv.conversion_to_base,
-            is_default: uv.is_default,
-            item_number: uv.item_number || null,
-            photo_path: uv.photo_path || null,
-            photo_url: uv.photo_url || null,
-            photo_added_at: uv.photo_added_at || null,
-          })));
-        if (puError) throw puError;
-      }
-      
-      // Insert material suppliers
-      if (materialSuppliers.length > 0 && newMaterial) {
-        const { error: msError } = await supabase
-          .from('material_suppliers')
-          .insert(materialSuppliers.map(ms => ({
-            material_id: newMaterial.id,
-            supplier_id: ms.supplier_id,
-            is_primary: ms.is_primary,
-            supplier_item_number: ms.supplier_item_number || null,
-            cost_per_unit: ms.cost_per_unit ?? null,
-            unit_id: ms.unit_id || null,
-            purchase_unit_id: ms.purchase_unit_id || null,
-            lead_time_days: ms.lead_time_days ?? null,
-            min_order_quantity: ms.min_order_quantity ?? null,
-            notes: ms.notes || null,
-            is_active: ms.is_active,
-          })));
-        if (msError) throw msError;
-      }
-      
-      // Upload documents
-      if (documents.length > 0 && newMaterial) {
-        await uploadDocuments(newMaterial.id);
-      }
-      
-      return newMaterial;
+      // If we exhausted all retries, throw the last error
+      throw lastError || new Error('Failed to create material after multiple attempts');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
