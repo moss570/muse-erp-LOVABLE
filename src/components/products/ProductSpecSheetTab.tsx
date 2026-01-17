@@ -6,6 +6,7 @@ import { useProductQARequirements } from "@/hooks/useProductQARequirements";
 import { useProductAttributes } from "@/hooks/useProductAttributes";
 import { getIngredientStatementPreview } from "@/lib/ingredientStatement";
 import { formatUPCForDisplay } from "@/lib/upcUtils";
+import { aggregateAllergensForRecipe } from "@/lib/bomAggregation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,8 +22,9 @@ interface ProductSpecSheetTabProps {
 export function ProductSpecSheetTab({ productId, productName }: ProductSpecSheetTabProps) {
   const { sizes, isLoading: sizesLoading } = useProductSizes(productId);
   const { requirements } = useProductQARequirements(productId);
-  const { allergens, claims } = useProductAttributes(productId);
+  const { claims } = useProductAttributes(productId);
   const [ingredientStatement, setIngredientStatement] = useState<string>("");
+  const [bomAllergens, setBomAllergens] = useState<string[]>([]);
 
   // Fetch product details
   const { data: product, isLoading: productLoading } = useQuery({
@@ -56,14 +58,39 @@ export function ProductSpecSheetTab({ productId, productName }: ProductSpecSheet
     },
   });
 
-  // Load ingredient statement
+  // Fetch primary recipe ID for this product
+  const { data: primaryRecipe } = useQuery({
+    queryKey: ["primary-recipe-for-spec", productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_recipes")
+        .select("id")
+        .eq("product_id", productId)
+        .eq("is_active", true)
+        .order("recipe_version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Load ingredient statement and BOM-aggregated allergens
   useEffect(() => {
-    async function loadStatement() {
+    async function loadData() {
       const result = await getIngredientStatementPreview(productId);
       setIngredientStatement(result.statement);
+
+      // Load allergens from primary recipe if available
+      if (primaryRecipe?.id) {
+        const allergens = await aggregateAllergensForRecipe(primaryRecipe.id);
+        setBomAllergens(allergens);
+      } else {
+        setBomAllergens([]);
+      }
     }
-    loadStatement();
-  }, [productId]);
+    loadData();
+  }, [productId, primaryRecipe?.id]);
 
   const handlePrint = () => {
     window.print();
@@ -194,16 +221,16 @@ export function ProductSpecSheetTab({ productId, productName }: ProductSpecSheet
           </p>
         </div>
 
-        {/* Allergen Declaration */}
+        {/* Allergen Declaration - Auto-aggregated from BOM */}
         <div className="mb-6">
           <h3 className="font-semibold mb-2">Allergen Declaration</h3>
           <div className="text-sm">
-            {allergens.length > 0 ? (
+            {bomAllergens.length > 0 ? (
               <p>
-                <strong>Contains:</strong> {allergens.map((a) => a.attribute_value).join(", ")}
+                <strong>Contains:</strong> {bomAllergens.join(", ")}
               </p>
             ) : (
-              <p className="text-muted-foreground">No allergens declared</p>
+              <p className="text-muted-foreground">No allergens in recipe materials</p>
             )}
           </div>
         </div>

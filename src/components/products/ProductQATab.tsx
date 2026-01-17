@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useProductQARequirements } from "@/hooks/useProductQARequirements";
 import { useProductCategories } from "@/hooks/useProductCategories";
-import { useProductAttributes, COMMON_ALLERGENS, COMMON_CLAIMS } from "@/hooks/useProductAttributes";
+import { useProductAttributes, COMMON_CLAIMS } from "@/hooks/useProductAttributes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
   const { requirements, createRequirement, deleteRequirement, bulkCreateRequirements, isLoading } = 
     useProductQARequirements(productId);
   const { categories } = useProductCategories();
-  const { allergens, claims, createAttribute, deleteAttribute } = useProductAttributes(productId);
+  const { claims, createAttribute, deleteAttribute } = useProductAttributes(productId);
   
   const [isAddingReq, setIsAddingReq] = useState(false);
   const [isSelectingTemplates, setIsSelectingTemplates] = useState(false);
@@ -46,7 +46,6 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     test_method: "",
   });
 
-  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
 
   const category = categories.find((c) => c.id === productCategoryId);
@@ -114,18 +113,6 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     setIsAddingReq(false);
   };
 
-  const handleAddAllergens = async () => {
-    if (selectedAllergens.length === 0) return;
-    for (const allergen of selectedAllergens) {
-      await createAttribute.mutateAsync({
-        product_id: productId,
-        attribute_type: "allergen",
-        attribute_value: allergen,
-      });
-    }
-    setSelectedAllergens([]);
-  };
-
   const handleAddClaims = async () => {
     if (selectedClaims.length === 0) return;
     for (const claim of selectedClaims) {
@@ -138,21 +125,11 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     setSelectedClaims([]);
   };
 
-  const toggleAllergen = (allergen: string) => {
-    setSelectedAllergens((prev) =>
-      prev.includes(allergen) ? prev.filter((a) => a !== allergen) : [...prev, allergen]
-    );
-  };
-
   const toggleClaim = (claim: string) => {
     setSelectedClaims((prev) =>
       prev.includes(claim) ? prev.filter((c) => c !== claim) : [...prev, claim]
     );
   };
-
-  const availableAllergens = COMMON_ALLERGENS.filter(
-    (a) => !allergens.some((al) => al.attribute_value === a)
-  );
 
   const availableClaims = COMMON_CLAIMS.filter(
     (c) => !claims.some((cl) => cl.attribute_value === c)
@@ -329,63 +306,8 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
         </CardContent>
       </Card>
 
-      {/* Allergens & Claims */}
-      <div className="grid grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Allergens</CardTitle>
-            <CardDescription>Allergen declarations for this product</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {allergens.map((a) => (
-                <Badge key={a.id} variant="secondary" className="gap-1">
-                  {a.attribute_value}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => deleteAttribute.mutate(a.id)}
-                  />
-                </Badge>
-              ))}
-              {allergens.length === 0 && (
-                <span className="text-sm text-muted-foreground">No allergens declared</span>
-              )}
-            </div>
-            {availableAllergens.length > 0 ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                  {availableAllergens.map((a) => (
-                    <div key={a} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`allergen-${a}`}
-                        checked={selectedAllergens.includes(a)}
-                        onCheckedChange={() => toggleAllergen(a)}
-                      />
-                      <label
-                        htmlFor={`allergen-${a}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {a}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <Button 
-                  type="button"
-                  onClick={handleAddAllergens} 
-                  disabled={selectedAllergens.length === 0}
-                  className="w-full"
-                >
-                  Add Selected ({selectedAllergens.length})
-                </Button>
-              </div>
-            ) : (
-              <span className="text-sm text-muted-foreground">All allergens have been added</span>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
+      {/* Product Claims */}
+      <Card>
           <CardHeader>
             <CardTitle>Product Claims</CardTitle>
             <CardDescription>Certifications and claims</CardDescription>
@@ -436,9 +358,8 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
             ) : (
               <span className="text-sm text-muted-foreground">All claims have been added</span>
             )}
-          </CardContent>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Select Test Templates Dialog */}
       <SelectTestTemplatesDialog
