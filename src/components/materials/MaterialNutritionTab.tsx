@@ -139,11 +139,11 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
           <p className="text-sm text-muted-foreground">Per 100g serving base for calculations</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setUsdaDialogOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setUsdaDialogOpen(true)}>
             <Database className="h-4 w-4 mr-2" />
             Search USDA
           </Button>
-          <Button onClick={handleSave} disabled={isUpserting || !hasChanges}>
+          <Button type="button" onClick={handleSave} disabled={isUpserting || !hasChanges}>
             {isUpserting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
