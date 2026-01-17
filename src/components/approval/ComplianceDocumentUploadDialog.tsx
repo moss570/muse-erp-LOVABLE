@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,14 +33,16 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { CalendarIcon, Upload, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useCreateComplianceDocument, useComplianceDocumentTypes, type EntityType } from '@/hooks/useComplianceDocuments';
+import { calculateExpiryDate } from '@/lib/documentDateUtils';
 
 const formSchema = z.object({
   document_type: z.string().min(1, 'Document type is required'),
   document_name: z.string().min(1, 'Document name is required'),
   file_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  date_reviewed: z.date().optional(),
   expiration_date: z.date().optional(),
   notes: z.string().optional(),
 });
@@ -170,10 +171,10 @@ export function ComplianceDocumentUploadDialog({
 
             <FormField
               control={form.control}
-              name="expiration_date"
+              name="date_reviewed"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Expiration Date</FormLabel>
+                  <FormLabel>Date Reviewed</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -187,7 +188,7 @@ export function ComplianceDocumentUploadDialog({
                           {field.value ? (
                             format(field.value, 'PPP')
                           ) : (
-                            <span>No expiration date</span>
+                            <span>Select review date</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -197,15 +198,78 @@ export function ComplianceDocumentUploadDialog({
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date < new Date()}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          // Auto-calculate expiry date (review date + 1 year)
+                          if (date) {
+                            const expiryDate = addYears(date, 1);
+                            form.setValue('expiration_date', expiryDate);
+                          }
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    Setting this will auto-calculate expiry to 1 year from this date
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <FormField
+              control={form.control}
+              name="expiration_date"
+              render={({ field }) => {
+                const dateReviewed = form.watch('date_reviewed');
+                const isAutoCalculated = dateReviewed && field.value && 
+                  calculateExpiryDate(dateReviewed) === format(field.value, 'yyyy-MM-dd');
+                
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>
+                      Expiration Date
+                      {isAutoCalculated && (
+                        <span className="ml-1 text-xs text-primary">(auto-calculated)</span>
+                      )}
+                    </FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP')
+                            ) : (
+                              <span>No expiration date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      You can override the auto-calculated date if needed
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField

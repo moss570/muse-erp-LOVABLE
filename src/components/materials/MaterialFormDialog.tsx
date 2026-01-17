@@ -28,6 +28,7 @@ import { CreateUnitDialog } from './CreateUnitDialog';
 import { MaterialNutritionTab } from './MaterialNutritionTab';
 import type { Tables, Json } from '@/integrations/supabase/types';
 import { differenceInMonths } from 'date-fns';
+import { calculateExpiryDate, isAutoCalculatedExpiry } from '@/lib/documentDateUtils';
 type Material = Tables<'materials'>;
 type Unit = Tables<'units_of_measure'>;
 type DropdownOption = Tables<'dropdown_options'>;
@@ -1472,10 +1473,21 @@ export function MaterialFormDialog({
     });
   };
   const updateDocument = (index: number, field: keyof DocumentUpload, value: string | undefined) => {
-    setDocuments(documents.map((doc, i) => i === index ? {
-      ...doc,
-      [field]: value
-    } : doc));
+    setDocuments(documents.map((doc, i) => {
+      if (i !== index) return doc;
+      
+      const updatedDoc = { ...doc, [field]: value };
+      
+      // Auto-calculate expiry date when date_reviewed changes
+      if (field === 'date_reviewed' && value) {
+        const newExpiryDate = calculateExpiryDate(value, 1);
+        if (newExpiryDate) {
+          updatedDoc.expiry_date = newExpiryDate;
+        }
+      }
+      
+      return updatedDoc;
+    }));
   };
   const uploadDocuments = async (materialId: string) => {
     const newDocs = documents.filter(doc => doc.isNew && doc.file);
@@ -3263,10 +3275,14 @@ export function MaterialFormDialog({
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Date Reviewed or Uploaded</label>
                                     <Input type="date" value={doc.date_reviewed || ''} onChange={e => updateDocument(index, 'date_reviewed', e.target.value || undefined)} disabled={!doc.isNew || doc.is_archived} className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''} />
+                                    <p className="text-xs text-muted-foreground mt-1">Sets expiry to 1 year from this date</p>
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Expiry Date
+                                      {doc.date_reviewed && isAutoCalculatedExpiry(doc.date_reviewed, doc.expiry_date) && (
+                                        <span className="ml-1 text-primary">(auto)</span>
+                                      )}
                                     </label>
                                     <Input type="date" value={doc.expiry_date || ''} onChange={e => updateDocument(index, 'expiry_date', e.target.value || undefined)} disabled={!doc.isNew || doc.is_archived} className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''} />
                                     {doc.expiry_date && <div className="mt-1">
