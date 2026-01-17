@@ -344,23 +344,33 @@ export default function Suppliers() {
     enabled: !!editingSupplier?.id,
   });
 
-  // Load existing documents when editing
+  // Load existing documents when editing and auto-calculate missing expiry dates
   useEffect(() => {
     if (existingDocuments) {
-      setDocuments(existingDocuments.map(doc => ({
-        id: doc.id,
-        document_name: doc.document_name,
-        requirement_id: doc.requirement_id || undefined,
-        file_path: doc.file_path || undefined,
-        file_url: doc.file_url || undefined,
-        date_published: doc.date_published || undefined,
-        date_reviewed: doc.date_reviewed || undefined,
-        expiry_date: doc.expiry_date || undefined,
-        is_archived: (doc as any).is_archived || false,
-        archived_at: (doc as any).archived_at || undefined,
-        archive_reason: (doc as any).archive_reason || undefined,
-        isNew: false,
-      })));
+      setDocuments(existingDocuments.map(doc => {
+        const dateReviewed = doc.date_reviewed || undefined;
+        let expiryDate = doc.expiry_date || undefined;
+        
+        // Auto-calculate expiry date if date_reviewed exists but expiry_date is missing
+        if (dateReviewed && !expiryDate) {
+          expiryDate = calculateExpiryDate(dateReviewed, 1);
+        }
+        
+        return {
+          id: doc.id,
+          document_name: doc.document_name,
+          requirement_id: doc.requirement_id || undefined,
+          file_path: doc.file_path || undefined,
+          file_url: doc.file_url || undefined,
+          date_published: doc.date_published || undefined,
+          date_reviewed: dateReviewed,
+          expiry_date: expiryDate,
+          is_archived: (doc as any).is_archived || false,
+          archived_at: (doc as any).archived_at || undefined,
+          archive_reason: (doc as any).archive_reason || undefined,
+          isNew: false,
+        };
+      }));
     }
   }, [existingDocuments]);
 
@@ -1884,8 +1894,8 @@ export default function Suppliers() {
                             type="date"
                             value={doc.date_published || ''}
                             onChange={(e) => updateDocument(doc.id, 'date_published', e.target.value)}
-                            disabled={!doc.isNew || doc.is_archived}
-                            className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
+                            disabled={doc.is_archived}
+                            className={doc.is_archived ? 'bg-muted cursor-not-allowed' : ''}
                           />
                         </div>
                         <div>
@@ -1894,8 +1904,8 @@ export default function Suppliers() {
                             type="date"
                             value={doc.date_reviewed || ''}
                             onChange={(e) => updateDocument(doc.id, 'date_reviewed', e.target.value)}
-                            disabled={!doc.isNew || doc.is_archived}
-                            className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
+                            disabled={doc.is_archived}
+                            className={doc.is_archived ? 'bg-muted cursor-not-allowed' : ''}
                           />
                           <p className="text-xs text-muted-foreground mt-1">Sets expiry to +1 year</p>
                         </div>
@@ -1910,8 +1920,8 @@ export default function Suppliers() {
                             type="date"
                             value={doc.expiry_date || ''}
                             onChange={(e) => updateDocument(doc.id, 'expiry_date', e.target.value)}
-                            disabled={!doc.isNew || doc.is_archived}
-                            className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
+                            disabled={doc.is_archived}
+                            className={doc.is_archived ? 'bg-muted cursor-not-allowed' : ''}
                           />
                           {doc.expiry_date && (
                             <div className="mt-1">
