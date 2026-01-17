@@ -43,7 +43,7 @@ export function FormDialogFooter({
       </Button>
       {onSave && (
         <Button
-          type="submit"
+          type="button"
           variant={variant}
           disabled={disabled || isSaving}
           onClick={onSave}

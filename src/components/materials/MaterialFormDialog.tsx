@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -268,6 +268,9 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const [pendingUnitField, setPendingUnitField] = useState<'base_unit_id' | 'usage_unit_id' | 'supplier' | number | null>(null);
   const [pendingSupplierIndex, setPendingSupplierIndex] = useState<number | null>(null);
   const [listedMaterialPopoverOpen, setListedMaterialPopoverOpen] = useState(false);
+  
+  // Ref to prevent double submission
+  const isSubmittingRef = useRef(false);
   
   // Supplier warning dialog state
   const [supplierWarningOpen, setSupplierWarningOpen] = useState(false);
@@ -541,8 +544,11 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
   const supplyChainOptions = dropdownOptions?.filter(o => o.dropdown_type === 'supply_chain_complexity') || [];
   const authMethodOptions = dropdownOptions?.filter(o => o.dropdown_type === 'authentication_method') || [];
 
-  // Reset form when material changes
+  // Reset form and submission state when material changes or dialog opens
   useEffect(() => {
+    // Reset submission lock when dialog opens/closes
+    isSubmittingRef.current = false;
+    
     if (material) {
       form.reset({
         code: material.code,
@@ -1215,12 +1221,46 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
     },
   });
 
-  const onSubmit = (data: MaterialFormData) => {
-    if (material) {
-      updateMutation.mutate(data);
-    } else {
-      createMutation.mutate(data);
+  const handleSave = async (data: MaterialFormData, closeAfterSave: boolean = false) => {
+    // Prevent double submission
+    if (isSubmittingRef.current) {
+      return;
     }
+    isSubmittingRef.current = true;
+    
+    try {
+      if (material) {
+        await updateMutation.mutateAsync(data);
+        if (closeAfterSave) {
+          onOpenChange(false);
+        }
+      } else {
+        // For new materials, regenerate code right before submission to minimize race condition window
+        let finalData = { ...data };
+        if (data.category) {
+          const { data: freshCode, error: codeError } = await supabase
+            .rpc('generate_material_code', { p_category: data.category });
+          if (!codeError && freshCode) {
+            finalData.code = freshCode;
+            // Also update unit variant codes to match the new base code
+            setUnitVariants(prev => prev.map((uv, idx) => ({
+              ...uv,
+              code: `${freshCode}${String.fromCharCode(65 + idx)}`
+            })));
+          }
+        }
+        await createMutation.mutateAsync(finalData);
+        if (closeAfterSave) {
+          onOpenChange(false);
+        }
+      }
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  };
+
+  const onSubmit = (data: MaterialFormData) => {
+    handleSave(data, false);
   };
 
   const addUnitVariant = () => {
@@ -1489,7 +1529,7 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               {(() => {
                 const currentCategory = form.watch('category');
@@ -4153,19 +4193,16 @@ export function MaterialFormDialog({ open, onOpenChange, material }: MaterialFor
 
             <FormDialogFooter
               onClose={() => onOpenChange(false)}
-              onSave={() => {}}
+              onSave={() => {
+                form.handleSubmit((data) => handleSave(data, false))();
+              }}
               onSaveAndClose={() => {
-                form.handleSubmit((data) => {
-                  if (material) {
-                    updateMutation.mutate(data, { onSuccess: () => onOpenChange(false) });
-                  } else {
-                    createMutation.mutate(data, { onSuccess: () => onOpenChange(false) });
-                  }
-                })();
+                form.handleSubmit((data) => handleSave(data, true))();
               }}
               isSaving={isLoading}
               saveLabel={material ? 'Update Material' : 'Create Material'}
               saveAndCloseLabel={material ? 'Update & Close' : 'Create & Close'}
+              disabled={isSubmittingRef.current}
             />
           </form>
         </Form>
