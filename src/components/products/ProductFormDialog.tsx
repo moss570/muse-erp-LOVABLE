@@ -14,6 +14,7 @@ import { ProductBOMTab } from "./ProductBOMTab";
 import { ProductSpecSheetTab } from "./ProductSpecSheetTab";
 import { ProductInventoryTab } from "./ProductInventoryTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
+import { ProductNutritionTab } from "./ProductNutritionTab";
 
 const productSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
@@ -133,9 +134,10 @@ export function ProductFormDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="bom" disabled={!isEditing}>Recipe</TabsTrigger>
+            <TabsTrigger value="nutrition" disabled={!isEditing}>Nutrition</TabsTrigger>
             <TabsTrigger value="qa" disabled={!isEditing}>QA</TabsTrigger>
             <TabsTrigger value="sizes" disabled={!isEditing}>Sizes & UPC</TabsTrigger>
             <TabsTrigger value="spec" disabled={!isEditing}>Spec Sheet</TabsTrigger>
@@ -176,6 +178,10 @@ export function ProductFormDialog({
 
             <TabsContent value="bom" className="mt-0">
               {product?.id && <ProductBOMTab productId={product.id} productName={product.name} />}
+            </TabsContent>
+
+            <TabsContent value="nutrition" className="mt-0">
+              {product?.id && <ProductNutritionTab productId={product.id} productName={product.name} />}
             </TabsContent>
 
             <TabsContent value="spec" className="mt-0">
