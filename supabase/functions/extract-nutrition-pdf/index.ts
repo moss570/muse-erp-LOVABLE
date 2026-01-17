@@ -113,7 +113,7 @@ ONLY respond with valid JSON, no markdown or explanation.`;
             ],
           },
         ],
-        max_tokens: 1000,
+        max_tokens: 2000,
         temperature: 0.1,
       }),
     });
@@ -153,15 +153,28 @@ ONLY respond with valid JSON, no markdown or explanation.`;
       throw new Error('No content in AI response');
     }
 
-    // Parse the JSON response
+    console.log('Raw AI response content:', content.substring(0, 500));
+
+    // Parse the JSON response - handle various markdown formats
     let nutritionData: NutritionData;
     try {
-      // Remove any markdown code blocks if present
-      const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      // Remove markdown code blocks with various patterns
+      let cleanedContent = content
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+      
+      // Try to extract JSON object if there's surrounding text
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedContent = jsonMatch[0];
+      }
+      
       nutritionData = JSON.parse(cleanedContent);
     } catch (parseError) {
       console.error('Failed to parse AI response:', content);
-      throw new Error('Failed to parse nutrition data from image');
+      console.error('Parse error:', parseError);
+      throw new Error('Failed to parse nutrition data from image. Please try with a clearer image.');
     }
 
     console.log('Extracted nutrition data:', nutritionData);
