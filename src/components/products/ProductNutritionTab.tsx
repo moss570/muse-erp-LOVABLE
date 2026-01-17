@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,13 +20,15 @@ import {
 import { useProductNutrition } from '@/hooks/useProductNutrition';
 import { useDailyValues, calculatePercentDV, NUTRIENT_TO_DV_CODE } from '@/hooks/useDailyValues';
 import { formatNutrientValue } from '@/lib/nutritionRounding';
+import { NutritionLabelExportDialog, NutritionData } from './nutrition';
 import { 
   Loader2, 
   Calculator, 
   Save, 
   AlertTriangle, 
   CheckCircle2,
-  Info
+  Info,
+  FileImage
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +53,36 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
   const [yieldLoss, setYieldLoss] = useState(5);
   const [overrun, setOverrun] = useState(50);
   const [servingSize, setServingSize] = useState(95);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  // Build nutrition data for export dialog
+  const nutritionDataForExport = useMemo((): NutritionData | null => {
+    const data = calculatedResult?.per_serving || nutrition;
+    if (!data) return null;
+
+    return {
+      servingSize: `${calculatedResult?.serving_size_g || nutrition?.serving_size_g || servingSize}g`,
+      servingsPerContainer: '8',
+      calories: Math.round(data.calories || 0),
+      totalFat: data.total_fat_g || 0,
+      saturatedFat: data.saturated_fat_g || 0,
+      transFat: data.trans_fat_g || 0,
+      cholesterol: data.cholesterol_mg || 0,
+      sodium: data.sodium_mg || 0,
+      totalCarbohydrate: data.total_carbohydrate_g || 0,
+      dietaryFiber: data.dietary_fiber_g || 0,
+      totalSugars: data.total_sugars_g || 0,
+      addedSugars: data.added_sugars_g || 0,
+      protein: data.protein_g || 0,
+      vitaminD: data.vitamin_d_mcg || 0,
+      calcium: data.calcium_mg || 0,
+      iron: data.iron_mg || 0,
+      potassium: data.potassium_mg || 0,
+      // Optional nutrients from nutrition data if available
+      vitaminA: data.vitamin_a_mcg || 0,
+      vitaminC: data.vitamin_c_mg || 0,
+    };
+  }, [calculatedResult, nutrition, servingSize]);
 
   const handleCalculate = async () => {
     await calculateAsync({
@@ -123,8 +155,24 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
             )}
             Calculate & Save
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setExportDialogOpen(true)}
+            disabled={!hasData}
+          >
+            <FileImage className="h-4 w-4 mr-2" />
+            Export Label
+          </Button>
         </div>
       </div>
+
+      {/* Export Dialog */}
+      <NutritionLabelExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        productName={productName}
+        nutritionData={nutritionDataForExport}
+      />
 
       {/* Calculation Parameters */}
       <Card>
