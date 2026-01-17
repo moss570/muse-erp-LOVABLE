@@ -48,10 +48,11 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
+    // Accept image types (PDFs are now converted to images on the client)
     if (!mimeType || typeof mimeType !== 'string' || !mimeType.startsWith('image/')) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'Unsupported file type. Please upload an image (PNG/JPG).',
+        error: 'Unsupported file type. Please upload an image (PNG/JPG) or PDF.',
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
