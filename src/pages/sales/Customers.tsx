@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -37,14 +37,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
   Pencil, 
   Trash2, 
   Users,
-  Plus,
   Mail,
   Phone,
   Building2,
@@ -52,6 +51,15 @@ import {
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { usePermissions } from '@/hooks/usePermission';
+import { 
+  StagedEditProvider, 
+  StagedFormField, 
+  StagedEditActionBar, 
+  EditButton,
+  UnsavedChangesDialog,
+  ViewModeValue,
+} from '@/components/ui/staged-edit';
+import { useStagedEdit } from '@/hooks/useStagedEdit';
 import type { Tables } from '@/integrations/supabase/types';
 
 const CUSTOMER_TYPES = [
@@ -110,22 +118,23 @@ const TYPE_FILTER_OPTIONS = [
   ...CUSTOMER_TYPES.map(t => ({ value: t.value, label: t.label })),
 ];
 
-export default function Customers() {
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+// Separate dialog component to use staged edit hooks
+function CustomerFormDialog({
+  open,
+  onOpenChange,
+  customer,
+  canEdit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  customer: Customer | null;
+  canEdit: boolean;
+}) {
   const [activeTab, setActiveTab] = useState('general');
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { checkPermission, isAdmin } = usePermissions();
-
-  const canCreate = isAdmin || checkPermission('customers.create', 'full');
-  const canEdit = isAdmin || checkPermission('customers.edit', 'full');
-  const canDelete = isAdmin || checkPermission('customers.delete', 'full');
+  const isNewCustomer = !customer;
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
@@ -152,17 +161,96 @@ export default function Customers() {
     },
   });
 
-  const { data: customers, isLoading, refetch } = useQuery({
-    queryKey: ['customers'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data as Customer[];
+  // Reset form when customer changes
+  useEffect(() => {
+    if (customer) {
+      form.reset({
+        code: customer.code,
+        name: customer.name,
+        customer_type: customer.customer_type || 'retail',
+        contact_name: customer.contact_name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        fax: customer.fax || '',
+        website: customer.website || '',
+        address: customer.address || '',
+        city: customer.city || '',
+        state: customer.state || '',
+        zip: customer.zip || '',
+        country: customer.country || 'USA',
+        payment_terms: customer.payment_terms || '',
+        credit_limit: customer.credit_limit ? Number(customer.credit_limit) : undefined,
+        tax_exempt: customer.tax_exempt || false,
+        tax_id: customer.tax_id || '',
+        notes: customer.notes || '',
+        is_active: customer.is_active ?? true,
+      });
+    } else {
+      form.reset({
+        code: '',
+        name: '',
+        customer_type: 'retail',
+        contact_name: '',
+        email: '',
+        phone: '',
+        fax: '',
+        website: '',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: 'USA',
+        payment_terms: '',
+        credit_limit: undefined,
+        tax_exempt: false,
+        tax_id: '',
+        notes: '',
+        is_active: true,
+      });
+    }
+    setActiveTab('general');
+  }, [customer, form]);
+
+  const stagedEdit = useStagedEdit({
+    resourceType: 'customer',
+    resourceId: customer?.id,
+    tableName: 'customers',
+    form,
+    initialData: customer ? {
+      code: customer.code,
+      name: customer.name,
+      customer_type: customer.customer_type || 'retail',
+      contact_name: customer.contact_name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      fax: customer.fax || '',
+      website: customer.website || '',
+      address: customer.address || '',
+      city: customer.city || '',
+      state: customer.state || '',
+      zip: customer.zip || '',
+      country: customer.country || 'USA',
+      payment_terms: customer.payment_terms || '',
+      credit_limit: customer.credit_limit ? Number(customer.credit_limit) : undefined,
+      tax_exempt: customer.tax_exempt || false,
+      tax_id: customer.tax_id || '',
+      notes: customer.notes || '',
+      is_active: customer.is_active ?? true,
+    } : null,
+    enabled: open && !!customer,
+    resourceName: 'Customer',
+    canEdit,
+    onDataRefresh: (data) => {
+      form.reset(data as CustomerFormData);
     },
   });
+
+  // For new customers, always start in edit mode
+  useEffect(() => {
+    if (open && isNewCustomer) {
+      stagedEdit.startEdit();
+    }
+  }, [open, isNewCustomer]);
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
@@ -192,7 +280,7 @@ export default function Customers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast({ title: 'Customer created successfully' });
-      // Form stays open - user closes explicitly
+      onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating customer', description: error.message, variant: 'destructive' });
@@ -231,10 +319,548 @@ export default function Customers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast({ title: 'Customer updated successfully' });
-      // Form stays open - user closes explicitly
+      stagedEdit.cancelEdit();
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating customer', description: error.message, variant: 'destructive' });
+      stagedEdit.setIsSaving(false);
+    },
+  });
+
+  const handleSave = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) return;
+
+    // Check for conflicts before saving
+    if (customer) {
+      const { canSave } = await stagedEdit.checkBeforeSave();
+      if (!canSave) return;
+    }
+
+    stagedEdit.setIsSaving(true);
+    const data = form.getValues();
+
+    if (customer) {
+      updateMutation.mutate({ id: customer.id, ...data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleCloseRequest = useCallback(() => {
+    if (stagedEdit.isDirty) {
+      setShowUnsavedDialog(true);
+    } else {
+      onOpenChange(false);
+    }
+  }, [stagedEdit.isDirty, onOpenChange]);
+
+  const handleDiscardAndClose = () => {
+    setShowUnsavedDialog(false);
+    stagedEdit.cancelEdit();
+    onOpenChange(false);
+  };
+
+  const handleSaveAndClose = async () => {
+    setShowUnsavedDialog(false);
+    await handleSave();
+  };
+
+  const getTypeLabel = (type: string) => {
+    return CUSTOMER_TYPES.find(t => t.value === type)?.label || type;
+  };
+
+  const getPaymentTermsLabel = (terms: string) => {
+    return PAYMENT_TERMS.find(t => t.value === terms)?.label || terms;
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleCloseRequest}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                {customer ? (
+                  <>
+                    Customer
+                    <span className="text-muted-foreground font-normal">— {customer.name}</span>
+                  </>
+                ) : (
+                  'New Customer'
+                )}
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <EditModeIndicator 
+                  isEditing={stagedEdit.isEditing}
+                  otherEditors={stagedEdit.otherEditors}
+                  resourceName="Customer"
+                />
+                {customer && !stagedEdit.isEditing && canEdit && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={stagedEdit.startEdit}
+                    className="gap-1.5"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+
+          <FormProvider {...form}>
+            <StagedEditProvider
+              resourceType="customer"
+              resourceId={customer?.id}
+              tableName="customers"
+              form={form}
+              initialData={customer as any}
+              resourceName="Customer"
+              canEdit={canEdit}
+            >
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="address">Address</TabsTrigger>
+                    <TabsTrigger value="billing">Billing</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="general" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="code"
+                        label="Customer Code"
+                        required
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <span className="font-mono">{value}</span>}
+                        editRender={(field) => <Input placeholder="e.g., CUST001" {...field} />}
+                        readOnlyInEdit={!!customer}
+                      />
+                      <StagedFormFieldWrapper
+                        name="name"
+                        label="Company Name"
+                        required
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <span className="font-medium">{value}</span>}
+                        editRender={(field) => <Input placeholder="Customer company name" {...field} />}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="customer_type"
+                        label="Customer Type"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => (
+                          <ViewModeValue value={getTypeLabel(value || 'retail')} type="badge" badgeVariant="outline" />
+                        )}
+                        editRender={(field) => (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {CUSTOMER_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <StagedFormFieldWrapper
+                        name="contact_name"
+                        label="Primary Contact"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="Contact name" {...field} />}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="email"
+                        label="Email"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} type="email" />}
+                        editRender={(field) => <Input type="email" placeholder="email@company.com" {...field} />}
+                      />
+                      <StagedFormFieldWrapper
+                        name="phone"
+                        label="Phone"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} type="phone" />}
+                        editRender={(field) => <Input placeholder="(555) 555-5555" {...field} />}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="fax"
+                        label="Fax"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="(555) 555-5555" {...field} />}
+                      />
+                      <StagedFormFieldWrapper
+                        name="website"
+                        label="Website"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} type="url" />}
+                        editRender={(field) => <Input placeholder="https://www.company.com" {...field} />}
+                      />
+                    </div>
+
+                    <StagedFormFieldWrapper
+                      name="notes"
+                      label="Notes"
+                      isEditing={stagedEdit.isEditing}
+                      viewRender={(value) => (
+                        <p className="whitespace-pre-wrap">{value || <span className="text-muted-foreground">—</span>}</p>
+                      )}
+                      editRender={(field) => <Textarea placeholder="Additional notes about this customer" {...field} rows={3} />}
+                    />
+
+                    <StagedFormFieldWrapper
+                      name="is_active"
+                      label="Status"
+                      isEditing={stagedEdit.isEditing}
+                      viewRender={(value) => (
+                        <Badge variant={value ? 'default' : 'secondary'} className={value ? 'bg-emerald-100 text-emerald-800' : ''}>
+                          {value ? 'Active' : 'Inactive'}
+                        </Badge>
+                      )}
+                      editRender={(field) => (
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                          <div>
+                            <p className="text-sm font-medium">Active</p>
+                            <p className="text-xs text-muted-foreground">Customer is available for orders</p>
+                          </div>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </div>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="address" className="space-y-4 mt-4">
+                    <StagedFormFieldWrapper
+                      name="address"
+                      label="Street Address"
+                      isEditing={stagedEdit.isEditing}
+                      viewRender={(value) => <p className="whitespace-pre-wrap">{value || <span className="text-muted-foreground">—</span>}</p>}
+                      editRender={(field) => <Textarea placeholder="Street address" {...field} rows={2} />}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="city"
+                        label="City"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="City" {...field} />}
+                      />
+                      <StagedFormFieldWrapper
+                        name="state"
+                        label="State/Province"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="State" {...field} />}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="zip"
+                        label="ZIP/Postal Code"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="ZIP code" {...field} />}
+                      />
+                      <StagedFormFieldWrapper
+                        name="country"
+                        label="Country"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="Country" {...field} />}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="billing" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="payment_terms"
+                        label="Payment Terms"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => (
+                          <ViewModeValue value={value ? getPaymentTermsLabel(value) : null} type="badge" badgeVariant="outline" />
+                        )}
+                        editRender={(field) => (
+                          <Select 
+                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
+                            value={field.value || '__none__'}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select terms" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="__none__">None</SelectItem>
+                              {PAYMENT_TERMS.map((term) => (
+                                <SelectItem key={term.value} value={term.value}>
+                                  {term.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <StagedFormFieldWrapper
+                        name="credit_limit"
+                        label="Credit Limit"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} type="currency" />}
+                        editRender={(field) => (
+                          <Input 
+                            type="number" 
+                            placeholder="0.00" 
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          />
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StagedFormFieldWrapper
+                        name="tax_id"
+                        label="Tax ID / EIN"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} />}
+                        editRender={(field) => <Input placeholder="Tax identification number" {...field} />}
+                      />
+                      <StagedFormFieldWrapper
+                        name="tax_exempt"
+                        label="Tax Exempt"
+                        isEditing={stagedEdit.isEditing}
+                        viewRender={(value) => <ViewModeValue value={value} type="boolean" />}
+                        editRender={(field) => (
+                          <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div>
+                              <p className="text-sm font-medium">Tax Exempt</p>
+                              <p className="text-xs text-muted-foreground">Customer is exempt from sales tax</p>
+                            </div>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </div>
+                        )}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Sticky Action Bar */}
+              {stagedEdit.isEditing && (
+                <div className="sticky bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] px-6 py-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="text-muted-foreground">
+                      {customer ? 'Editing Customer' : 'Creating Customer'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {customer && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={stagedEdit.discardChanges}
+                          disabled={!stagedEdit.isDirty || stagedEdit.isSaving}
+                          className="text-muted-foreground"
+                        >
+                          Discard
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            stagedEdit.cancelEdit();
+                          }}
+                          disabled={stagedEdit.isSaving}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleSave}
+                      disabled={stagedEdit.isSaving || createMutation.isPending || updateMutation.isPending}
+                    >
+                      {(stagedEdit.isSaving || createMutation.isPending || updateMutation.isPending) 
+                        ? 'Saving...' 
+                        : customer ? 'Save Changes' : 'Create Customer'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* View mode footer - just a close button */}
+              {!stagedEdit.isEditing && customer && (
+                <div className="border-t px-6 py-3 flex justify-end">
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Close
+                  </Button>
+                </div>
+              )}
+            </StagedEditProvider>
+          </FormProvider>
+        </DialogContent>
+      </Dialog>
+
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onDiscard={handleDiscardAndClose}
+        onKeepEditing={() => setShowUnsavedDialog(false)}
+        onSaveAndClose={handleSaveAndClose}
+        isSaving={stagedEdit.isSaving || createMutation.isPending || updateMutation.isPending}
+      />
+    </>
+  );
+}
+
+// Helper component for staged form fields without context
+function StagedFormFieldWrapper({
+  name,
+  label,
+  required,
+  isEditing,
+  viewRender,
+  editRender,
+  readOnlyInEdit,
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+  isEditing: boolean;
+  viewRender: (value: any) => React.ReactNode;
+  editRender: (field: any) => React.ReactNode;
+  readOnlyInEdit?: boolean;
+}) {
+  const form = useForm();
+  
+  // We use the parent form context
+  return (
+    <FormField
+      name={name}
+      render={({ field }) => {
+        const showAsReadOnly = !isEditing || readOnlyInEdit;
+
+        if (showAsReadOnly) {
+          return (
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">
+                {label}
+                {required && <span className="text-destructive ml-1">*</span>}
+              </label>
+              <div className="text-sm min-h-[1.5rem] py-1">
+                {viewRender(field.value)}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <FormItem>
+            <FormLabel>
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
+            </FormLabel>
+            <FormControl>
+              {editRender(field)}
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
+// Separate component for EditModeIndicator that doesn't rely on context
+function EditModeIndicator({ 
+  isEditing, 
+  otherEditors, 
+  resourceName 
+}: { 
+  isEditing: boolean; 
+  otherEditors: any[];
+  resourceName: string;
+}) {
+  if (!isEditing && otherEditors.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {isEditing && (
+        <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-800 border-amber-200">
+          <Pencil className="h-3 w-3" />
+          Editing
+        </Badge>
+      )}
+
+      {otherEditors.length > 0 && (
+        <Badge variant="outline" className="gap-1">
+          <Users className="h-3 w-3" />
+          {otherEditors.length} other{otherEditors.length > 1 ? 's' : ''} editing
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+export default function Customers() {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { checkPermission, isAdmin } = usePermissions();
+
+  const canCreate = isAdmin || checkPermission('customers.create', 'full');
+  const canEdit = isAdmin || checkPermission('customers.edit', 'full');
+  const canDelete = isAdmin || checkPermission('customers.delete', 'full');
+
+  const { data: customers, isLoading, refetch } = useQuery({
+    queryKey: ['customers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data as Customer[];
     },
   });
 
@@ -253,69 +879,8 @@ export default function Customers() {
   });
 
   const handleOpenDialog = (customer?: Customer) => {
-    if (customer) {
-      setEditingCustomer(customer);
-      form.reset({
-        code: customer.code,
-        name: customer.name,
-        customer_type: customer.customer_type || 'retail',
-        contact_name: customer.contact_name || '',
-        email: customer.email || '',
-        phone: customer.phone || '',
-        fax: customer.fax || '',
-        website: customer.website || '',
-        address: customer.address || '',
-        city: customer.city || '',
-        state: customer.state || '',
-        zip: customer.zip || '',
-        country: customer.country || 'USA',
-        payment_terms: customer.payment_terms || '',
-        credit_limit: customer.credit_limit ? Number(customer.credit_limit) : undefined,
-        tax_exempt: customer.tax_exempt || false,
-        tax_id: customer.tax_id || '',
-        notes: customer.notes || '',
-        is_active: customer.is_active ?? true,
-      });
-    } else {
-      setEditingCustomer(null);
-      form.reset({
-        code: '',
-        name: '',
-        customer_type: 'retail',
-        contact_name: '',
-        email: '',
-        phone: '',
-        fax: '',
-        website: '',
-        address: '',
-        city: '',
-        state: '',
-        zip: '',
-        country: 'USA',
-        payment_terms: '',
-        credit_limit: undefined,
-        tax_exempt: false,
-        tax_id: '',
-        notes: '',
-        is_active: true,
-      });
-    }
-    setActiveTab('general');
+    setEditingCustomer(customer || null);
     setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingCustomer(null);
-    form.reset();
-  };
-
-  const onSubmit = (data: CustomerFormData) => {
-    if (editingCustomer) {
-      updateMutation.mutate({ id: editingCustomer.id, ...data });
-    } else {
-      createMutation.mutate(data);
-    }
   };
 
   const getTypeBadgeColor = (type: string) => {
@@ -524,356 +1089,12 @@ export default function Customers() {
         )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              {editingCustomer ? 'Edit Customer' : 'Add Customer'}
-            </DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="address">Address</TabsTrigger>
-                  <TabsTrigger value="billing">Billing</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="general" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Customer Code *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., CUST001" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company Name *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Customer company name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="customer_type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Customer Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {CUSTOMER_TYPES.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="contact_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Primary Contact</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Contact name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="email@company.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(555) 555-5555" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="fax"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fax</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(555) 555-5555" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="website"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Website</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://www.company.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Notes</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Additional notes about this customer" {...field} rows={3} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                        <div>
-                          <FormLabel className="text-base">Active</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Customer is available for orders
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-
-                <TabsContent value="address" className="space-y-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Street Address</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Street address" {...field} rows={2} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input placeholder="City" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State/Province</FormLabel>
-                          <FormControl>
-                            <Input placeholder="State" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="zip"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>ZIP/Postal Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="ZIP code" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Country</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Country" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="billing" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="payment_terms"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Terms</FormLabel>
-                          <Select 
-                            onValueChange={(value) => field.onChange(value === '__none__' ? '' : value)} 
-                            value={field.value || '__none__'}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select terms" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="__none__">None</SelectItem>
-                              {PAYMENT_TERMS.map((term) => (
-                                <SelectItem key={term.value} value={term.value}>
-                                  {term.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="credit_limit"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Credit Limit</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              {...field}
-                              value={field.value ?? ''}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="tax_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tax ID / EIN</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Tax identification number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="tax_exempt"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                          <div>
-                            <FormLabel className="text-base">Tax Exempt</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Customer is exempt from sales tax
-                            </p>
-                          </div>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingCustomer ? 'Update Customer' : 'Create Customer'}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <CustomerFormDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        customer={editingCustomer}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
