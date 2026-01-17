@@ -82,6 +82,7 @@ import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel, DocumentComplianceSummary, DocumentExpiryBadge } from '@/components/approval';
 import type { Tables } from '@/integrations/supabase/types';
+import { calculateExpiryDate, isAutoCalculatedExpiry } from '@/lib/documentDateUtils';
 
 const SUPPLIER_TYPES = [
   { value: 'manufacturer', label: 'Manufacturer Only' },
@@ -646,9 +647,21 @@ export default function Suppliers() {
   };
 
   const updateDocument = (docId: string, field: keyof DocumentUpload, value: string) => {
-    setDocuments(prev => prev.map(d => 
-      d.id === docId ? { ...d, [field]: value } : d
-    ));
+    setDocuments(prev => prev.map(d => {
+      if (d.id !== docId) return d;
+      
+      const updatedDoc = { ...d, [field]: value };
+      
+      // Auto-calculate expiry date when date_reviewed changes
+      if (field === 'date_reviewed' && value) {
+        const newExpiryDate = calculateExpiryDate(value, 1);
+        if (newExpiryDate) {
+          updatedDoc.expiry_date = newExpiryDate;
+        }
+      }
+      
+      return updatedDoc;
+    }));
   };
 
   const downloadDocument = async (filePath: string, fileName: string) => {
@@ -1832,7 +1845,7 @@ export default function Suppliers() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-4 gap-3">
                         <div>
                           <label className="text-sm font-medium">File</label>
                           {doc.file_path && !doc.file ? (
@@ -1876,7 +1889,23 @@ export default function Suppliers() {
                           />
                         </div>
                         <div>
-                          <label className="text-sm font-medium">Expiry Date</label>
+                          <label className="text-sm font-medium">Date Reviewed</label>
+                          <Input
+                            type="date"
+                            value={doc.date_reviewed || ''}
+                            onChange={(e) => updateDocument(doc.id, 'date_reviewed', e.target.value)}
+                            disabled={!doc.isNew || doc.is_archived}
+                            className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Sets expiry to +1 year</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">
+                            Expiry Date
+                            {doc.date_reviewed && isAutoCalculatedExpiry(doc.date_reviewed, doc.expiry_date) && (
+                              <span className="ml-1 text-primary text-xs">(auto)</span>
+                            )}
+                          </label>
                           <Input
                             type="date"
                             value={doc.expiry_date || ''}
