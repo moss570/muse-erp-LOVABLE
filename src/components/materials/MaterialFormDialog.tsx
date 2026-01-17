@@ -728,23 +728,33 @@ export function MaterialFormDialog({
     }
   }, [existingMaterialSuppliers]);
 
-  // Load existing documents
+  // Load existing documents and auto-calculate missing expiry dates
   useEffect(() => {
     if (existingDocuments) {
-      setDocuments(existingDocuments.map(doc => ({
-        id: doc.id,
-        document_name: doc.document_name,
-        requirement_id: doc.requirement_id || undefined,
-        file_path: doc.file_path || undefined,
-        file_url: doc.file_url || undefined,
-        date_published: doc.date_published || undefined,
-        date_reviewed: doc.date_reviewed || undefined,
-        expiry_date: (doc as any).expiry_date || undefined,
-        is_archived: (doc as any).is_archived || false,
-        archived_at: (doc as any).archived_at || undefined,
-        archive_reason: (doc as any).archive_reason || undefined,
-        isNew: false
-      })));
+      setDocuments(existingDocuments.map(doc => {
+        const dateReviewed = doc.date_reviewed || undefined;
+        let expiryDate = (doc as any).expiry_date || undefined;
+        
+        // Auto-calculate expiry date if date_reviewed exists but expiry_date is missing
+        if (dateReviewed && !expiryDate) {
+          expiryDate = calculateExpiryDate(dateReviewed, 1);
+        }
+        
+        return {
+          id: doc.id,
+          document_name: doc.document_name,
+          requirement_id: doc.requirement_id || undefined,
+          file_path: doc.file_path || undefined,
+          file_url: doc.file_url || undefined,
+          date_published: doc.date_published || undefined,
+          date_reviewed: dateReviewed,
+          expiry_date: expiryDate,
+          is_archived: (doc as any).is_archived || false,
+          archived_at: (doc as any).archived_at || undefined,
+          archive_reason: (doc as any).archive_reason || undefined,
+          isNew: false
+        };
+      }));
     }
   }, [existingDocuments]);
 
@@ -3270,11 +3280,11 @@ export function MaterialFormDialog({
                                 <div className="grid grid-cols-3 gap-3">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Date Published by Manufacture</label>
-                                    <Input type="date" value={doc.date_published || ''} onChange={e => updateDocument(index, 'date_published', e.target.value || undefined)} disabled={!doc.isNew || doc.is_archived} className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''} />
+                                    <Input type="date" value={doc.date_published || ''} onChange={e => updateDocument(index, 'date_published', e.target.value || undefined)} disabled={doc.is_archived} className={doc.is_archived ? 'bg-muted cursor-not-allowed' : ''} />
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Date Reviewed or Uploaded</label>
-                                    <Input type="date" value={doc.date_reviewed || ''} onChange={e => updateDocument(index, 'date_reviewed', e.target.value || undefined)} disabled={!doc.isNew || doc.is_archived} className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''} />
+                                    <Input type="date" value={doc.date_reviewed || ''} onChange={e => updateDocument(index, 'date_reviewed', e.target.value || undefined)} disabled={doc.is_archived} className={doc.is_archived ? 'bg-muted cursor-not-allowed' : ''} />
                                     <p className="text-xs text-muted-foreground mt-1">Sets expiry to 1 year from this date</p>
                                   </div>
                                   <div>
@@ -3284,7 +3294,7 @@ export function MaterialFormDialog({
                                         <span className="ml-1 text-primary">(auto)</span>
                                       )}
                                     </label>
-                                    <Input type="date" value={doc.expiry_date || ''} onChange={e => updateDocument(index, 'expiry_date', e.target.value || undefined)} disabled={!doc.isNew || doc.is_archived} className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''} />
+                                    <Input type="date" value={doc.expiry_date || ''} onChange={e => updateDocument(index, 'expiry_date', e.target.value || undefined)} disabled={doc.is_archived} className={doc.is_archived ? 'bg-muted cursor-not-allowed' : ''} />
                                     {doc.expiry_date && <div className="mt-1">
                                         <DocumentExpiryBadge expiryDate={doc.expiry_date} size="sm" />
                                       </div>}
