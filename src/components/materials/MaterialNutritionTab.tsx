@@ -20,8 +20,9 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMaterialNutrition, MaterialNutritionInput } from '@/hooks/useMaterialNutrition';
 import { useDailyValues, calculatePercentDV, NUTRIENT_TO_DV_CODE } from '@/hooks/useDailyValues';
-import { Loader2, Save, ChevronDown, ChevronUp, Info, CheckCircle2 } from 'lucide-react';
+import { Loader2, Save, ChevronDown, ChevronUp, Info, CheckCircle2, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { USDASearchDialog, USDANutrition } from './USDASearchDialog';
 
 interface MaterialNutritionTabProps {
   materialId: string | undefined;
@@ -44,6 +45,7 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
   const [formData, setFormData] = useState<NutritionFormData>({});
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [usdaDialogOpen, setUsdaDialogOpen] = useState(false);
 
   // Initialize form data when nutrition loads
   useEffect(() => {
@@ -73,6 +75,36 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
     setHasChanges(false);
   };
 
+  const handleUSDAImport = (nutrition: USDANutrition, description: string) => {
+    setFormData(prev => ({
+      ...prev,
+      calories: nutrition.calories ?? prev.calories,
+      total_fat_g: nutrition.total_fat_g ?? prev.total_fat_g,
+      saturated_fat_g: nutrition.saturated_fat_g ?? prev.saturated_fat_g,
+      trans_fat_g: nutrition.trans_fat_g ?? prev.trans_fat_g,
+      polyunsaturated_fat_g: nutrition.polyunsaturated_fat_g ?? prev.polyunsaturated_fat_g,
+      monounsaturated_fat_g: nutrition.monounsaturated_fat_g ?? prev.monounsaturated_fat_g,
+      cholesterol_mg: nutrition.cholesterol_mg ?? prev.cholesterol_mg,
+      sodium_mg: nutrition.sodium_mg ?? prev.sodium_mg,
+      total_carbohydrate_g: nutrition.total_carbohydrate_g ?? prev.total_carbohydrate_g,
+      dietary_fiber_g: nutrition.dietary_fiber_g ?? prev.dietary_fiber_g,
+      total_sugars_g: nutrition.total_sugars_g ?? prev.total_sugars_g,
+      added_sugars_g: nutrition.added_sugars_g ?? prev.added_sugars_g,
+      protein_g: nutrition.protein_g ?? prev.protein_g,
+      vitamin_d_mcg: nutrition.vitamin_d_mcg ?? prev.vitamin_d_mcg,
+      calcium_mg: nutrition.calcium_mg ?? prev.calcium_mg,
+      iron_mg: nutrition.iron_mg ?? prev.iron_mg,
+      potassium_mg: nutrition.potassium_mg ?? prev.potassium_mg,
+      vitamin_a_mcg: nutrition.vitamin_a_mcg ?? prev.vitamin_a_mcg,
+      vitamin_c_mg: nutrition.vitamin_c_mg ?? prev.vitamin_c_mg,
+      data_source: 'usda_fdc',
+      notes: prev.notes 
+        ? `${prev.notes}\n\nImported from USDA: ${description}` 
+        : `Imported from USDA: ${description}`,
+    }));
+    setHasChanges(true);
+  };
+
   const getDV = (field: keyof NutritionFormData): string | null => {
     const value = formData[field] as number | null | undefined;
     const dvCode = NUTRIENT_TO_DV_CODE[field];
@@ -100,21 +132,34 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
 
   return (
     <div className="space-y-6">
-      {/* Header with Save Button */}
+      {/* Header with Actions */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">Nutritional Information</h3>
           <p className="text-sm text-muted-foreground">Per 100g serving base for calculations</p>
         </div>
-        <Button onClick={handleSave} disabled={isUpserting || !hasChanges}>
-          {isUpserting ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Save Nutrition Data
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setUsdaDialogOpen(true)}>
+            <Database className="h-4 w-4 mr-2" />
+            Search USDA
+          </Button>
+          <Button onClick={handleSave} disabled={isUpserting || !hasChanges}>
+            {isUpserting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Save Nutrition Data
+          </Button>
+        </div>
       </div>
+
+      {/* USDA Search Dialog */}
+      <USDASearchDialog
+        open={usdaDialogOpen}
+        onOpenChange={setUsdaDialogOpen}
+        onSelect={handleUSDAImport}
+      />
 
       {/* Data Source & Serving Info */}
       <Card>
