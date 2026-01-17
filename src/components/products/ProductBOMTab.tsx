@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -527,25 +527,6 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
   if (!activePrimaryRecipe) {
     return (
       <div className="space-y-6">
-        {/* Ingredient Statement - Empty State */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Ingredient Statement
-            </CardTitle>
-            <CardDescription>
-              Auto-generated from recipe ingredients, sorted by quantity
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <AlertCircle className="h-4 w-4" />
-              <span>No recipe found. Create a recipe to generate an ingredient statement.</span>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Create Recipe Prompt */}
         <Card>
           <CardHeader>
@@ -614,37 +595,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Ingredient Statement */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Ingredient Statement
-          </CardTitle>
-          <CardDescription>
-            Auto-generated from Primary BOM ingredients, sorted by quantity (heaviest first)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {ingredientStatement?.hasRecipe ? (
-            <div className="space-y-2">
-              <p className="text-sm leading-relaxed bg-muted p-4 rounded-lg">
-                {ingredientStatement.statement}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {ingredientStatement.itemCount} ingredients from primary recipe
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <AlertCircle className="h-4 w-4" />
-              <span>No materials in Primary BOM. Add ingredients to generate an ingredient statement.</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recipe Tabs Section */}
+      {/* Recipe Tabs Section - MOVED TO TOP */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -685,6 +636,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
                   recipeItems={recipeItems}
                   itemsLoading={itemsLoading && selectedRecipe?.id === tab.recipe.id}
                   isPrimary={tab.id === "primary"}
+                  primaryRecipeId={activePrimaryRecipe.id}
                   onEditRecipe={() => setEditRecipeDialogOpen(true)}
                   onAddMaterial={() => setAddItemDialogOpen(true)}
                   onEditItem={setEditingItem}
@@ -1053,12 +1005,13 @@ function BOMTable({
   );
 }
 
-// Recipe Content Component - Displays the recipe details and BOM table
+// Recipe Content Component - Displays the recipe details, ingredient statement, allergens, food claims, and BOM table
 function RecipeContent({
   recipe,
   recipeItems,
   itemsLoading,
   isPrimary,
+  primaryRecipeId,
   onEditRecipe,
   onAddMaterial,
   onEditItem,
@@ -1068,6 +1021,7 @@ function RecipeContent({
   recipeItems: RecipeItem[];
   itemsLoading: boolean;
   isPrimary: boolean;
+  primaryRecipeId: string;
   onEditRecipe: () => void;
   onAddMaterial: () => void;
   onEditItem: (item: RecipeItem) => void;
@@ -1075,6 +1029,14 @@ function RecipeContent({
 }) {
   return (
     <div className="space-y-4">
+      {/* Comparison Banner for Sub BOMs */}
+      {!isPrimary && (
+        <ComparisonBanner 
+          subRecipeId={recipe.id} 
+          primaryRecipeId={primaryRecipeId} 
+        />
+      )}
+
       {/* Recipe Header */}
       <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
         <div>
@@ -1095,6 +1057,13 @@ function RecipeContent({
         </div>
       </div>
 
+      <Separator />
+
+      {/* Auto-generated Ingredient Statement */}
+      <IngredientStatementDisplay recipeId={recipe.id} />
+
+      <Separator />
+
       {/* BOM Table */}
       {itemsLoading ? (
         <div className="flex items-center justify-center py-8">
@@ -1113,6 +1082,16 @@ function RecipeContent({
           onDeleteItem={onDeleteItem} 
         />
       )}
+
+      <Separator />
+
+      {/* Allergens Display */}
+      <AllergensDisplay recipeId={recipe.id} />
+
+      <Separator />
+
+      {/* Food Claims Display */}
+      <FoodClaimsDisplay recipeId={recipe.id} />
 
       {/* Instructions */}
       {recipe.instructions && (
