@@ -1601,7 +1601,12 @@ export function MaterialFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{material ? 'Edit Material' : 'Add New Material'}</DialogTitle>
+          <DialogTitle>
+            {material ? 'Edit Material' : 'Add New Material'}
+            {material?.name && (
+              <span className="ml-2 text-muted-foreground font-normal">— {material.name}</span>
+            )}
+          </DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
