@@ -76,33 +76,43 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
   };
 
   const handleUSDAImport = (nutrition: USDANutrition, description: string) => {
-    setFormData(prev => ({
-      ...prev,
-      calories: nutrition.calories ?? prev.calories,
-      total_fat_g: nutrition.total_fat_g ?? prev.total_fat_g,
-      saturated_fat_g: nutrition.saturated_fat_g ?? prev.saturated_fat_g,
-      trans_fat_g: nutrition.trans_fat_g ?? prev.trans_fat_g,
-      polyunsaturated_fat_g: nutrition.polyunsaturated_fat_g ?? prev.polyunsaturated_fat_g,
-      monounsaturated_fat_g: nutrition.monounsaturated_fat_g ?? prev.monounsaturated_fat_g,
-      cholesterol_mg: nutrition.cholesterol_mg ?? prev.cholesterol_mg,
-      sodium_mg: nutrition.sodium_mg ?? prev.sodium_mg,
-      total_carbohydrate_g: nutrition.total_carbohydrate_g ?? prev.total_carbohydrate_g,
-      dietary_fiber_g: nutrition.dietary_fiber_g ?? prev.dietary_fiber_g,
-      total_sugars_g: nutrition.total_sugars_g ?? prev.total_sugars_g,
-      added_sugars_g: nutrition.added_sugars_g ?? prev.added_sugars_g,
-      protein_g: nutrition.protein_g ?? prev.protein_g,
-      vitamin_d_mcg: nutrition.vitamin_d_mcg ?? prev.vitamin_d_mcg,
-      calcium_mg: nutrition.calcium_mg ?? prev.calcium_mg,
-      iron_mg: nutrition.iron_mg ?? prev.iron_mg,
-      potassium_mg: nutrition.potassium_mg ?? prev.potassium_mg,
-      vitamin_a_mcg: nutrition.vitamin_a_mcg ?? prev.vitamin_a_mcg,
-      vitamin_c_mg: nutrition.vitamin_c_mg ?? prev.vitamin_c_mg,
+    if (!materialId) return;
+    
+    const importedData: NutritionFormData = {
+      ...formData,
+      calories: nutrition.calories ?? formData.calories,
+      total_fat_g: nutrition.total_fat_g ?? formData.total_fat_g,
+      saturated_fat_g: nutrition.saturated_fat_g ?? formData.saturated_fat_g,
+      trans_fat_g: nutrition.trans_fat_g ?? formData.trans_fat_g,
+      polyunsaturated_fat_g: nutrition.polyunsaturated_fat_g ?? formData.polyunsaturated_fat_g,
+      monounsaturated_fat_g: nutrition.monounsaturated_fat_g ?? formData.monounsaturated_fat_g,
+      cholesterol_mg: nutrition.cholesterol_mg ?? formData.cholesterol_mg,
+      sodium_mg: nutrition.sodium_mg ?? formData.sodium_mg,
+      total_carbohydrate_g: nutrition.total_carbohydrate_g ?? formData.total_carbohydrate_g,
+      dietary_fiber_g: nutrition.dietary_fiber_g ?? formData.dietary_fiber_g,
+      total_sugars_g: nutrition.total_sugars_g ?? formData.total_sugars_g,
+      added_sugars_g: nutrition.added_sugars_g ?? formData.added_sugars_g,
+      protein_g: nutrition.protein_g ?? formData.protein_g,
+      vitamin_d_mcg: nutrition.vitamin_d_mcg ?? formData.vitamin_d_mcg,
+      calcium_mg: nutrition.calcium_mg ?? formData.calcium_mg,
+      iron_mg: nutrition.iron_mg ?? formData.iron_mg,
+      potassium_mg: nutrition.potassium_mg ?? formData.potassium_mg,
+      vitamin_a_mcg: nutrition.vitamin_a_mcg ?? formData.vitamin_a_mcg,
+      vitamin_c_mg: nutrition.vitamin_c_mg ?? formData.vitamin_c_mg,
       data_source: 'usda_fdc',
-      notes: prev.notes 
-        ? `${prev.notes}\n\nImported from USDA: ${description}` 
+      last_verified_at: new Date().toISOString(),
+      notes: formData.notes 
+        ? `${formData.notes}\n\nImported from USDA: ${description}` 
         : `Imported from USDA: ${description}`,
-    }));
-    setHasChanges(true);
+    };
+    
+    setFormData(importedData);
+    
+    // Auto-save after import
+    upsert({
+      material_id: materialId,
+      ...importedData,
+    });
   };
 
   const getDV = (field: keyof NutritionFormData): string | null => {
