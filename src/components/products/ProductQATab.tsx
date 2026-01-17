@@ -46,8 +46,6 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     test_method: "",
   });
 
-  const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
-
   const category = categories.find((c) => c.id === productCategoryId);
 
   const handleSelectTemplates = async (templates: Array<{
@@ -113,27 +111,23 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     setIsAddingReq(false);
   };
 
-  const handleAddClaims = async () => {
-    if (selectedClaims.length === 0) return;
-    for (const claim of selectedClaims) {
+  // Immediate save/delete on claim toggle
+  const handleClaimToggle = async (claim: string, isCurrentlyChecked: boolean) => {
+    if (isCurrentlyChecked) {
+      // Find and delete the existing claim
+      const existing = claims.find(c => c.attribute_value === claim);
+      if (existing) {
+        deleteAttribute.mutate(existing.id);
+      }
+    } else {
+      // Add new claim immediately
       await createAttribute.mutateAsync({
         product_id: productId,
         attribute_type: "claim",
         attribute_value: claim,
       });
     }
-    setSelectedClaims([]);
   };
-
-  const toggleClaim = (claim: string) => {
-    setSelectedClaims((prev) =>
-      prev.includes(claim) ? prev.filter((c) => c !== claim) : [...prev, claim]
-    );
-  };
-
-  const availableClaims = COMMON_CLAIMS.filter(
-    (c) => !claims.some((cl) => cl.attribute_value === c)
-  );
 
   if (isLoading) {
     return (
@@ -308,56 +302,33 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
 
       {/* Product Claims */}
       <Card>
-          <CardHeader>
-            <CardTitle>Product Claims</CardTitle>
-            <CardDescription>Certifications and claims</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {claims.map((c) => (
-                <Badge key={c.id} variant="outline" className="gap-1">
-                  {c.attribute_value}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => deleteAttribute.mutate(c.id)}
+        <CardHeader>
+          <CardTitle>Product Claims</CardTitle>
+          <CardDescription>Certifications and claims - changes are saved automatically</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {COMMON_CLAIMS.map((claim) => {
+              const isChecked = claims.some(c => c.attribute_value === claim);
+              const isPending = createAttribute.isPending || deleteAttribute.isPending;
+              return (
+                <div key={claim} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`claim-${claim}`}
+                    checked={isChecked}
+                    onCheckedChange={() => handleClaimToggle(claim, isChecked)}
+                    disabled={isPending}
                   />
-                </Badge>
-              ))}
-              {claims.length === 0 && (
-                <span className="text-sm text-muted-foreground">No claims added</span>
-              )}
-            </div>
-            {availableClaims.length > 0 ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                  {availableClaims.map((c) => (
-                    <div key={c} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`claim-${c}`}
-                        checked={selectedClaims.includes(c)}
-                        onCheckedChange={() => toggleClaim(c)}
-                      />
-                      <label
-                        htmlFor={`claim-${c}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {c}
-                      </label>
-                    </div>
-                  ))}
+                  <label
+                    htmlFor={`claim-${claim}`}
+                    className="text-sm font-medium leading-none cursor-pointer select-none"
+                  >
+                    {claim}
+                  </label>
                 </div>
-                <Button 
-                  type="button"
-                  onClick={handleAddClaims} 
-                  disabled={selectedClaims.length === 0}
-                  className="w-full"
-                >
-                  Add Selected ({selectedClaims.length})
-                </Button>
-              </div>
-            ) : (
-              <span className="text-sm text-muted-foreground">All claims have been added</span>
-            )}
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
