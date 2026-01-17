@@ -24,7 +24,14 @@ export type StatusType =
   | 'none'
   | 'pending_setup'
   | 'approved'
-  | 'not_approved';
+  | 'not_approved'
+  // approval_status values
+  | 'Draft'
+  | 'Pending_QA'
+  | 'Probation'
+  | 'Approved'
+  | 'Rejected'
+  | 'Archived';
 
 interface StatusIndicatorProps {
   status: StatusType;
@@ -87,6 +94,37 @@ const statusConfig: Record<StatusType, {
     icon: XCircle, 
     className: 'text-destructive', 
     label: 'Not Approved' 
+  },
+  // approval_status mappings
+  Draft: { 
+    icon: Circle, 
+    className: 'text-muted-foreground', 
+    label: 'Draft' 
+  },
+  Pending_QA: { 
+    icon: Settings, 
+    className: 'text-amber-500', 
+    label: 'Pending QA' 
+  },
+  Probation: { 
+    icon: AlertCircle, 
+    className: 'text-orange-500', 
+    label: 'Probation' 
+  },
+  Approved: { 
+    icon: CheckCircle2, 
+    className: 'text-emerald-500', 
+    label: 'Approved' 
+  },
+  Rejected: { 
+    icon: XCircle, 
+    className: 'text-destructive', 
+    label: 'Rejected' 
+  },
+  Archived: { 
+    icon: Minus, 
+    className: 'text-muted-foreground', 
+    label: 'Archived' 
   },
 };
 
