@@ -106,15 +106,19 @@ export async function calculateProductNutrition(
     servingSizeDescription = '2/3 cup (95g)',
   } = options;
 
-  // Fetch active recipe for product
-  const { data: recipe, error: recipeError } = await supabase
+  // Fetch active recipes for product (ordered by most recent first)
+  const { data: recipes, error: recipeError } = await supabase
     .from('product_recipes')
     .select('id, recipe_name, batch_size, batch_unit_id')
     .eq('product_id', productId)
     .eq('is_active', true)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(10); // Fetch up to 10 to detect duplicates
 
   if (recipeError) throw recipeError;
+  
+  const recipe = recipes?.[0] || null;
+  const hasMultipleActiveRecipes = (recipes?.length || 0) > 1;
   
   if (!recipe) {
     return {
@@ -128,6 +132,12 @@ export async function calculateProductNutrition(
       missing_nutrition_count: 0,
       warnings: ['No active recipe found for this product.'],
     };
+  }
+
+  // Initialize warnings array with multiple recipe warning if applicable
+  const initialWarnings: string[] = [];
+  if (hasMultipleActiveRecipes) {
+    initialWarnings.push(`Multiple active recipes found (${recipes?.length}). Using most recent: "${recipe.recipe_name}".`);
   }
 
   // Fetch recipe items with material info
@@ -206,7 +216,7 @@ export async function calculateProductNutrition(
   const totals: NutrientTotals = { ...EMPTY_NUTRIENTS };
   let totalWeightG = 0;
   let missingCount = 0;
-  const warnings: string[] = [];
+  const warnings: string[] = [...initialWarnings];
 
   for (const item of recipeItems || []) {
     if (!item.material_id) continue;
