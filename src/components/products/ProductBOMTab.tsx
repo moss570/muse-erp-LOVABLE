@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getIngredientStatementPreview } from "@/lib/ingredientStatement";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,7 +49,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  FileText,
   Loader2,
   AlertCircle,
   Plus,
@@ -61,10 +59,15 @@ import {
   ChevronsUpDown,
   Settings2,
   AlertTriangle,
-  Copy,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  IngredientStatementDisplay,
+  AllergensDisplay,
+  FoodClaimsDisplay,
+  ComparisonBanner,
+} from "./bom";
 
 interface ProductBOMTabProps {
   productId: string;
@@ -141,12 +144,6 @@ interface Recipe {
 }
 
 export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
-  const [ingredientStatement, setIngredientStatement] = useState<{
-    statement: string;
-    itemCount: number;
-    hasRecipe: boolean;
-  } | null>(null);
-  
   const [createRecipeDialogOpen, setCreateRecipeDialogOpen] = useState(false);
   const [editRecipeDialogOpen, setEditRecipeDialogOpen] = useState(false);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
@@ -288,15 +285,6 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       return data;
     },
   });
-
-  // Load ingredient statement (only from primary recipe)
-  useEffect(() => {
-    async function loadIngredientStatement() {
-      const result = await getIngredientStatementPreview(productId);
-      setIngredientStatement(result);
-    }
-    loadIngredientStatement();
-  }, [productId, recipeItems, activeRecipeTab]);
 
   // Create primary recipe mutation
   const createRecipeMutation = useMutation({
