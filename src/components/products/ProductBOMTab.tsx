@@ -826,7 +826,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
 
       {/* Add Item Dialog */}
       <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Material to {selectedRecipe?.recipe_type === "sub" ? "Sub BOM" : "Recipe"}</DialogTitle>
             <DialogDescription>
@@ -1370,7 +1370,7 @@ function AddItemForm({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0" align="start">
+          <PopoverContent className="w-[600px] p-0" align="start">
             <Command>
               <CommandInput placeholder="Search by name or code..." />
               <CommandList>
