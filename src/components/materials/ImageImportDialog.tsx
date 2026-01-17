@@ -124,12 +124,12 @@ export function ImageImportDialog({
               </p>
               <input
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/*"
                 onChange={handleFileInput}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
-                Supports: JPG, PNG, PDF
+                Supports: JPG, PNG
               </p>
             </div>
           ) : (
