@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProductSizes } from "@/hooks/useProductSizes";
 import { useProductQARequirements } from "@/hooks/useProductQARequirements";
 import { useProductAttributes } from "@/hooks/useProductAttributes";
+import { useProductNutrition } from "@/hooks/useProductNutrition";
 import { getIngredientStatementPreview } from "@/lib/ingredientStatement";
 import { formatUPCForDisplay } from "@/lib/upcUtils";
 import { aggregateAllergensForRecipe } from "@/lib/bomAggregation";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Printer, Download, Loader2 } from "lucide-react";
+import { NutritionFactsLabel, NutritionData } from "./nutrition";
 
 interface ProductSpecSheetTabProps {
   productId: string;
@@ -23,8 +25,30 @@ export function ProductSpecSheetTab({ productId, productName }: ProductSpecSheet
   const { sizes, isLoading: sizesLoading } = useProductSizes(productId);
   const { requirements } = useProductQARequirements(productId);
   const { claims } = useProductAttributes(productId);
+  const { nutrition } = useProductNutrition(productId);
   const [ingredientStatement, setIngredientStatement] = useState<string>("");
   const [bomAllergens, setBomAllergens] = useState<string[]>([]);
+
+  // Build nutrition data for label display
+  const nutritionData: NutritionData | null = nutrition ? {
+    servingSize: `${nutrition.serving_size_g || 95}g`,
+    servingsPerContainer: '8',
+    calories: Math.round(nutrition.calories || 0),
+    totalFat: nutrition.total_fat_g || 0,
+    saturatedFat: nutrition.saturated_fat_g || 0,
+    transFat: nutrition.trans_fat_g || 0,
+    cholesterol: nutrition.cholesterol_mg || 0,
+    sodium: nutrition.sodium_mg || 0,
+    totalCarbohydrate: nutrition.total_carbohydrate_g || 0,
+    dietaryFiber: nutrition.dietary_fiber_g || 0,
+    totalSugars: nutrition.total_sugars_g || 0,
+    addedSugars: nutrition.added_sugars_g || 0,
+    protein: nutrition.protein_g || 0,
+    vitaminD: nutrition.vitamin_d_mcg || 0,
+    calcium: nutrition.calcium_mg || 0,
+    iron: nutrition.iron_mg || 0,
+    potassium: nutrition.potassium_mg || 0,
+  } : null;
 
   // Fetch product details
   const { data: product, isLoading: productLoading } = useQuery({
@@ -233,6 +257,25 @@ export function ProductSpecSheetTab({ productId, productName }: ProductSpecSheet
               <p className="text-muted-foreground">No allergens in recipe materials</p>
             )}
           </div>
+        </div>
+
+        <Separator className="my-4" />
+
+        {/* Nutrition Facts */}
+        <div className="mb-6">
+          <h3 className="font-semibold mb-2">Nutrition Facts</h3>
+          {nutritionData ? (
+            <div className="flex justify-center">
+              <NutritionFactsLabel
+                data={nutritionData}
+                productName={productName}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nutrition data not calculated. Go to the Nutrition tab to calculate.
+            </p>
+          )}
         </div>
 
         <Separator className="my-4" />
