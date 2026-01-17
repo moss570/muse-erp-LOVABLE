@@ -1,65 +1,39 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Building2, Globe, Phone, Mail, MapPin, Save, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useEffect, useState } from 'react';
+import { Building2, Globe, Phone, Mail, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
-import { useCompanySettings, useUpdateCompanySettings } from '@/hooks/useCompanySettings';
-
-const companySettingsSchema = z.object({
-  company_name: z.string().min(1, 'Company name is required'),
-  phone: z.string().optional(),
-  fax: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  website: z.string().optional(),
-  address_line1: z.string().optional(),
-  address_line2: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip: z.string().optional(),
-  country: z.string().optional(),
-  gs1_company_prefix: z.string().optional(),
-});
-
-type CompanySettingsForm = z.infer<typeof companySettingsSchema>;
+import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { 
+  AutoSaveProvider, 
+  AutoSaveInput, 
+  FormSaveStatus 
+} from '@/components/ui/auto-save';
 
 export default function CompanySettings() {
   const { data: settings, isLoading } = useCompanySettings();
-  const updateMutation = useUpdateCompanySettings();
-
-  const form = useForm<CompanySettingsForm>({
-    resolver: zodResolver(companySettingsSchema),
-    defaultValues: {
-      company_name: '',
-      phone: '',
-      fax: '',
-      email: '',
-      website: '',
-      address_line1: '',
-      address_line2: '',
-      city: '',
-      state: '',
-      zip: '',
-      country: 'USA',
-      gs1_company_prefix: '',
-    },
+  
+  // Local state for form values
+  const [formValues, setFormValues] = useState({
+    company_name: '',
+    phone: '',
+    fax: '',
+    email: '',
+    website: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'USA',
+    gs1_company_prefix: '',
   });
 
+  // Sync form values when settings load
   useEffect(() => {
     if (settings) {
-      form.reset({
+      setFormValues({
         company_name: settings.company_name || '',
         phone: settings.phone || '',
         fax: settings.fax || '',
@@ -74,10 +48,10 @@ export default function CompanySettings() {
         gs1_company_prefix: settings.gs1_company_prefix || '',
       });
     }
-  }, [settings, form]);
+  }, [settings]);
 
-  const onSubmit = (data: CompanySettingsForm) => {
-    updateMutation.mutate(data);
+  const updateValue = (field: keyof typeof formValues, value: string) => {
+    setFormValues(prev => ({ ...prev, [field]: value }));
   };
 
   if (isLoading) {
@@ -104,247 +78,207 @@ export default function CompanySettings() {
   }
 
   return (
-    <div className="space-y-6">
-      <SettingsBreadcrumb currentPage="Company Settings" />
+    <AutoSaveProvider
+      tableName="company_settings"
+      recordId={settings?.id}
+      queryKey={['company-settings']}
+      enabled={!!settings?.id}
+    >
+      <div className="space-y-6">
+        <SettingsBreadcrumb currentPage="Company Settings" />
 
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Company Settings</h1>
-        <p className="text-muted-foreground">
-          Configure your company information. This data is used in documents, emails, and reports.
-        </p>
-      </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Company Settings</h1>
+            <p className="text-muted-foreground">
+              Configure your company information. Changes save automatically.
+            </p>
+          </div>
+          <FormSaveStatus />
+        </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Company Info Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  <CardTitle>Company Information</CardTitle>
-                </div>
-                <CardDescription>
-                  Basic company details used across the system
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Company Info Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle>Company Information</CardTitle>
+              </div>
+              <CardDescription>
+                Basic company details used across the system
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="company_name">Company Name</Label>
+                <AutoSaveInput
+                  id="company_name"
                   name="company_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your Company Name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={formValues.company_name}
+                  onValueChange={(v) => updateValue('company_name', v)}
+                  placeholder="Your Company Name"
                 />
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">
+                    <Phone className="h-3.5 w-3.5 inline mr-1" />
+                    Phone
+                  </Label>
+                  <AutoSaveInput
+                    id="phone"
                     name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          <Phone className="h-3.5 w-3.5 inline mr-1" />
-                          Phone
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="(555) 123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    value={formValues.phone}
+                    onValueChange={(v) => updateValue('phone', v)}
+                    placeholder="(555) 123-4567"
                   />
+                </div>
 
-                  <FormField
-                    control={form.control}
+                <div className="space-y-2">
+                  <Label htmlFor="fax">Fax</Label>
+                  <AutoSaveInput
+                    id="fax"
                     name="fax"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fax</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(555) 123-4568" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    value={formValues.fax}
+                    onValueChange={(v) => updateValue('fax', v)}
+                    placeholder="(555) 123-4568"
                   />
                 </div>
+              </div>
 
-                <FormField
-                  control={form.control}
+              <div className="space-y-2">
+                <Label htmlFor="email">
+                  <Mail className="h-3.5 w-3.5 inline mr-1" />
+                  Email
+                </Label>
+                <AutoSaveInput
+                  id="email"
                   name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        <Mail className="h-3.5 w-3.5 inline mr-1" />
-                        Email
-                      </FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="info@company.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  type="email"
+                  value={formValues.email}
+                  onValueChange={(v) => updateValue('email', v)}
+                  placeholder="info@company.com"
                 />
+              </div>
 
-                <FormField
-                  control={form.control}
+              <div className="space-y-2">
+                <Label htmlFor="website">
+                  <Globe className="h-3.5 w-3.5 inline mr-1" />
+                  Website
+                </Label>
+                <AutoSaveInput
+                  id="website"
                   name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        <Globe className="h-3.5 w-3.5 inline mr-1" />
-                        Website
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="www.company.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={formValues.website}
+                  onValueChange={(v) => updateValue('website', v)}
+                  placeholder="www.company.com"
                 />
+              </div>
 
-                <FormField
-                  control={form.control}
+              <div className="space-y-2">
+                <Label htmlFor="gs1_company_prefix">GS1 Company Prefix</Label>
+                <AutoSaveInput
+                  id="gs1_company_prefix"
                   name="gs1_company_prefix"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>GS1 Company Prefix</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., 0123456" maxLength={11} {...field} />
-                      </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        Used for automatic UPC code generation
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={formValues.gs1_company_prefix}
+                  onValueChange={(v) => updateValue('gs1_company_prefix', v)}
+                  placeholder="e.g., 0123456"
+                  maxLength={11}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Used for automatic UPC code generation
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-              </CardContent>
-            </Card>
-
-            {/* Address Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <CardTitle>Address</CardTitle>
-                </div>
-                <CardDescription>
-                  Company address for documents and shipping
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
+          {/* Address Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <CardTitle>Address</CardTitle>
+              </div>
+              <CardDescription>
+                Company address for documents and shipping
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="address_line1">Address Line 1</Label>
+                <AutoSaveInput
+                  id="address_line1"
                   name="address_line1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address Line 1</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main Street" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={formValues.address_line1}
+                  onValueChange={(v) => updateValue('address_line1', v)}
+                  placeholder="123 Main Street"
                 />
+              </div>
 
-                <FormField
-                  control={form.control}
+              <div className="space-y-2">
+                <Label htmlFor="address_line2">Address Line 2</Label>
+                <AutoSaveInput
+                  id="address_line2"
                   name="address_line2"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address Line 2</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Suite 100" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={formValues.address_line2}
+                  onValueChange={(v) => updateValue('address_line2', v)}
+                  placeholder="Suite 100"
                 />
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <AutoSaveInput
+                    id="city"
                     name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Orlando" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    value={formValues.city}
+                    onValueChange={(v) => updateValue('city', v)}
+                    placeholder="Orlando"
                   />
+                </div>
 
-                  <FormField
-                    control={form.control}
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <AutoSaveInput
+                    id="state"
                     name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input placeholder="FL" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    value={formValues.state}
+                    onValueChange={(v) => updateValue('state', v)}
+                    placeholder="FL"
                   />
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="zip">ZIP Code</Label>
+                  <AutoSaveInput
+                    id="zip"
                     name="zip"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="32819" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country</FormLabel>
-                        <FormControl>
-                          <Input placeholder="USA" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    value={formValues.zip}
+                    onValueChange={(v) => updateValue('zip', v)}
+                    placeholder="32819"
                   />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Save Changes
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <AutoSaveInput
+                    id="country"
+                    name="country"
+                    value={formValues.country}
+                    onValueChange={(v) => updateValue('country', v)}
+                    placeholder="USA"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </AutoSaveProvider>
   );
 }
