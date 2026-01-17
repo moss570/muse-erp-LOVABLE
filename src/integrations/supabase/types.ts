@@ -2940,6 +2940,165 @@ export type Database = {
           },
         ]
       }
+      material_nutrition: {
+        Row: {
+          added_sugars_g: number | null
+          calcium_mg: number | null
+          calories: number | null
+          cholesterol_mg: number | null
+          created_at: string
+          data_source: string | null
+          dietary_fiber_g: number | null
+          extraction_confidence: number | null
+          folate_mcg_dfe: number | null
+          id: string
+          iron_mg: number | null
+          last_verified_at: string | null
+          magnesium_mg: number | null
+          material_id: string | null
+          monounsaturated_fat_g: number | null
+          niacin_mg: number | null
+          notes: string | null
+          phosphorus_mg: number | null
+          polyunsaturated_fat_g: number | null
+          potassium_mg: number | null
+          protein_g: number | null
+          riboflavin_mg: number | null
+          saturated_fat_g: number | null
+          selenium_mcg: number | null
+          serving_size_description: string | null
+          serving_size_g: number | null
+          servings_per_container: number | null
+          sodium_mg: number | null
+          source_document_id: string | null
+          sugar_alcohol_g: number | null
+          thiamin_mg: number | null
+          total_carbohydrate_g: number | null
+          total_fat_g: number | null
+          total_sugars_g: number | null
+          trans_fat_g: number | null
+          updated_at: string
+          usda_fdc_id: string | null
+          verified_by: string | null
+          vitamin_a_mcg: number | null
+          vitamin_b12_mcg: number | null
+          vitamin_b6_mg: number | null
+          vitamin_c_mg: number | null
+          vitamin_d_mcg: number | null
+          vitamin_e_mg: number | null
+          zinc_mg: number | null
+        }
+        Insert: {
+          added_sugars_g?: number | null
+          calcium_mg?: number | null
+          calories?: number | null
+          cholesterol_mg?: number | null
+          created_at?: string
+          data_source?: string | null
+          dietary_fiber_g?: number | null
+          extraction_confidence?: number | null
+          folate_mcg_dfe?: number | null
+          id?: string
+          iron_mg?: number | null
+          last_verified_at?: string | null
+          magnesium_mg?: number | null
+          material_id?: string | null
+          monounsaturated_fat_g?: number | null
+          niacin_mg?: number | null
+          notes?: string | null
+          phosphorus_mg?: number | null
+          polyunsaturated_fat_g?: number | null
+          potassium_mg?: number | null
+          protein_g?: number | null
+          riboflavin_mg?: number | null
+          saturated_fat_g?: number | null
+          selenium_mcg?: number | null
+          serving_size_description?: string | null
+          serving_size_g?: number | null
+          servings_per_container?: number | null
+          sodium_mg?: number | null
+          source_document_id?: string | null
+          sugar_alcohol_g?: number | null
+          thiamin_mg?: number | null
+          total_carbohydrate_g?: number | null
+          total_fat_g?: number | null
+          total_sugars_g?: number | null
+          trans_fat_g?: number | null
+          updated_at?: string
+          usda_fdc_id?: string | null
+          verified_by?: string | null
+          vitamin_a_mcg?: number | null
+          vitamin_b12_mcg?: number | null
+          vitamin_b6_mg?: number | null
+          vitamin_c_mg?: number | null
+          vitamin_d_mcg?: number | null
+          vitamin_e_mg?: number | null
+          zinc_mg?: number | null
+        }
+        Update: {
+          added_sugars_g?: number | null
+          calcium_mg?: number | null
+          calories?: number | null
+          cholesterol_mg?: number | null
+          created_at?: string
+          data_source?: string | null
+          dietary_fiber_g?: number | null
+          extraction_confidence?: number | null
+          folate_mcg_dfe?: number | null
+          id?: string
+          iron_mg?: number | null
+          last_verified_at?: string | null
+          magnesium_mg?: number | null
+          material_id?: string | null
+          monounsaturated_fat_g?: number | null
+          niacin_mg?: number | null
+          notes?: string | null
+          phosphorus_mg?: number | null
+          polyunsaturated_fat_g?: number | null
+          potassium_mg?: number | null
+          protein_g?: number | null
+          riboflavin_mg?: number | null
+          saturated_fat_g?: number | null
+          selenium_mcg?: number | null
+          serving_size_description?: string | null
+          serving_size_g?: number | null
+          servings_per_container?: number | null
+          sodium_mg?: number | null
+          source_document_id?: string | null
+          sugar_alcohol_g?: number | null
+          thiamin_mg?: number | null
+          total_carbohydrate_g?: number | null
+          total_fat_g?: number | null
+          total_sugars_g?: number | null
+          trans_fat_g?: number | null
+          updated_at?: string
+          usda_fdc_id?: string | null
+          verified_by?: string | null
+          vitamin_a_mcg?: number | null
+          vitamin_b12_mcg?: number | null
+          vitamin_b6_mg?: number | null
+          vitamin_c_mg?: number | null
+          vitamin_d_mcg?: number | null
+          vitamin_e_mg?: number | null
+          zinc_mg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_nutrition_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_nutrition_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_purchase_units: {
         Row: {
           code: string | null
@@ -3380,6 +3539,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      nutrition_daily_values: {
+        Row: {
+          created_at: string
+          daily_value: number
+          display_order: number | null
+          id: string
+          is_mandatory: boolean | null
+          nutrient_code: string
+          nutrient_name: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          daily_value: number
+          display_order?: number | null
+          id?: string
+          is_mandatory?: boolean | null
+          nutrient_code: string
+          nutrient_name: string
+          unit: string
+        }
+        Update: {
+          created_at?: string
+          daily_value?: number
+          display_order?: number | null
+          id?: string
+          is_mandatory?: boolean | null
+          nutrient_code?: string
+          nutrient_name?: string
+          unit?: string
+        }
+        Relationships: []
+      }
+      nutrition_label_formats: {
+        Row: {
+          created_at: string
+          description: string | null
+          font_config: Json | null
+          format_type: string | null
+          height_inches: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          min_area_sq_inches: number | null
+          name: string
+          width_inches: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          font_config?: Json | null
+          format_type?: string | null
+          height_inches?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          min_area_sq_inches?: number | null
+          name: string
+          width_inches?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          font_config?: Json | null
+          format_type?: string | null
+          height_inches?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          min_area_sq_inches?: number | null
+          name?: string
+          width_inches?: number | null
+        }
+        Relationships: []
       }
       overhead_settings: {
         Row: {
@@ -4244,6 +4478,133 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      product_nutrition: {
+        Row: {
+          added_sugars_g: number | null
+          calcium_mg: number | null
+          calculated_by: string | null
+          calculation_date: string | null
+          calories: number | null
+          cholesterol_mg: number | null
+          created_at: string
+          dietary_fiber_g: number | null
+          id: string
+          iron_mg: number | null
+          is_verified: boolean | null
+          monounsaturated_fat_g: number | null
+          overrun_percent: number | null
+          polyunsaturated_fat_g: number | null
+          potassium_mg: number | null
+          product_id: string | null
+          protein_g: number | null
+          recipe_id: string | null
+          saturated_fat_g: number | null
+          serving_size_description: string | null
+          serving_size_g: number | null
+          servings_per_container: number | null
+          sodium_mg: number | null
+          total_carbohydrate_g: number | null
+          total_fat_g: number | null
+          total_sugars_g: number | null
+          trans_fat_g: number | null
+          updated_at: string
+          vitamin_a_mcg: number | null
+          vitamin_c_mg: number | null
+          vitamin_d_mcg: number | null
+          yield_loss_percent: number | null
+        }
+        Insert: {
+          added_sugars_g?: number | null
+          calcium_mg?: number | null
+          calculated_by?: string | null
+          calculation_date?: string | null
+          calories?: number | null
+          cholesterol_mg?: number | null
+          created_at?: string
+          dietary_fiber_g?: number | null
+          id?: string
+          iron_mg?: number | null
+          is_verified?: boolean | null
+          monounsaturated_fat_g?: number | null
+          overrun_percent?: number | null
+          polyunsaturated_fat_g?: number | null
+          potassium_mg?: number | null
+          product_id?: string | null
+          protein_g?: number | null
+          recipe_id?: string | null
+          saturated_fat_g?: number | null
+          serving_size_description?: string | null
+          serving_size_g?: number | null
+          servings_per_container?: number | null
+          sodium_mg?: number | null
+          total_carbohydrate_g?: number | null
+          total_fat_g?: number | null
+          total_sugars_g?: number | null
+          trans_fat_g?: number | null
+          updated_at?: string
+          vitamin_a_mcg?: number | null
+          vitamin_c_mg?: number | null
+          vitamin_d_mcg?: number | null
+          yield_loss_percent?: number | null
+        }
+        Update: {
+          added_sugars_g?: number | null
+          calcium_mg?: number | null
+          calculated_by?: string | null
+          calculation_date?: string | null
+          calories?: number | null
+          cholesterol_mg?: number | null
+          created_at?: string
+          dietary_fiber_g?: number | null
+          id?: string
+          iron_mg?: number | null
+          is_verified?: boolean | null
+          monounsaturated_fat_g?: number | null
+          overrun_percent?: number | null
+          polyunsaturated_fat_g?: number | null
+          potassium_mg?: number | null
+          product_id?: string | null
+          protein_g?: number | null
+          recipe_id?: string | null
+          saturated_fat_g?: number | null
+          serving_size_description?: string | null
+          serving_size_g?: number | null
+          servings_per_container?: number | null
+          sodium_mg?: number | null
+          total_carbohydrate_g?: number | null
+          total_fat_g?: number | null
+          total_sugars_g?: number | null
+          trans_fat_g?: number | null
+          updated_at?: string
+          vitamin_a_mcg?: number | null
+          vitamin_c_mg?: number | null
+          vitamin_d_mcg?: number | null
+          yield_loss_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_nutrition_calculated_by_fkey"
+            columns: ["calculated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_nutrition_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_nutrition_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "product_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_qa_requirements: {
         Row: {
