@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,7 @@ import { useDailyValues, calculatePercentDV, NUTRIENT_TO_DV_CODE } from '@/hooks
 import { Loader2, Save, ChevronDown, ChevronUp, Info, CheckCircle2, Database, FileImage } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { USDASearchDialog, USDANutrition } from './USDASearchDialog';
+import { ImageImportDialog } from './ImageImportDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,8 +50,8 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [usdaDialogOpen, setUsdaDialogOpen] = useState(false);
+  const [imageImportDialogOpen, setImageImportDialogOpen] = useState(false);
   const [isExtractingPdf, setIsExtractingPdf] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize form data when nutrition loads
   useEffect(() => {
@@ -200,17 +201,12 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
       });
     } finally {
       setIsExtractingPdf(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setImageImportDialogOpen(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handlePdfExtract(file);
-    }
+  const handleImageImport = (file: File) => {
+    handlePdfExtract(file);
   };
 
   const getDV = (field: keyof NutritionFormData): string | null => {
@@ -240,13 +236,12 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
 
   return (
     <div className="space-y-6">
-      {/* Hidden file input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*,.pdf"
-        className="hidden"
+      {/* Image Import Dialog */}
+      <ImageImportDialog
+        open={imageImportDialogOpen}
+        onOpenChange={setImageImportDialogOpen}
+        onFileSelected={handleImageImport}
+        isProcessing={isExtractingPdf}
       />
 
       {/* Header with Actions */}
@@ -259,15 +254,11 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
           <Button 
             type="button" 
             variant="outline" 
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setImageImportDialogOpen(true)}
             disabled={isExtractingPdf}
           >
-            {isExtractingPdf ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <FileImage className="h-4 w-4 mr-2" />
-            )}
-            {isExtractingPdf ? 'Extracting...' : 'Import from Image'}
+            <FileImage className="h-4 w-4 mr-2" />
+            Import from Image
           </Button>
           <Button type="button" variant="outline" onClick={() => setUsdaDialogOpen(true)}>
             <Database className="h-4 w-4 mr-2" />
