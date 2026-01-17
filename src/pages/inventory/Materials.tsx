@@ -33,9 +33,12 @@ type Unit = Tables<'units_of_measure'>;
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'All Status' },
-  { value: 'pending_setup', label: 'Pending Set-Up' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'not_approved', label: 'Not Approved' },
+  { value: 'Draft', label: 'Draft' },
+  { value: 'Pending_QA', label: 'Pending QA' },
+  { value: 'Probation', label: 'Probation' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Archived', label: 'Archived' },
 ];
 
 export default function Materials() {
@@ -133,9 +136,9 @@ export default function Materials() {
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.code.toLowerCase().includes(search.toLowerCase()) ||
       (m.listed_material?.name?.toLowerCase().includes(search.toLowerCase()) ?? false);
-    const materialStatus = m.material_status || 'pending_setup';
+    const approvalStatus = m.approval_status || 'Draft';
     const matchesStatus = 
-      statusFilter === 'all' || materialStatus === statusFilter;
+      statusFilter === 'all' || approvalStatus === statusFilter;
     const matchesListedName = 
       listedNameFilter === 'all' ||
       (listedNameFilter === 'unlinked' && !m.listed_material_id) ||
@@ -235,7 +238,7 @@ export default function Materials() {
                     >
                       <TableCell>
                         <StatusIndicator 
-                          status={(material.material_status || 'pending_setup') as any} 
+                          status={(material.approval_status || 'Draft') as any} 
                         />
                       </TableCell>
                       <TableCell className="font-mono font-medium">{material.code}</TableCell>
