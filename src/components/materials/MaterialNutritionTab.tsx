@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,9 +20,11 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMaterialNutrition, MaterialNutritionInput } from '@/hooks/useMaterialNutrition';
 import { useDailyValues, calculatePercentDV, NUTRIENT_TO_DV_CODE } from '@/hooks/useDailyValues';
-import { Loader2, Save, ChevronDown, ChevronUp, Info, CheckCircle2, Database } from 'lucide-react';
+import { Loader2, Save, ChevronDown, ChevronUp, Info, CheckCircle2, Database, FileImage } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { USDASearchDialog, USDANutrition } from './USDASearchDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface MaterialNutritionTabProps {
   materialId: string | undefined;
@@ -42,10 +44,13 @@ const DATA_SOURCES = [
 export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutritionTabProps) {
   const { nutrition, isLoading, upsert, isUpserting } = useMaterialNutrition(materialId);
   const { data: dailyValues } = useDailyValues();
+  const { toast } = useToast();
   const [formData, setFormData] = useState<NutritionFormData>({});
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [usdaDialogOpen, setUsdaDialogOpen] = useState(false);
+  const [isExtractingPdf, setIsExtractingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize form data when nutrition loads
   useEffect(() => {
@@ -115,6 +120,99 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
     });
   };
 
+  const handlePdfExtract = async (file: File) => {
+    if (!materialId) return;
+    
+    setIsExtractingPdf(true);
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove the data URL prefix to get just the base64
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(file);
+      const imageBase64 = await base64Promise;
+
+      const { data, error } = await supabase.functions.invoke('extract-nutrition-pdf', {
+        body: { imageBase64, mimeType: file.type },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Extraction failed');
+
+      const nutrition = data.nutrition;
+      
+      const importedData: NutritionFormData = {
+        ...formData,
+        serving_size_g: nutrition.serving_size_g ?? formData.serving_size_g,
+        serving_size_description: nutrition.serving_size_description ?? formData.serving_size_description,
+        calories: nutrition.calories ?? formData.calories,
+        total_fat_g: nutrition.total_fat_g ?? formData.total_fat_g,
+        saturated_fat_g: nutrition.saturated_fat_g ?? formData.saturated_fat_g,
+        trans_fat_g: nutrition.trans_fat_g ?? formData.trans_fat_g,
+        polyunsaturated_fat_g: nutrition.polyunsaturated_fat_g ?? formData.polyunsaturated_fat_g,
+        monounsaturated_fat_g: nutrition.monounsaturated_fat_g ?? formData.monounsaturated_fat_g,
+        cholesterol_mg: nutrition.cholesterol_mg ?? formData.cholesterol_mg,
+        sodium_mg: nutrition.sodium_mg ?? formData.sodium_mg,
+        total_carbohydrate_g: nutrition.total_carbohydrate_g ?? formData.total_carbohydrate_g,
+        dietary_fiber_g: nutrition.dietary_fiber_g ?? formData.dietary_fiber_g,
+        total_sugars_g: nutrition.total_sugars_g ?? formData.total_sugars_g,
+        added_sugars_g: nutrition.added_sugars_g ?? formData.added_sugars_g,
+        protein_g: nutrition.protein_g ?? formData.protein_g,
+        vitamin_d_mcg: nutrition.vitamin_d_mcg ?? formData.vitamin_d_mcg,
+        calcium_mg: nutrition.calcium_mg ?? formData.calcium_mg,
+        iron_mg: nutrition.iron_mg ?? formData.iron_mg,
+        potassium_mg: nutrition.potassium_mg ?? formData.potassium_mg,
+        vitamin_a_mcg: nutrition.vitamin_a_mcg ?? formData.vitamin_a_mcg,
+        vitamin_c_mg: nutrition.vitamin_c_mg ?? formData.vitamin_c_mg,
+        data_source: 'pdf_extracted',
+        extraction_confidence: nutrition.confidence,
+        last_verified_at: new Date().toISOString(),
+        notes: formData.notes 
+          ? `${formData.notes}\n\nExtracted from PDF/Image (${nutrition.confidence}% confidence)` 
+          : `Extracted from PDF/Image (${nutrition.confidence}% confidence)`,
+      };
+      
+      setFormData(importedData);
+      
+      // Auto-save after import
+      upsert({
+        material_id: materialId,
+        ...importedData,
+      });
+
+      toast({
+        title: 'Nutrition extracted',
+        description: `Successfully extracted nutrition data with ${nutrition.confidence}% confidence`,
+      });
+    } catch (error) {
+      console.error('PDF extraction error:', error);
+      toast({
+        title: 'Extraction failed',
+        description: error instanceof Error ? error.message : 'Failed to extract nutrition from image',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExtractingPdf(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handlePdfExtract(file);
+    }
+  };
+
   const getDV = (field: keyof NutritionFormData): string | null => {
     const value = formData[field] as number | null | undefined;
     const dvCode = NUTRIENT_TO_DV_CODE[field];
@@ -142,6 +240,15 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*,.pdf"
+        className="hidden"
+      />
+
       {/* Header with Actions */}
       <div className="flex items-center justify-between">
         <div>
@@ -149,6 +256,19 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
           <p className="text-sm text-muted-foreground">Per 100g serving base for calculations</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isExtractingPdf}
+          >
+            {isExtractingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <FileImage className="h-4 w-4 mr-2" />
+            )}
+            {isExtractingPdf ? 'Extracting...' : 'Import from Image'}
+          </Button>
           <Button type="button" variant="outline" onClick={() => setUsdaDialogOpen(true)}>
             <Database className="h-4 w-4 mr-2" />
             Search USDA

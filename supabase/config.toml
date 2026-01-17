@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.usda-food-search]
 verify_jwt = false
+
+[functions.extract-nutrition-pdf]
+verify_jwt = false
