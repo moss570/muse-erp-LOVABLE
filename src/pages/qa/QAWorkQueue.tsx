@@ -170,15 +170,15 @@ export default function QAWorkQueue() {
                 </TableHeader>
                 <TableBody>
                   {paginatedItems.map((item) => {
-                    // Build the URL based on entity type
+                    // Build the URL based on entity type - use ?edit= param to open edit dialog directly
                     const getItemUrl = () => {
                       switch (item.entityType) {
                         case 'materials':
-                          return `/inventory/materials?id=${item.entityId}`;
+                          return `/inventory/materials?edit=${item.entityId}`;
                         case 'suppliers':
-                          return `/purchasing/suppliers?id=${item.entityId}`;
+                          return `/purchasing/suppliers?edit=${item.entityId}`;
                         case 'products':
-                          return `/inventory/products?id=${item.entityId}`;
+                          return `/inventory/products?edit=${item.entityId}`;
                         case 'override_request':
                           return `/qa/override-requests?id=${item.entityId}`;
                         default:
