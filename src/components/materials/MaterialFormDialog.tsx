@@ -1885,6 +1885,7 @@ function MaterialFormContent({
       
       <Form {...form}>
         <form className="space-y-4">
+          <fieldset disabled={!isEditing && !!material} className="contents">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`grid w-full`} style={{
               gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`
@@ -3676,6 +3677,7 @@ function MaterialFormContent({
                   </div>}
               </TabsContent>
             </Tabs>
+          </fieldset>
 
             <StagedEditActionBar
               onSave={async () => {
