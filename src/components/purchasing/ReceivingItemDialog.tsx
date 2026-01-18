@@ -310,6 +310,7 @@ export function ReceivingItemDialog({ open, onOpenChange, sessionId, poItems, ex
             </Select>
             <p className="text-xs text-muted-foreground">
               Items placed on hold require QA approval before they can be used.
+              {inspectionStatus === 'rejected' && ' For rejections, consider creating a CAPA after completing receiving.'}
             </p>
           </div>
 
@@ -319,9 +320,12 @@ export function ReceivingItemDialog({ open, onOpenChange, sessionId, poItems, ex
               <Textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Reason for rejection..."
+                placeholder="Describe the reason for rejection in detail..."
                 rows={2}
               />
+              <p className="text-xs text-amber-600">
+                💡 Tip: After completing this receiving session, you can create a CAPA from the QA Work Queue to track corrective actions.
+              </p>
             </div>
           )}
 

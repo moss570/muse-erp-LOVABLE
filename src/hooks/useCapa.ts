@@ -28,6 +28,7 @@ export interface CapaFilters {
   material_id?: string;
   product_id?: string;
   department_id?: string;
+  source_type?: string;
   date_from?: string;
   date_to?: string;
   is_overdue?: boolean;
@@ -97,6 +98,10 @@ export function useCapaList(filters: CapaFilters = {}) {
 
       if (filters.department_id) {
         query = query.eq('department_id', filters.department_id);
+      }
+
+      if (filters.source_type) {
+        query = query.eq('source_type', filters.source_type);
       }
 
       if (filters.date_from) {
