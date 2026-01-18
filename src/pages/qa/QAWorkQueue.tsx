@@ -169,38 +169,73 @@ export default function QAWorkQueue() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedItems.map((item) => (
-                    <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell>
-                        <Badge className={PRIORITY_COLORS[item.priority]}>
-                          {item.priority.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {TYPE_LABELS[item.type] || item.type}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{item.entityName}</div>
-                          {item.entityCode && (
-                            <div className="text-sm text-muted-foreground">
-                              {item.entityCode}
+                  {paginatedItems.map((item) => {
+                    // Build the URL based on entity type
+                    const getItemUrl = () => {
+                      switch (item.entityType) {
+                        case 'material':
+                          return `/inventory/materials?id=${item.entityId}`;
+                        case 'supplier':
+                          return `/purchasing/suppliers?id=${item.entityId}`;
+                        case 'product':
+                          return `/inventory/products?id=${item.entityId}`;
+                        case 'override_request':
+                          return `/qa/override-requests?id=${item.entityId}`;
+                        default:
+                          return null;
+                      }
+                    };
+                    
+                    const itemUrl = getItemUrl();
+                    
+                    const handleRowClick = () => {
+                      if (itemUrl) {
+                        window.open(itemUrl, '_blank');
+                      }
+                    };
+                    
+                    return (
+                      <TableRow 
+                        key={item.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={handleRowClick}
+                      >
+                        <TableCell>
+                          <Badge className={PRIORITY_COLORS[item.priority]}>
+                            {item.priority.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {TYPE_LABELS[item.type] || item.type}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="font-medium">{item.entityName}</div>
+                              {item.entityCode && (
+                                <div className="text-sm text-muted-foreground">
+                                  {item.entityCode}
+                                </div>
+                              )}
                             </div>
+                            {itemUrl && (
+                              <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {item.issueDescription}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {item.daysUntilDue !== undefined && (
+                            <span className={item.isOverdue ? 'text-destructive font-medium' : ''}>
+                              {item.daysUntilDue}d
+                            </span>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {item.issueDescription}
-                      </TableCell>
-                      <TableCell className="text-right text-sm">
-                        {item.daysUntilDue !== undefined && (
-                          <span className={item.isOverdue ? 'text-destructive font-medium' : ''}>
-                            {item.daysUntilDue}d
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
 
