@@ -8,6 +8,7 @@ export type WorkQueueItemType =
   | 'material_issue_important'
   | 'supplier_issue'
   | 'document_expiry'
+  | 'missing_required_doc'
   | 'conditional_expiry'
   | 'override_request'
   | 'override_followup'
@@ -44,6 +45,7 @@ export interface WorkQueueSummary {
   critical: number;
   soon: number;
   docsExpiring: number;
+  docsMissing: number;
   reviewsDue: number;
   total: number;
 }
@@ -51,7 +53,8 @@ export interface WorkQueueSummary {
 function calculatePriority(
   type: WorkQueueItemType,
   daysUntilDue: number | undefined,
-  category?: string
+  category?: string,
+  approvalStatus?: string
 ): { score: number; level: WorkQueuePriority } {
   let score = 0;
 
@@ -61,6 +64,7 @@ function calculatePriority(
     material_issue_important: 50,
     supplier_issue: 80,
     document_expiry: 75,
+    missing_required_doc: 70,
     conditional_expiry: 60,
     override_request: 80,
     override_followup: 70,
@@ -74,6 +78,11 @@ function calculatePriority(
     if (daysUntilDue < 0) score += 50;      // Overdue
     else if (daysUntilDue <= 7) score += 30; // Within 7 days
     else if (daysUntilDue <= 14) score += 15; // Within 14 days
+  }
+
+  // For missing docs, boost priority if entity is Approved (already in use)
+  if (type === 'missing_required_doc' && approvalStatus === 'Approved') {
+    score += 20;
   }
 
   // Food category multiplier
@@ -150,35 +159,210 @@ export const useQAWorkQueue = (filters?: WorkQueueFilters) => {
         });
       });
 
-      // 3. Fetch expiring documents
-      const { data: expiringDocs } = await supabase
-        .from('compliance_documents')
-        .select('id, document_name, document_type, expiration_date, related_entity_id, related_entity_type')
-        .eq('is_current', true)
-        .not('expiration_date', 'is', null)
-        .lte('expiration_date', lookaheadDate.toISOString().split('T')[0]);
+      // 3. Fetch expiring MATERIAL documents
+      const { data: expiringMaterialDocs } = await supabase
+        .from('material_documents')
+        .select(`
+          id, 
+          document_name, 
+          expiry_date, 
+          material_id,
+          materials!inner(id, name, code, category, approval_status)
+        `)
+        .or('is_archived.eq.false,is_archived.is.null')
+        .not('expiry_date', 'is', null)
+        .lte('expiry_date', lookaheadDate.toISOString().split('T')[0]);
 
-      expiringDocs?.forEach((doc) => {
-        const expiryDate = new Date(doc.expiration_date!);
+      expiringMaterialDocs?.forEach((doc: any) => {
+        const expiryDate = new Date(doc.expiry_date!);
+        const daysUntilDue = differenceInDays(expiryDate, today);
+        const isOverdue = daysUntilDue < 0;
+        const { score, level } = calculatePriority('document_expiry', daysUntilDue, doc.materials?.category);
+        items.push({
+          id: `mat-doc-${doc.id}`,
+          type: 'document_expiry',
+          priority: level,
+          priorityScore: score,
+          entityType: 'materials',
+          entityId: doc.material_id,
+          entityName: doc.materials?.name || 'Unknown Material',
+          entityCode: doc.materials?.code,
+          issueDescription: isOverdue 
+            ? `EXPIRED: ${doc.document_name}` 
+            : `Expiring: ${doc.document_name}`,
+          dueDate: expiryDate,
+          daysUntilDue,
+          isOverdue,
+          category: doc.materials?.category,
+        });
+      });
+
+      // 4. Fetch expiring SUPPLIER documents
+      const { data: expiringSupplierDocs } = await supabase
+        .from('supplier_documents')
+        .select(`
+          id, 
+          document_name, 
+          expiry_date, 
+          supplier_id,
+          suppliers!inner(id, name, code, approval_status)
+        `)
+        .or('is_archived.eq.false,is_archived.is.null')
+        .not('expiry_date', 'is', null)
+        .lte('expiry_date', lookaheadDate.toISOString().split('T')[0]);
+
+      expiringSupplierDocs?.forEach((doc: any) => {
+        const expiryDate = new Date(doc.expiry_date!);
         const daysUntilDue = differenceInDays(expiryDate, today);
         const isOverdue = daysUntilDue < 0;
         const { score, level } = calculatePriority('document_expiry', daysUntilDue);
         items.push({
-          id: `doc-${doc.id}`,
+          id: `sup-doc-${doc.id}`,
           type: 'document_expiry',
           priority: level,
           priorityScore: score,
-          entityType: doc.related_entity_type,
-          entityId: doc.related_entity_id,
-          entityName: doc.document_name,
-          issueDescription: isOverdue ? 'EXPIRED' : 'Expiring soon',
+          entityType: 'suppliers',
+          entityId: doc.supplier_id,
+          entityName: doc.suppliers?.name || 'Unknown Supplier',
+          entityCode: doc.suppliers?.code,
+          issueDescription: isOverdue 
+            ? `EXPIRED: ${doc.document_name}` 
+            : `Expiring: ${doc.document_name}`,
           dueDate: expiryDate,
           daysUntilDue,
           isOverdue,
         });
       });
 
-      // 4. Fetch conditional approvals expiring
+      // 5. Fetch document requirements and check for missing required documents
+      const { data: documentRequirements } = await supabase
+        .from('document_requirements')
+        .select('id, document_name, areas, is_required')
+        .eq('is_active', true)
+        .eq('is_required', true);
+
+      if (documentRequirements?.length) {
+        // Get material requirements (where areas includes 'materials')
+        const materialRequirements = documentRequirements.filter(
+          (req) => req.areas && req.areas.includes('materials')
+        );
+
+        // Get supplier requirements (where areas includes 'suppliers')
+        const supplierRequirements = documentRequirements.filter(
+          (req) => req.areas && req.areas.includes('suppliers')
+        );
+
+        // Fetch all materials with approval status to check
+        if (materialRequirements.length > 0) {
+          const { data: materials } = await supabase
+            .from('materials')
+            .select('id, name, code, category, approval_status')
+            .in('approval_status', ['Approved', 'Draft', 'Conditional']);
+
+          // Fetch all material documents
+          const { data: allMaterialDocs } = await supabase
+            .from('material_documents')
+            .select('id, material_id, requirement_id')
+            .or('is_archived.eq.false,is_archived.is.null');
+
+          // Create a map of material -> uploaded requirement_ids
+          const materialDocsMap = new Map<string, Set<string>>();
+          allMaterialDocs?.forEach((doc) => {
+            if (doc.requirement_id) {
+              if (!materialDocsMap.has(doc.material_id)) {
+                materialDocsMap.set(doc.material_id, new Set());
+              }
+              materialDocsMap.get(doc.material_id)!.add(doc.requirement_id);
+            }
+          });
+
+          // Check each material for missing required documents
+          materials?.forEach((mat) => {
+            const uploadedReqIds = materialDocsMap.get(mat.id) || new Set();
+            
+            materialRequirements.forEach((req) => {
+              if (!uploadedReqIds.has(req.id)) {
+                // This required document is missing
+                const { score, level } = calculatePriority(
+                  'missing_required_doc', 
+                  undefined, 
+                  mat.category || undefined,
+                  mat.approval_status || undefined
+                );
+                items.push({
+                  id: `missing-mat-${mat.id}-${req.id}`,
+                  type: 'missing_required_doc',
+                  priority: level,
+                  priorityScore: score,
+                  entityType: 'materials',
+                  entityId: mat.id,
+                  entityName: mat.name,
+                  entityCode: mat.code,
+                  issueDescription: `Missing: ${req.document_name}`,
+                  isOverdue: false,
+                  category: mat.category || undefined,
+                });
+              }
+            });
+          });
+        }
+
+        // Fetch all suppliers with approval status to check
+        if (supplierRequirements.length > 0) {
+          const { data: suppliers } = await supabase
+            .from('suppliers')
+            .select('id, name, code, approval_status')
+            .in('approval_status', ['Approved', 'Draft', 'Conditional']);
+
+          // Fetch all supplier documents
+          const { data: allSupplierDocs } = await supabase
+            .from('supplier_documents')
+            .select('id, supplier_id, requirement_id')
+            .or('is_archived.eq.false,is_archived.is.null');
+
+          // Create a map of supplier -> uploaded requirement_ids
+          const supplierDocsMap = new Map<string, Set<string>>();
+          allSupplierDocs?.forEach((doc) => {
+            if (doc.requirement_id) {
+              if (!supplierDocsMap.has(doc.supplier_id)) {
+                supplierDocsMap.set(doc.supplier_id, new Set());
+              }
+              supplierDocsMap.get(doc.supplier_id)!.add(doc.requirement_id);
+            }
+          });
+
+          // Check each supplier for missing required documents
+          suppliers?.forEach((sup) => {
+            const uploadedReqIds = supplierDocsMap.get(sup.id) || new Set();
+            
+            supplierRequirements.forEach((req) => {
+              if (!uploadedReqIds.has(req.id)) {
+                // This required document is missing
+                const { score, level } = calculatePriority(
+                  'missing_required_doc', 
+                  undefined, 
+                  undefined,
+                  sup.approval_status || undefined
+                );
+                items.push({
+                  id: `missing-sup-${sup.id}-${req.id}`,
+                  type: 'missing_required_doc',
+                  priority: level,
+                  priorityScore: score,
+                  entityType: 'suppliers',
+                  entityId: sup.id,
+                  entityName: sup.name,
+                  entityCode: sup.code || undefined,
+                  issueDescription: `Missing: ${req.document_name}`,
+                  isOverdue: false,
+                });
+              }
+            });
+          });
+        }
+      }
+
+      // 6. Fetch conditional approvals expiring
       const { data: conditionalMaterials } = await supabase
         .from('materials')
         .select('id, name, code, category, conditional_approval_expires_at')
@@ -208,7 +392,7 @@ export const useQAWorkQueue = (filters?: WorkQueueFilters) => {
         });
       });
 
-      // 5. Fetch stale drafts (materials with draft status not updated recently)
+      // 7. Fetch stale drafts (materials with draft status not updated recently)
       const staleDate = addDays(today, -staleDraftDays);
       const { data: staleDrafts } = await supabase
         .from('materials')
@@ -234,7 +418,7 @@ export const useQAWorkQueue = (filters?: WorkQueueFilters) => {
         });
       });
 
-      // 6. Fetch suppliers with reviews due
+      // 8. Fetch suppliers with reviews due
       const { data: supplierReviews } = await supabase
         .from('suppliers')
         .select('id, name, code, next_review_date')
@@ -304,6 +488,7 @@ export const useQAWorkQueueSummary = () => {
     critical: 0,
     soon: 0,
     docsExpiring: 0,
+    docsMissing: 0,
     reviewsDue: 0,
     total: items?.length || 0,
   };
@@ -314,6 +499,7 @@ export const useQAWorkQueueSummary = () => {
       if (item.daysUntilDue !== undefined && item.daysUntilDue >= 0 && item.daysUntilDue <= 7) summary.critical++;
       if (item.daysUntilDue !== undefined && item.daysUntilDue > 7 && item.daysUntilDue <= 45) summary.soon++;
       if (item.type === 'document_expiry') summary.docsExpiring++;
+      if (item.type === 'missing_required_doc') summary.docsMissing++;
       if (item.type === 'supplier_review') summary.reviewsDue++;
     });
   }
