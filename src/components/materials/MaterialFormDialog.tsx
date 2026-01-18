@@ -2067,7 +2067,7 @@ function MaterialFormContent({
                   }) => <FormItem>
                         <FormLabel>Material Name *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Internal description" {...field} />
+                          <Input placeholder="Internal description" {...field} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>} />
@@ -2122,7 +2122,7 @@ function MaterialFormContent({
                   }) => <FormItem>
                         <FormLabel>Manufacturer Item Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="ID used on PO" {...field} onChange={e => {
+                          <Input placeholder="ID used on PO" {...field} disabled={isFieldsDisabled} onChange={e => {
                         field.onChange(e);
                         // Sync to manufacturer supplier entries
                         const manufacturerName = form.getValues('manufacturer');
@@ -2153,7 +2153,7 @@ function MaterialFormContent({
                         <Popover open={listedMaterialPopoverOpen} onOpenChange={setListedMaterialPopoverOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
-                              <Button variant="outline" role="combobox" aria-expanded={listedMaterialPopoverOpen} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                              <Button variant="outline" role="combobox" aria-expanded={listedMaterialPopoverOpen} disabled={isFieldsDisabled} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
                                 {selectedMaterial ? `${selectedMaterial.code ? `${selectedMaterial.code} - ` : ''}${selectedMaterial.name}` : "Select listed material (optional)"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
@@ -2199,7 +2199,7 @@ function MaterialFormContent({
                 }) => <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Material description..." {...field} />
+                        <Textarea placeholder="Material description..." {...field} disabled={isFieldsDisabled} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>} />
@@ -2291,7 +2291,7 @@ function MaterialFormContent({
                   field
                 }) => <FormItem className="flex items-center gap-2">
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                       </FormControl>
                       <FormLabel className="!mt-0">Active</FormLabel>
                     </FormItem>} />
@@ -2318,8 +2318,8 @@ function MaterialFormContent({
                       }) => <FormItem>
                                 <FormLabel>Allergens</FormLabel>
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                  {allergenOptions.map(option => <label key={option.id} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${field.value.includes(option.value) ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent border-border'}`}>
-                                      <Checkbox checked={field.value.includes(option.value)} onCheckedChange={checked => {
+                                  {allergenOptions.map(option => <label key={option.id} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-colors ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${field.value.includes(option.value) ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent border-border'}`}>
+                                      <Checkbox checked={field.value.includes(option.value)} disabled={isFieldsDisabled} onCheckedChange={checked => {
                               if (checked) {
                                 field.onChange([...field.value, option.value]);
                               } else {
@@ -2337,8 +2337,8 @@ function MaterialFormContent({
                       }) => <FormItem>
                                 <FormLabel>Food Claims</FormLabel>
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                  {foodClaimOptions.map(option => <label key={option.id} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${field.value.includes(option.value) ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent border-border'}`}>
-                                      <Checkbox checked={field.value.includes(option.value)} onCheckedChange={checked => {
+                                  {foodClaimOptions.map(option => <label key={option.id} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border transition-colors ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${field.value.includes(option.value) ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent border-border'}`}>
+                                      <Checkbox checked={field.value.includes(option.value)} disabled={isFieldsDisabled} onCheckedChange={checked => {
                               if (checked) {
                                 field.onChange([...field.value, option.value]);
                               } else {
@@ -2356,7 +2356,7 @@ function MaterialFormContent({
                       }) => <FormItem>
                                 <FormLabel>Label Copy</FormLabel>
                                 <FormControl>
-                                  <Textarea placeholder="Ingredient declaration text..." {...field} />
+                                  <Textarea placeholder="Ingredient declaration text..." {...field} disabled={isFieldsDisabled} />
                                 </FormControl>
                               </FormItem>} />
 
@@ -2365,7 +2365,7 @@ function MaterialFormContent({
                       }) => <FormItem className="max-w-xs">
                                 <FormLabel>Density (lbs/gal)</FormLabel>
                                 <FormControl>
-                                  <Input type="number" step="0.01" placeholder="e.g., 8.34" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)} />
+                                  <Input type="number" step="0.01" placeholder="e.g., 8.34" {...field} value={field.value ?? ''} disabled={isFieldsDisabled} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)} />
                                 </FormControl>
                               </FormItem>} />
 
@@ -2378,7 +2378,7 @@ function MaterialFormContent({
                             }) => <FormItem>
                                       <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
                                       <FormControl>
-                                        <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} disabled={isFieldsDisabled} />
                                       </FormControl>
                                     </FormItem>} />
                                 <FormField control={form.control} name="receiving_temperature_max" render={({
@@ -2386,7 +2386,7 @@ function MaterialFormContent({
                             }) => <FormItem>
                                       <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
                                       <FormControl>
-                                        <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} disabled={isFieldsDisabled} />
                                       </FormControl>
                                     </FormItem>} />
                               </div>
@@ -2399,7 +2399,7 @@ function MaterialFormContent({
                             }) => <FormItem>
                                       <FormLabel className="text-xs text-muted-foreground">Min</FormLabel>
                                       <FormControl>
-                                        <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Min" {...field} value={field.value ?? ''} disabled={isFieldsDisabled} />
                                       </FormControl>
                                     </FormItem>} />
                                 <FormField control={form.control} name="storage_temperature_max" render={({
@@ -2407,7 +2407,7 @@ function MaterialFormContent({
                             }) => <FormItem>
                                       <FormLabel className="text-xs text-muted-foreground">Max</FormLabel>
                                       <FormControl>
-                                        <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Max" {...field} value={field.value ?? ''} disabled={isFieldsDisabled} />
                                       </FormControl>
                                     </FormItem>} />
                               </div>
@@ -2421,7 +2421,7 @@ function MaterialFormContent({
                         field
                       }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Approved by FDA for food contact</FormLabel>
@@ -2433,7 +2433,7 @@ function MaterialFormContent({
                       }) => <FormItem>
                                 <FormLabel>Material Type</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="e.g., Plastic, Glass, Metal" {...field} value={field.value || ''} />
+                                  <Input placeholder="e.g., Plastic, Glass, Metal" {...field} value={field.value || ''} disabled={isFieldsDisabled} />
                                 </FormControl>
                               </FormItem>} />
 
@@ -2442,7 +2442,7 @@ function MaterialFormContent({
                         field
                       }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Food Grade Confirmation: Is material suitable for food contact?</FormLabel>
@@ -2454,7 +2454,7 @@ function MaterialFormContent({
                         field
                       }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Recycled Content Statement: If using post-consumer recycled (PCR) content, is it FDA-approved for food contact?</FormLabel>
@@ -2466,7 +2466,7 @@ function MaterialFormContent({
                         field
                       }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Heavy Metals: Certification that lead, mercury, cadmium, and hexavalent chromium are &lt;100ppm</FormLabel>
@@ -2518,7 +2518,7 @@ function MaterialFormContent({
                           field
                         }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                     <FormControl>
-                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                       <FormLabel>Can be recycled</FormLabel>
@@ -2537,7 +2537,7 @@ function MaterialFormContent({
                             field
                           }) => <FormItem>
                                     <FormLabel>Strength Test Type</FormLabel>
-                                    <Select onValueChange={val => field.onChange(val === '__none__' ? null : val)} value={field.value || '__none__'}>
+                                    <Select disabled={isFieldsDisabled} onValueChange={val => field.onChange(val === '__none__' ? null : val)} value={field.value || '__none__'}>
                                       <FormControl>
                                         <SelectTrigger>
                                           <SelectValue placeholder="Select type" />
@@ -2559,7 +2559,7 @@ function MaterialFormContent({
                           }) => <FormItem>
                                     <FormLabel>Strength Value</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g., 32 ECT or 200# Test" {...field} value={field.value || ''} />
+                                      <Input placeholder="e.g., 32 ECT or 200# Test" {...field} value={field.value || ''} disabled={isFieldsDisabled} />
                                     </FormControl>
                                   </FormItem>} />
                             </div>
@@ -2568,7 +2568,7 @@ function MaterialFormContent({
                           field
                         }) => <FormItem className="mb-4">
                                   <FormLabel>Flute Size</FormLabel>
-                                  <Select onValueChange={val => field.onChange(val === '__none__' ? null : val)} value={field.value || '__none__'}>
+                                  <Select disabled={isFieldsDisabled} onValueChange={val => field.onChange(val === '__none__' ? null : val)} value={field.value || '__none__'}>
                                     <FormControl>
                                       <SelectTrigger>
                                         <SelectValue placeholder="Select flute type" />
@@ -2590,7 +2590,7 @@ function MaterialFormContent({
                         }) => <FormItem className="mb-4">
                                   <FormLabel>Internal Dimensions (L x W x H)</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="e.g., 12 x 10 x 8 inches" {...field} value={field.value || ''} />
+                                    <Input placeholder="e.g., 12 x 10 x 8 inches" {...field} value={field.value || ''} disabled={isFieldsDisabled} />
                                   </FormControl>
                                   <FormDescription className="text-xs">
                                     Always specify Internal Dimensions (ID) to ensure product fit.
@@ -2707,7 +2707,7 @@ function MaterialFormContent({
                             field
                           }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                     <FormControl>
-                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                       <FormLabel>Recycled Content Verification</FormLabel>
@@ -2721,7 +2721,7 @@ function MaterialFormContent({
                             field
                           }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                     <FormControl>
-                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                       <FormLabel>Allergen-Free Adhesives</FormLabel>
@@ -2735,7 +2735,7 @@ function MaterialFormContent({
                             field
                           }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                     <FormControl>
-                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                       <FormLabel>Heavy Metals (CONEG Compliant)</FormLabel>
@@ -2749,7 +2749,7 @@ function MaterialFormContent({
                             field
                           }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                     <FormControl>
-                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                      <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                       <FormLabel>Foreign Material Control</FormLabel>
@@ -2796,7 +2796,7 @@ function MaterialFormContent({
                 }) => <FormItem className="max-w-xs">
                       <FormLabel>Country of Origin</FormLabel>
                       <FormControl>
-                        <Input placeholder="USA" {...field} />
+                        <Input placeholder="USA" {...field} disabled={isFieldsDisabled} />
                       </FormControl>
                     </FormItem>} />
 
@@ -2844,8 +2844,8 @@ function MaterialFormContent({
                 }) => <FormItem>
                       <FormLabel>Authentication Method (select all that apply)</FormLabel>
                       <div className="flex flex-wrap gap-4 pt-2">
-                        {authMethodOptions.map(option => <label key={option.id} className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox checked={(field.value || []).includes(option.value)} onCheckedChange={checked => {
+                        {authMethodOptions.map(option => <label key={option.id} className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                            <Checkbox checked={(field.value || []).includes(option.value)} disabled={isFieldsDisabled} onCheckedChange={checked => {
                         const currentValues = field.value || [];
                         if (checked) {
                           field.onChange([...currentValues, option.value]);
@@ -2863,7 +2863,7 @@ function MaterialFormContent({
                 }) => <FormItem>
                       <FormLabel>Other Hazards / Notes</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Any other food safety concerns..." {...field} />
+                        <Textarea placeholder="Any other food safety concerns..." {...field} disabled={isFieldsDisabled} />
                       </FormControl>
                     </FormItem>} />
 
@@ -2872,7 +2872,7 @@ function MaterialFormContent({
                     field
                   }) => <FormItem className="flex items-center gap-2">
                         <FormControl>
-                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormLabel className="!mt-0">CA Prop 65 Prohibited</FormLabel>
                       </FormItem>} />
@@ -2880,7 +2880,7 @@ function MaterialFormContent({
                     field
                   }) => <FormItem className="flex items-center gap-2">
                         <FormControl>
-                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormLabel className="!mt-0">COA Required on Receipt</FormLabel>
                       </FormItem>} />
@@ -2901,12 +2901,12 @@ function MaterialFormContent({
                         <FormLabel>Does the manufacturer apply a validated kill step?</FormLabel>
                         <FormControl>
                           <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="haccp_kill_step" checked={field.value === true} onChange={() => field.onChange(true)} className="h-4 w-4" />
+                            <label className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input type="radio" name="haccp_kill_step" checked={field.value === true} onChange={() => field.onChange(true)} disabled={isFieldsDisabled} className="h-4 w-4" />
                               <span>Yes</span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="haccp_kill_step" checked={field.value === false} onChange={() => field.onChange(false)} className="h-4 w-4" />
+                            <label className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input type="radio" name="haccp_kill_step" checked={field.value === false} onChange={() => field.onChange(false)} disabled={isFieldsDisabled} className="h-4 w-4" />
                               <span>No</span>
                             </label>
                           </div>
@@ -2943,12 +2943,12 @@ function MaterialFormContent({
                         <FormLabel>Does this material introduce a NEW allergen to our facility?</FormLabel>
                         <FormControl>
                           <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="haccp_new_allergen" checked={field.value === true} onChange={() => field.onChange(true)} className="h-4 w-4" />
+                            <label className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input type="radio" name="haccp_new_allergen" checked={field.value === true} onChange={() => field.onChange(true)} disabled={isFieldsDisabled} className="h-4 w-4" />
                               <span>Yes</span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="haccp_new_allergen" checked={field.value === false} onChange={() => field.onChange(false)} className="h-4 w-4" />
+                            <label className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input type="radio" name="haccp_new_allergen" checked={field.value === false} onChange={() => field.onChange(false)} disabled={isFieldsDisabled} className="h-4 w-4" />
                               <span>No</span>
                             </label>
                           </div>
@@ -2960,7 +2960,7 @@ function MaterialFormContent({
                   }) => <FormItem className="ml-4 border-l-2 border-muted pl-4">
                           <FormLabel>What is that allergen?</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter allergen name..." {...field} value={field.value || ''} />
+                            <Input placeholder="Enter allergen name..." {...field} value={field.value || ''} disabled={isFieldsDisabled} />
                           </FormControl>
                         </FormItem>} />}
 
@@ -2970,12 +2970,12 @@ function MaterialFormContent({
                         <FormLabel>Are there specific limits for heavy metals, pesticides, or mycotoxins?</FormLabel>
                         <FormControl>
                           <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="haccp_heavy_metal_limits" checked={field.value === true} onChange={() => field.onChange(true)} className="h-4 w-4" />
+                            <label className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input type="radio" name="haccp_heavy_metal_limits" checked={field.value === true} onChange={() => field.onChange(true)} disabled={isFieldsDisabled} className="h-4 w-4" />
                               <span>Yes</span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="radio" name="haccp_heavy_metal_limits" checked={field.value === false} onChange={() => field.onChange(false)} className="h-4 w-4" />
+                            <label className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input type="radio" name="haccp_heavy_metal_limits" checked={field.value === false} onChange={() => field.onChange(false)} disabled={isFieldsDisabled} className="h-4 w-4" />
                               <span>No</span>
                             </label>
                           </div>
@@ -3008,8 +3008,8 @@ function MaterialFormContent({
                           <div className="flex flex-wrap gap-4">
                             {controlOptions.map(option => {
                           const isChecked = (field.value || []).includes(option.value);
-                          return <label key={option.value} className="flex items-center gap-2 cursor-pointer">
-                                  <Checkbox checked={isChecked} onCheckedChange={checked => {
+                          return <label key={option.value} className={`flex items-center gap-2 ${isFieldsDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                  <Checkbox checked={isChecked} disabled={isFieldsDisabled} onCheckedChange={checked => {
                               const currentValues = field.value || [];
                               if (checked) {
                                 field.onChange([...currentValues, option.value]);
