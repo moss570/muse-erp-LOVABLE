@@ -55,6 +55,7 @@ import ProductCategories from "./pages/settings/ProductCategories";
 import PackagingIndicators from "./pages/settings/PackagingIndicators";
 import ContainerSizes from "./pages/settings/ContainerSizes";
 import QualityTests from "./pages/settings/QualityTests";
+import QAApprovalRules from "./pages/settings/QAApprovalRules";
 import BatchQATests from "./pages/manufacturing/BatchQATests";
 
 const queryClient = new QueryClient();
@@ -113,6 +114,7 @@ const App = () => (
             <Route path="/settings/packaging-indicators" element={<AppLayout><PackagingIndicators /></AppLayout>} />
             <Route path="/settings/container-sizes" element={<AppLayout><ContainerSizes /></AppLayout>} />
             <Route path="/settings/quality-tests" element={<AppLayout><QualityTests /></AppLayout>} />
+            <Route path="/settings/qa-approval-rules" element={<AppLayout><QAApprovalRules /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

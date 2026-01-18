@@ -21,7 +21,16 @@ export function useQASettings() {
         .order('setting_key');
       
       if (error) throw error;
-      return data || [];
+      
+      // Map and cast the data to our expected type
+      return (data || []).map(item => ({
+        id: item.id,
+        setting_key: item.setting_key,
+        setting_value: item.setting_value as Record<string, any> | string | number,
+        description: item.description,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      }));
     },
   });
 }
