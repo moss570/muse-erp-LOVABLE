@@ -308,6 +308,156 @@ export type Database = {
           },
         ]
       }
+      capa_activity_log: {
+        Row: {
+          action: string
+          capa_id: string
+          comment: string | null
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          performed_at: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          capa_id: string
+          comment?: string | null
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          capa_id?: string
+          comment?: string | null
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capa_activity_log_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_activity_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capa_attachments: {
+        Row: {
+          attachment_category: string | null
+          capa_id: string
+          description: string | null
+          file_name: string
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          attachment_category?: string | null
+          capa_id: string
+          description?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          attachment_category?: string | null
+          capa_id?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capa_attachments_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capa_severity_settings: {
+        Row: {
+          color_code: string | null
+          containment_hours: number
+          corrective_action_days: number
+          created_at: string
+          effectiveness_review_days: number
+          id: string
+          preventive_action_days: number
+          root_cause_hours: number
+          severity: string
+          updated_at: string
+          verification_days: number
+        }
+        Insert: {
+          color_code?: string | null
+          containment_hours: number
+          corrective_action_days: number
+          created_at?: string
+          effectiveness_review_days: number
+          id?: string
+          preventive_action_days: number
+          root_cause_hours: number
+          severity: string
+          updated_at?: string
+          verification_days: number
+        }
+        Update: {
+          color_code?: string | null
+          containment_hours?: number
+          corrective_action_days?: number
+          created_at?: string
+          effectiveness_review_days?: number
+          id?: string
+          preventive_action_days?: number
+          root_cause_hours?: number
+          severity?: string
+          updated_at?: string
+          verification_days?: number
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address_line1: string | null
@@ -542,6 +692,336 @@ export type Database = {
           volume_gallons?: number
         }
         Relationships: []
+      }
+      corrective_actions: {
+        Row: {
+          actual_cost: number | null
+          assigned_to: string | null
+          capa_number: string
+          capa_type: string
+          closed_at: string | null
+          closed_by: string | null
+          closure_notes: string | null
+          containment_due_date: string | null
+          corrective_action: string | null
+          corrective_action_completed_at: string | null
+          corrective_action_completed_by: string | null
+          corrective_action_due_date: string | null
+          cost_recovery_amount: number | null
+          cost_recovery_source: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string
+          discovery_date: string
+          effectiveness_review_completed_at: string | null
+          effectiveness_review_due_date: string | null
+          effectiveness_review_notes: string | null
+          effectiveness_review_result: string | null
+          effectiveness_reviewed_by: string | null
+          employee_id: string | null
+          equipment_id: string | null
+          estimated_cost: number | null
+          id: string
+          immediate_action: string | null
+          immediate_action_by: string | null
+          immediate_action_date: string | null
+          is_recurring: boolean | null
+          location_id: string | null
+          material_id: string | null
+          occurrence_date: string
+          preventive_action: string | null
+          preventive_action_completed_at: string | null
+          preventive_action_completed_by: string | null
+          preventive_action_due_date: string | null
+          product_id: string | null
+          production_lot_id: string | null
+          receiving_lot_id: string | null
+          related_capa_id: string | null
+          root_cause: string | null
+          root_cause_completed_at: string | null
+          root_cause_completed_by: string | null
+          root_cause_due_date: string | null
+          root_cause_method: string | null
+          severity: string
+          source_id: string | null
+          source_type: string | null
+          status: string
+          supplier_id: string | null
+          title: string
+          updated_at: string
+          verification_date: string | null
+          verification_due_date: string | null
+          verification_method: string | null
+          verification_result: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          assigned_to?: string | null
+          capa_number: string
+          capa_type: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          containment_due_date?: string | null
+          corrective_action?: string | null
+          corrective_action_completed_at?: string | null
+          corrective_action_completed_by?: string | null
+          corrective_action_due_date?: string | null
+          cost_recovery_amount?: number | null
+          cost_recovery_source?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description: string
+          discovery_date?: string
+          effectiveness_review_completed_at?: string | null
+          effectiveness_review_due_date?: string | null
+          effectiveness_review_notes?: string | null
+          effectiveness_review_result?: string | null
+          effectiveness_reviewed_by?: string | null
+          employee_id?: string | null
+          equipment_id?: string | null
+          estimated_cost?: number | null
+          id?: string
+          immediate_action?: string | null
+          immediate_action_by?: string | null
+          immediate_action_date?: string | null
+          is_recurring?: boolean | null
+          location_id?: string | null
+          material_id?: string | null
+          occurrence_date?: string
+          preventive_action?: string | null
+          preventive_action_completed_at?: string | null
+          preventive_action_completed_by?: string | null
+          preventive_action_due_date?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          receiving_lot_id?: string | null
+          related_capa_id?: string | null
+          root_cause?: string | null
+          root_cause_completed_at?: string | null
+          root_cause_completed_by?: string | null
+          root_cause_due_date?: string | null
+          root_cause_method?: string | null
+          severity?: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+          verification_date?: string | null
+          verification_due_date?: string | null
+          verification_method?: string | null
+          verification_result?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          assigned_to?: string | null
+          capa_number?: string
+          capa_type?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          containment_due_date?: string | null
+          corrective_action?: string | null
+          corrective_action_completed_at?: string | null
+          corrective_action_completed_by?: string | null
+          corrective_action_due_date?: string | null
+          cost_recovery_amount?: number | null
+          cost_recovery_source?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string
+          discovery_date?: string
+          effectiveness_review_completed_at?: string | null
+          effectiveness_review_due_date?: string | null
+          effectiveness_review_notes?: string | null
+          effectiveness_review_result?: string | null
+          effectiveness_reviewed_by?: string | null
+          employee_id?: string | null
+          equipment_id?: string | null
+          estimated_cost?: number | null
+          id?: string
+          immediate_action?: string | null
+          immediate_action_by?: string | null
+          immediate_action_date?: string | null
+          is_recurring?: boolean | null
+          location_id?: string | null
+          material_id?: string | null
+          occurrence_date?: string
+          preventive_action?: string | null
+          preventive_action_completed_at?: string | null
+          preventive_action_completed_by?: string | null
+          preventive_action_due_date?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          receiving_lot_id?: string | null
+          related_capa_id?: string | null
+          root_cause?: string | null
+          root_cause_completed_at?: string | null
+          root_cause_completed_by?: string | null
+          root_cause_due_date?: string | null
+          root_cause_method?: string | null
+          severity?: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+          verification_date?: string | null
+          verification_due_date?: string | null
+          verification_method?: string | null
+          verification_result?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrective_actions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_corrective_action_completed_by_fkey"
+            columns: ["corrective_action_completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_effectiveness_reviewed_by_fkey"
+            columns: ["effectiveness_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_immediate_action_by_fkey"
+            columns: ["immediate_action_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_preventive_action_completed_by_fkey"
+            columns: ["preventive_action_completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_related_capa_id_fkey"
+            columns: ["related_capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_root_cause_completed_by_fkey"
+            columns: ["root_cause_completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -4215,6 +4695,7 @@ export type Database = {
       }
       po_receiving_items: {
         Row: {
+          capa_id: string | null
           created_at: string
           expiry_date: string | null
           id: string
@@ -4236,6 +4717,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          capa_id?: string | null
           created_at?: string
           expiry_date?: string | null
           id?: string
@@ -4257,6 +4739,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          capa_id?: string | null
           created_at?: string
           expiry_date?: string | null
           id?: string
@@ -4278,6 +4761,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "po_receiving_items_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "po_receiving_items_po_item_id_fkey"
             columns: ["po_item_id"]
@@ -6178,6 +6668,7 @@ export type Database = {
       }
       quality_complaints: {
         Row: {
+          capa_id: string | null
           complaint_date: string
           complaint_number: string
           complaint_type: string
@@ -6205,6 +6696,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          capa_id?: string | null
           complaint_date?: string
           complaint_number: string
           complaint_type: string
@@ -6232,6 +6724,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          capa_id?: string | null
           complaint_date?: string
           complaint_number?: string
           complaint_type?: string
@@ -6259,6 +6752,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "quality_complaints_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quality_complaints_created_by_fkey"
             columns: ["created_by"]
@@ -7773,6 +8273,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_stale_editors: { Args: never; Returns: undefined }
+      generate_capa_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_employee_number: { Args: never; Returns: string }
       generate_listed_material_code: { Args: never; Returns: string }
