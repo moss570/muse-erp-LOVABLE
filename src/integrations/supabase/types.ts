@@ -1053,6 +1053,193 @@ export type Database = {
           },
         ]
       }
+      customer_complaints: {
+        Row: {
+          assigned_to: string | null
+          best_by_date: string | null
+          capa_id: string | null
+          capa_required: boolean | null
+          complaint_date: string
+          complaint_number: string
+          complaint_type: string
+          created_at: string
+          created_by: string | null
+          customer_contact: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string | null
+          customer_satisfied: boolean | null
+          description: string
+          follow_up_date: string | null
+          follow_up_notes: string | null
+          follow_up_required: boolean | null
+          id: string
+          investigation_notes: string | null
+          product_id: string | null
+          product_name: string | null
+          product_sku: string | null
+          production_lot_number: string | null
+          purchase_date: string | null
+          purchase_location: string | null
+          received_date: string
+          received_via: string | null
+          refund_amount: number | null
+          regulatory_report_date: string | null
+          regulatory_report_filed: boolean | null
+          replacement_cost: number | null
+          reportable_event: boolean | null
+          resolution_date: string | null
+          resolution_details: string | null
+          resolution_type: string | null
+          resolved_by: string | null
+          root_cause: string | null
+          sample_condition: string | null
+          sample_received: boolean | null
+          sample_received_date: string | null
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          best_by_date?: string | null
+          capa_id?: string | null
+          capa_required?: boolean | null
+          complaint_date?: string
+          complaint_number: string
+          complaint_type: string
+          created_at?: string
+          created_by?: string | null
+          customer_contact?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          customer_satisfied?: boolean | null
+          description: string
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          investigation_notes?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          product_sku?: string | null
+          production_lot_number?: string | null
+          purchase_date?: string | null
+          purchase_location?: string | null
+          received_date?: string
+          received_via?: string | null
+          refund_amount?: number | null
+          regulatory_report_date?: string | null
+          regulatory_report_filed?: boolean | null
+          replacement_cost?: number | null
+          reportable_event?: boolean | null
+          resolution_date?: string | null
+          resolution_details?: string | null
+          resolution_type?: string | null
+          resolved_by?: string | null
+          root_cause?: string | null
+          sample_condition?: string | null
+          sample_received?: boolean | null
+          sample_received_date?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          best_by_date?: string | null
+          capa_id?: string | null
+          capa_required?: boolean | null
+          complaint_date?: string
+          complaint_number?: string
+          complaint_type?: string
+          created_at?: string
+          created_by?: string | null
+          customer_contact?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          customer_satisfied?: boolean | null
+          description?: string
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          investigation_notes?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          product_sku?: string | null
+          production_lot_number?: string | null
+          purchase_date?: string | null
+          purchase_location?: string | null
+          received_date?: string
+          received_via?: string | null
+          refund_amount?: number | null
+          regulatory_report_date?: string | null
+          regulatory_report_filed?: boolean | null
+          replacement_cost?: number | null
+          reportable_event?: boolean | null
+          resolution_date?: string | null
+          resolution_details?: string | null
+          resolution_type?: string | null
+          resolved_by?: string | null
+          root_cause?: string | null
+          sample_condition?: string | null
+          sample_received?: boolean | null
+          sample_received_date?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_complaints_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -5564,9 +5751,13 @@ export type Database = {
       }
       production_lot_qa_tests: {
         Row: {
+          capa_id: string | null
+          capa_required: boolean | null
           corrective_action: string | null
           created_at: string | null
           document_urls: string[] | null
+          failure_category: string | null
+          failure_notes: string | null
           id: string
           max_value: number | null
           min_value: number | null
@@ -5589,9 +5780,13 @@ export type Database = {
           verified_by: string | null
         }
         Insert: {
+          capa_id?: string | null
+          capa_required?: boolean | null
           corrective_action?: string | null
           created_at?: string | null
           document_urls?: string[] | null
+          failure_category?: string | null
+          failure_notes?: string | null
           id?: string
           max_value?: number | null
           min_value?: number | null
@@ -5614,9 +5809,13 @@ export type Database = {
           verified_by?: string | null
         }
         Update: {
+          capa_id?: string | null
+          capa_required?: boolean | null
           corrective_action?: string | null
           created_at?: string | null
           document_urls?: string[] | null
+          failure_category?: string | null
+          failure_notes?: string | null
           id?: string
           max_value?: number | null
           min_value?: number | null
@@ -5639,6 +5838,13 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "production_lot_qa_tests_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "production_lot_qa_tests_production_lot_id_fkey"
             columns: ["production_lot_id"]
@@ -5673,9 +5879,11 @@ export type Database = {
         Row: {
           approval_status: string | null
           batch_number: number
+          capa_id: string | null
           cost_category: string | null
           created_at: string
           expiry_date: string | null
+          failure_category: string | null
           id: string
           is_synced_to_xero: boolean | null
           is_trial_batch: boolean | null
@@ -5693,6 +5901,8 @@ export type Database = {
           product_id: string
           production_date: string
           production_stage: string | null
+          qa_hold_reason: string | null
+          qa_rejection_reason: string | null
           qa_verified_at: string | null
           qa_verified_by: string | null
           quantity_available: number
@@ -5713,9 +5923,11 @@ export type Database = {
         Insert: {
           approval_status?: string | null
           batch_number: number
+          capa_id?: string | null
           cost_category?: string | null
           created_at?: string
           expiry_date?: string | null
+          failure_category?: string | null
           id?: string
           is_synced_to_xero?: boolean | null
           is_trial_batch?: boolean | null
@@ -5733,6 +5945,8 @@ export type Database = {
           product_id: string
           production_date?: string
           production_stage?: string | null
+          qa_hold_reason?: string | null
+          qa_rejection_reason?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           quantity_available: number
@@ -5753,9 +5967,11 @@ export type Database = {
         Update: {
           approval_status?: string | null
           batch_number?: number
+          capa_id?: string | null
           cost_category?: string | null
           created_at?: string
           expiry_date?: string | null
+          failure_category?: string | null
           id?: string
           is_synced_to_xero?: boolean | null
           is_trial_batch?: boolean | null
@@ -5773,6 +5989,8 @@ export type Database = {
           product_id?: string
           production_date?: string
           production_stage?: string | null
+          qa_hold_reason?: string | null
+          qa_rejection_reason?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           quantity_available?: number
@@ -5791,6 +6009,13 @@ export type Database = {
           xero_journal_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "production_lots_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "production_lots_machine_id_fkey"
             columns: ["machine_id"]
