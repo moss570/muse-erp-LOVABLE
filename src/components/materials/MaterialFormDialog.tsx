@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { getSupplierFieldStyles, getSupplierItemStyles, shouldShowSupplierWarning, getApprovalStatusLabel } from '@/components/ui/supplier-status-indicator';
 import { SupplierWarningDialog } from '@/components/ui/supplier-warning-dialog';
 import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel, DocumentComplianceSummary, DocumentExpiryBadge } from '@/components/approval';
+import { QAScorecard, QATabBadge } from '@/components/qa';
+import { useQAChecks } from '@/hooks/useQAChecks';
 import { CreateUnitDialog } from './CreateUnitDialog';
 import { MaterialNutritionTab } from './MaterialNutritionTab';
 import type { Tables, Json } from '@/integrations/supabase/types';
@@ -1893,6 +1895,7 @@ function MaterialFormContent({
   setWarningSupplierName,
 }: MaterialFormContentProps) {
   const { isEditing, startEdit, isSaving } = useStagedEditContext();
+  const queryClient = useQueryClient();
   
   // Determine if form fields should be disabled (view mode for existing materials)
   const isFieldsDisabled = !isEditing && !!material;
@@ -3667,62 +3670,73 @@ function MaterialFormContent({
 
               {/* QA Workflow Tab */}
               <TabsContent value="qa-workflow" className="space-y-6 mt-4">
-                {!material ? <div className="text-center py-12 text-muted-foreground border rounded-md bg-muted/20">
+                {!material ? (
+                  <div className="text-center py-12 text-muted-foreground border rounded-md bg-muted/20">
                     <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>Save the material first to access QA workflow.</p>
                     <p className="text-xs mt-1">QA status, approval actions, and compliance documents will be available after creation.</p>
-                  </div> : <div className="space-y-6">
-                    {/* Current Status Section */}
-                    <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Current QA Status</p>
-                          <ApprovalStatusBadge status={(material as any).approval_status || 'Draft'} size="lg" />
-                        </div>
-                      </div>
-                      <ApprovalActionsDropdown recordId={material.id} tableName="materials" currentStatus={(material as any).approval_status || 'Draft'} />
-                    </div>
-
-                    {/* Status Dropdown */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="approval_status" render={({
-                      field
-                    }) => <FormItem>
-                            <FormLabel>QA Status</FormLabel>
-                            <Select disabled={isFieldsDisabled} onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {QA_APPROVAL_STATUSES.map(status => <SelectItem key={status.value} value={status.value}>
-                                    {status.label}
-                                  </SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>Current QA approval status</FormDescription>
-                            <FormMessage />
-                          </FormItem>} />
-                    </div>
-
-                    {/* Document Compliance Summary */}
-                    <DocumentComplianceSummary documents={documents.map(d => ({
-                    id: d.id || `temp-${Math.random()}`,
-                    document_name: d.document_name,
-                    requirement_id: d.requirement_id,
-                    expiry_date: d.expiry_date,
-                    file_path: d.file_path,
-                    file_url: d.file_url,
-                    is_archived: d.is_archived
-                  }))} requirements={documentRequirements || []} entityType="material" />
-
-                    {/* Approval History */}
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Approval History</h4>
-                      <ApprovalHistoryPanel recordId={material.id} tableName="materials" />
-                    </div>
-                  </div>}
+                  </div>
+                ) : (
+                  <QAScorecard
+                    material={{
+                      id: material.id,
+                      category: material.category,
+                      gl_account_id: (material as any).gl_account_id,
+                      coa_required: material.coa_required,
+                      country_of_origin: material.country_of_origin,
+                      fraud_vulnerability_score: material.fraud_vulnerability_score,
+                      haccp_kill_step_applied: material.haccp_kill_step_applied,
+                      haccp_rte_or_kill_step: material.haccp_rte_or_kill_step,
+                      haccp_new_allergen: material.haccp_new_allergen,
+                      storage_temperature_min: material.storage_temperature_min,
+                      storage_temperature_max: material.storage_temperature_max,
+                      approval_status: (material as any).approval_status,
+                    }}
+                    suppliers={materialSuppliers.map(ms => ({
+                      ...ms,
+                      supplier: suppliers?.find(s => s.id === ms.supplier_id) || null,
+                    }))}
+                    documents={documents.map(d => ({
+                      id: d.id,
+                      document_name: d.document_name,
+                      requirement_id: d.requirement_id,
+                      expiry_date: d.expiry_date,
+                      is_archived: d.is_archived,
+                    }))}
+                    documentRequirements={(documentRequirements || []).map(r => ({
+                      id: r.id,
+                      document_name: r.document_name,
+                      is_required: r.is_required ?? false,
+                      areas: r.areas,
+                    }))}
+                    coaLimits={coaLimits.map(c => ({
+                      id: c.id,
+                      parameter_name: c.parameter,
+                      min_value: c.min ? parseFloat(c.min) : null,
+                      max_value: c.max ? parseFloat(c.max) : null,
+                    }))}
+                    purchaseUnits={unitVariants.map(v => ({
+                      id: v.id || '',
+                    }))}
+                    onNavigateToTab={(tabId, fieldName) => {
+                      setActiveTab(tabId);
+                      if (fieldName) {
+                        setTimeout(() => {
+                          const el = document.querySelector(`[name="${fieldName}"]`) as HTMLElement;
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('ring-2', 'ring-orange-500');
+                            setTimeout(() => el.classList.remove('ring-2', 'ring-orange-500'), 3000);
+                          }
+                        }, 100);
+                      }
+                    }}
+                    onStatusChange={() => {
+                      queryClient.invalidateQueries({ queryKey: ['material', material.id] });
+                    }}
+                    isFieldsDisabled={isFieldsDisabled}
+                  />
+                )}
               </TabsContent>
             </div>
           </Tabs>
