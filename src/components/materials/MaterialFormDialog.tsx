@@ -1849,6 +1849,9 @@ function MaterialFormContent({
 }: MaterialFormContentProps) {
   const { isEditing, startEdit, isSaving } = useStagedEditContext();
   
+  // Determine if form fields should be disabled (view mode for existing materials)
+  const isFieldsDisabled = !isEditing && !!material;
+  
   // Group dropdown options by type
   const allergenOptions = dropdownOptions?.filter(o => o.dropdown_type === 'allergen') || [];
   const foodClaimOptions = dropdownOptions?.filter(o => o.dropdown_type === 'food_claim') || [];
@@ -1912,7 +1915,7 @@ function MaterialFormContent({
                   field
                 }) => <FormItem>
                       <FormLabel>Category *</FormLabel>
-                      <Select onValueChange={async value => {
+                      <Select disabled={isFieldsDisabled} onValueChange={async value => {
                     field.onChange(value);
                     form.setValue('sub_category', null);
 
@@ -1962,7 +1965,7 @@ function MaterialFormContent({
                   const filteredSubCategories = subCategories?.filter(sc => sc.category === selectedCategory) || [];
                   return <FormItem>
                         <FormLabel>Sub-Category</FormLabel>
-                        <Select onValueChange={value => field.onChange(value === '__none__' ? null : value)} value={field.value || '__none__'} disabled={!selectedCategory}>
+                        <Select onValueChange={value => field.onChange(value === '__none__' ? null : value)} value={field.value || '__none__'} disabled={isFieldsDisabled || !selectedCategory}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder={selectedCategory ? "Select sub-category" : "Select a category first"} />
@@ -1984,7 +1987,7 @@ function MaterialFormContent({
                   field
                 }) => <FormItem>
                       <FormLabel>GL Account</FormLabel>
-                      <Select onValueChange={value => field.onChange(value === '__none__' ? null : value)} value={field.value || '__none__'}>
+                      <Select disabled={isFieldsDisabled} onValueChange={value => field.onChange(value === '__none__' ? null : value)} value={field.value || '__none__'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select GL account" />
@@ -2031,7 +2034,7 @@ function MaterialFormContent({
                     field
                   }) => <FormItem>
                         <FormLabel>Manufacturer</FormLabel>
-                        <Select onValueChange={value => {
+                        <Select disabled={isFieldsDisabled} onValueChange={value => {
                       const newValue = value === '__none__' ? '' : value;
                       field.onChange(newValue);
 
@@ -2162,7 +2165,7 @@ function MaterialFormContent({
                   }) => <FormItem>
                         <FormLabel>Purchase Unit *</FormLabel>
                         <div className="flex gap-2">
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select disabled={isFieldsDisabled} onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger className="flex-1">
                                 <SelectValue placeholder="Select unit" />
@@ -2194,7 +2197,7 @@ function MaterialFormContent({
                   }) => <FormItem>
                         <FormLabel>Usage Unit</FormLabel>
                         <div className="flex gap-2">
-                          <Select onValueChange={val => field.onChange(val === '__none__' ? null : val)} value={field.value || '__none__'}>
+                          <Select disabled={isFieldsDisabled} onValueChange={val => field.onChange(val === '__none__' ? null : val)} value={field.value || '__none__'}>
                             <FormControl>
                               <SelectTrigger className="flex-1">
                                 <SelectValue placeholder="Select usage unit (optional)" />
@@ -2869,7 +2872,7 @@ function MaterialFormContent({
                     field
                   }) => <FormItem className="ml-4 border-l-2 border-muted pl-4">
                           <FormLabel>Is this ingredient considered "Ready-to-Eat" (RTE) or will we apply a kill step?</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <Select disabled={isFieldsDisabled} onValueChange={field.onChange} value={field.value || ''}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select option" />
@@ -3219,7 +3222,7 @@ function MaterialFormContent({
                                       Pack Size / Unit
                                     </label>
                                     <div className="flex gap-1">
-                                      <Select value={uv.unit_id} onValueChange={value => updateUnitVariant(index, 'unit_id', value)}>
+                                      <Select disabled={isFieldsDisabled} value={uv.unit_id} onValueChange={value => updateUnitVariant(index, 'unit_id', value)}>
                                         <SelectTrigger className="flex-1">
                                           <SelectValue placeholder="Select unit" />
                                         </SelectTrigger>
@@ -3353,7 +3356,7 @@ function MaterialFormContent({
                                       {ms.is_primary && <Star className="h-4 w-4 text-amber-500 shrink-0" />}
                                       {(() => {
                                     const selectedSupplier = suppliers?.find(s => s.id === ms.supplier_id);
-                                    return <Select value={ms.supplier_id} onValueChange={value => {
+                                    return <Select disabled={isFieldsDisabled} value={ms.supplier_id} onValueChange={value => {
                                       const newSupplier = suppliers?.find(s => s.id === value);
                                       updateMaterialSupplier(index, 'supplier_id', value);
                                       // Show warning if supplier is not approved
@@ -3386,7 +3389,7 @@ function MaterialFormContent({
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Unit Variant
                                     </label>
-                                    <Select value={ms.purchase_unit_id || '__default__'} onValueChange={value => updateMaterialSupplier(index, 'purchase_unit_id', value === '__default__' ? undefined : value)}>
+                                    <Select disabled={isFieldsDisabled} value={ms.purchase_unit_id || '__default__'} onValueChange={value => updateMaterialSupplier(index, 'purchase_unit_id', value === '__default__' ? undefined : value)}>
                                       <SelectTrigger>
                                         <SelectValue placeholder="Select unit variant" />
                                       </SelectTrigger>
@@ -3518,7 +3521,7 @@ function MaterialFormContent({
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Document Type
                                     </label>
-                                    <Select value={doc.requirement_id || '__none__'} onValueChange={value => updateDocument(index, 'requirement_id', value === '__none__' ? undefined : value)} disabled={!doc.isNew || doc.is_archived}>
+                                    <Select value={doc.requirement_id || '__none__'} onValueChange={value => updateDocument(index, 'requirement_id', value === '__none__' ? undefined : value)} disabled={isFieldsDisabled || !doc.isNew || doc.is_archived}>
                                       <SelectTrigger className={!doc.isNew ? 'bg-muted cursor-not-allowed' : ''}>
                                         <SelectValue placeholder="Select type (optional)" />
                                       </SelectTrigger>
@@ -3641,7 +3644,7 @@ function MaterialFormContent({
                       field
                     }) => <FormItem>
                             <FormLabel>QA Status</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select disabled={isFieldsDisabled} onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select status" />
