@@ -3280,6 +3280,7 @@ export type Database = {
       }
       materials: {
         Row: {
+          active_override_id: string | null
           allergens: string[] | null
           approval_status: string | null
           authentication_method: string[] | null
@@ -3356,6 +3357,7 @@ export type Database = {
           usage_unit_id: string | null
         }
         Insert: {
+          active_override_id?: string | null
           allergens?: string[] | null
           approval_status?: string | null
           authentication_method?: string[] | null
@@ -3432,6 +3434,7 @@ export type Database = {
           usage_unit_id?: string | null
         }
         Update: {
+          active_override_id?: string | null
           allergens?: string[] | null
           approval_status?: string | null
           authentication_method?: string[] | null
@@ -3508,6 +3511,13 @@ export type Database = {
           usage_unit_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "materials_active_override_id_fkey"
+            columns: ["active_override_id"]
+            isOneToOne: false
+            referencedRelation: "qa_override_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "materials_base_unit_id_fkey"
             columns: ["base_unit_id"]
@@ -5452,6 +5462,7 @@ export type Database = {
       }
       products: {
         Row: {
+          active_override_id: string | null
           approval_status: string | null
           base_product_id: string | null
           case_pack_quantity: number | null
@@ -5485,6 +5496,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_override_id?: string | null
           approval_status?: string | null
           base_product_id?: string | null
           case_pack_quantity?: number | null
@@ -5518,6 +5530,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_override_id?: string | null
           approval_status?: string | null
           base_product_id?: string | null
           case_pack_quantity?: number | null
@@ -5551,6 +5564,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_active_override_id_fkey"
+            columns: ["active_override_id"]
+            isOneToOne: false
+            referencedRelation: "qa_override_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_base_product_id_fkey"
             columns: ["base_product_id"]
@@ -6064,6 +6084,97 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      qa_override_requests: {
+        Row: {
+          blocked_checks: Json
+          created_at: string | null
+          follow_up_date: string
+          id: string
+          justification: string
+          override_expires_at: string | null
+          override_reason: string
+          override_type: string | null
+          related_record_id: string
+          related_table_name: string
+          requested_at: string | null
+          requested_by: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          blocked_checks?: Json
+          created_at?: string | null
+          follow_up_date: string
+          id?: string
+          justification: string
+          override_expires_at?: string | null
+          override_reason: string
+          override_type?: string | null
+          related_record_id: string
+          related_table_name: string
+          requested_at?: string | null
+          requested_by: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          blocked_checks?: Json
+          created_at?: string | null
+          follow_up_date?: string
+          id?: string
+          justification?: string
+          override_expires_at?: string | null
+          override_reason?: string
+          override_type?: string | null
+          related_record_id?: string
+          related_table_name?: string
+          requested_at?: string | null
+          requested_by?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_override_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_override_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_override_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quality_complaints: {
         Row: {
@@ -7012,6 +7123,7 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          active_override_id: string | null
           address: string | null
           approval_date: string | null
           approval_status: string | null
@@ -7051,6 +7163,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          active_override_id?: string | null
           address?: string | null
           approval_date?: string | null
           approval_status?: string | null
@@ -7090,6 +7203,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          active_override_id?: string | null
           address?: string | null
           approval_date?: string | null
           approval_status?: string | null
@@ -7129,6 +7243,13 @@ export type Database = {
           zip?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "suppliers_active_override_id_fkey"
+            columns: ["active_override_id"]
+            isOneToOne: false
+            referencedRelation: "qa_override_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "suppliers_approved_by_fkey"
             columns: ["approved_by"]
