@@ -43,6 +43,8 @@ import {
 import { MergeFieldsPanel } from './MergeFieldsPanel';
 import { RichTextEditor } from './RichTextEditor';
 import { toast } from 'sonner';
+import { useFormDialogUnsavedChanges } from '@/hooks/useFormDialogUnsavedChanges';
+import { UnsavedChangesDialog } from '@/components/ui/staged-edit';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -247,8 +249,23 @@ ${html}
     label: f.field_label,
   }));
 
+  const {
+    showUnsavedChangesDialog,
+    setShowUnsavedChangesDialog,
+    handleDialogOpenChange,
+    handleDiscardChanges,
+    handleSaveAndClose,
+  } = useFormDialogUnsavedChanges({
+    form,
+    onOpenChange,
+    onSave: async () => {
+      await form.handleSubmit(onSubmit)();
+    },
+  });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>
@@ -633,5 +650,16 @@ ${html}
         </Form>
       </DialogContent>
     </Dialog>
+    
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={true}
+      isSaving={isLoading}
+    />
+    </>
   );
 }
