@@ -195,7 +195,7 @@ export function useCapa(id: string | undefined) {
           assigned_to_profile:profiles!corrective_actions_assigned_to_fkey(id, first_name, last_name, email),
           created_by_profile:profiles!corrective_actions_created_by_fkey(id, first_name, last_name),
           department:departments(id, name),
-          related_capa:corrective_actions!corrective_actions_related_capa_id_fkey(id, capa_number, title)
+          related_capa:corrective_actions(id, capa_number, title)
         `)
         .eq('id', id)
         .single();
