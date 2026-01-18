@@ -316,7 +316,7 @@ export function useUpdateCapa() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & CapaUpdate) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Record<string, unknown>) => {
       // Get current state for activity logging
       const { data: current, error: fetchError } = await supabase
         .from('corrective_actions')
@@ -335,9 +335,20 @@ export function useUpdateCapa() {
       if (error) throw error;
 
       // Log significant changes
-      const significantFields = ['status', 'severity', 'assigned_to', 'root_cause', 'corrective_action', 'preventive_action'] as const;
+      const significantFields = [
+        'status', 
+        'severity', 
+        'assigned_to', 
+        'root_cause', 
+        'corrective_action', 
+        'preventive_action',
+        'containment_actions',
+        'investigation_summary',
+        'verification_results',
+        'effectiveness_results'
+      ] as const;
       for (const field of significantFields) {
-        const updateValue = updates[field as keyof typeof updates];
+        const updateValue = (updates as Record<string, unknown>)[field];
         if (updateValue !== undefined && current[field] !== updateValue) {
           await supabase.from('capa_activity_log').insert({
             capa_id: id,
