@@ -288,6 +288,10 @@ export function MaterialFormDialog({
   const [supplierWarningOpen, setSupplierWarningOpen] = useState(false);
   const [warningSupplierName, setWarningSupplierName] = useState<string | undefined>();
 
+  // Unsaved changes dialog state
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
+
   // Default item photo state
   const [defaultPhotoFile, setDefaultPhotoFile] = useState<File | null>(null);
   const [defaultPhotoPath, setDefaultPhotoPath] = useState<string | undefined>();
@@ -1608,9 +1612,36 @@ export function MaterialFormDialog({
   };
   const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
   const isNewMaterial = !material;
+
+  // Handle dialog close with unsaved changes check
+  const handleDialogOpenChange = (newOpen: boolean) => {
+    if (!newOpen && form.formState.isDirty) {
+      // User is trying to close and there are unsaved changes
+      setPendingClose(true);
+      setShowUnsavedChangesDialog(true);
+    } else {
+      onOpenChange(newOpen);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setShowUnsavedChangesDialog(false);
+    setPendingClose(false);
+    form.reset();
+    onOpenChange(false);
+  };
+
+  const handleSaveAndClose = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+      await form.handleSubmit(data => handleSave(data, true))();
+    }
+    setShowUnsavedChangesDialog(false);
+    setPendingClose(false);
+  };
   
   return <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto pb-20">
         <StagedEditProvider
           form={form}
@@ -1714,6 +1745,20 @@ export function MaterialFormDialog({
 
     {/* Supplier Warning Dialog */}
     <SupplierWarningDialog open={supplierWarningOpen} onOpenChange={setSupplierWarningOpen} supplierName={warningSupplierName} />
+
+    {/* Unsaved Changes Dialog */}
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => {
+        setShowUnsavedChangesDialog(false);
+        setPendingClose(false);
+      }}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={true}
+      isSaving={isLoading}
+    />
   </>;
 }
 
