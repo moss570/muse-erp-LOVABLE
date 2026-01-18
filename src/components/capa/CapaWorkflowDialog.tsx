@@ -20,6 +20,7 @@ import {
   useUpdateCapaStatus,
   useCapaActivityLog,
   useCapaAttachments,
+  type CapaRow,
 } from '@/hooks/useCapa';
 import { useCapaTasks } from '@/hooks/useCapaTasks';
 import { useProfiles } from '@/hooks/useReceivingCapa';
@@ -69,39 +70,6 @@ import { CapaTaskList } from './CapaTaskList';
 import { CapaActivityTimeline } from './CapaActivityTimeline';
 import { CapaAttachments } from './CapaAttachments';
 
-// Extended CAPA type with workflow fields
-interface ExtendedCapa {
-  id: string;
-  capa_number: string;
-  title: string;
-  description: string;
-  capa_type: string;
-  severity: string;
-  status: string;
-  source_type: string | null;
-  occurrence_date: string;
-  discovery_date: string;
-  assigned_to: string | null;
-  containment_due_date: string | null;
-  containment_actions: string | null;
-  containment_completed_at: string | null;
-  root_cause_due_date: string | null;
-  root_cause_statement: string | null;
-  root_cause_category: string | null;
-  investigation_summary: string | null;
-  corrective_action_due_date: string | null;
-  corrective_actions_text: string | null;
-  preventive_actions_text: string | null;
-  verification_due_date: string | null;
-  verification_method: string | null;
-  verification_results: string | null;
-  effectiveness_review_due_date: string | null;
-  effectiveness_criteria: string | null;
-  effectiveness_results: string | null;
-  effectiveness_verified: boolean | null;
-  [key: string]: unknown;
-}
-
 import {
   CAPA_STATUS_CONFIG,
   CAPA_SEVERITY_CONFIG,
@@ -109,6 +77,7 @@ import {
   ROOT_CAUSE_CATEGORY_CONFIG,
   type CapaStatus,
   type CapaSeverity,
+  type RootCauseCategory,
 } from '@/types/capa';
 
 // Workflow phases with their completion requirements
@@ -126,7 +95,7 @@ const WORKFLOW_PHASES = [
     label: 'Investigation',
     icon: Search,
     description: 'Root cause analysis and investigation',
-    requiredFields: ['root_cause_statement', 'root_cause_category'],
+    requiredFields: ['root_cause', 'root_cause_category'],
     statuses: ['investigating'],
   },
   {
@@ -172,7 +141,7 @@ export function CapaWorkflowDialog({
   const [expandedSections, setExpandedSections] = useState<string[]>(['problem', 'containment']);
 
   const { data: capaData, isLoading } = useCapa(capaId);
-  const capa = capaData as ExtendedCapa | null;
+  const capa = capaData as (CapaRow & Record<string, unknown>) | null | undefined;
   const { data: tasks } = useCapaTasks(capaId);
   const { data: activities } = useCapaActivityLog(capaId);
   const { data: attachments } = useCapaAttachments(capaId);
@@ -183,14 +152,6 @@ export function CapaWorkflowDialog({
 
   const isViewMode = mode === 'view' || capa?.status === 'closed';
 
-  // Helper to update CAPA fields
-  const handleUpdateCapa = (field: string, value: unknown) => {
-    if (!capaId) return;
-    updateCapa.mutate({ id: capaId, [field]: value } as any);
-  };
-
-  const isViewMode = mode === 'view' || capa?.status === 'closed';
-
   // Calculate workflow progress
   const getWorkflowProgress = () => {
     if (!capa) return 0;
@@ -198,7 +159,7 @@ export function CapaWorkflowDialog({
     let completed = 0;
 
     if (capa.containment_actions) completed++;
-    if (capa.root_cause_statement) completed++;
+    if (capa.root_cause) completed++;
     if (capa.corrective_actions_text && capa.preventive_actions_text) completed++;
     if (capa.verification_results) completed++;
     if (capa.effectiveness_verified) completed++;
@@ -326,7 +287,7 @@ export function CapaWorkflowDialog({
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="investigation">
               Investigation
-              {capa && !capa.root_cause_statement && capa.status === 'investigating' && (
+              {capa && !capa.root_cause && capa.status === 'investigating' && (
                 <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center">!</Badge>
               )}
             </TabsTrigger>
@@ -536,7 +497,7 @@ export function CapaWorkflowDialog({
                       <Label className="text-muted-foreground">Root Cause Due</Label>
                       <p className={cn(
                         'text-sm font-medium mt-1',
-                        isOverdue(capa.root_cause_due_date) && !capa.root_cause_statement && 'text-destructive'
+                        isOverdue(capa.root_cause_due_date) && !capa.root_cause && 'text-destructive'
                       )}>
                         {capa.root_cause_due_date ? format(new Date(capa.root_cause_due_date), 'PPP') : '-'}
                       </p>
@@ -642,7 +603,7 @@ export function CapaWorkflowDialog({
                       ) : (
                         <Select
                           value={capa.root_cause_category || ''}
-                          onValueChange={(v) => updateCapa.mutate({ id: capaId!, root_cause_category: v })}
+                          onValueChange={(v) => updateCapa.mutate({ id: capaId!, root_cause_category: v as RootCauseCategory })}
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue placeholder="Select category" />
@@ -669,20 +630,20 @@ export function CapaWorkflowDialog({
                     </p>
                     {isViewMode ? (
                       <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap border-l-4 border-primary">
-                        {capa.root_cause_statement || 'Not documented'}
+                        {capa.root_cause || 'Not documented'}
                       </div>
                     ) : (
                       <Textarea
                         placeholder="The root cause of this issue is..."
-                        value={capa.root_cause_statement || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, root_cause_statement: e.target.value })}
+                        value={capa.root_cause || ''}
+                        onChange={(e) => updateCapa.mutate({ id: capaId!, root_cause: e.target.value })}
                         rows={3}
                         className="border-l-4 border-primary"
                       />
                     )}
                   </div>
 
-                  {!isViewMode && capa.root_cause_statement && capa.status === 'investigating' && (
+                  {!isViewMode && capa.root_cause && capa.status === 'investigating' && (
                     <Button
                       onClick={() => updateStatus.mutate({
                         id: capaId!,
