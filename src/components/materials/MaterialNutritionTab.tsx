@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 interface MaterialNutritionTabProps {
   materialId: string | undefined;
   isNewMaterial?: boolean;
+  disabled?: boolean;
 }
 
 type NutritionFormData = Partial<Omit<MaterialNutritionInput, 'material_id'>>;
@@ -42,7 +43,7 @@ const DATA_SOURCES = [
   { value: 'lab_analysis', label: 'Lab Analysis' },
 ];
 
-export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutritionTabProps) {
+export function MaterialNutritionTab({ materialId, isNewMaterial, disabled = false }: MaterialNutritionTabProps) {
   const { nutrition, isLoading, upsert, isUpserting } = useMaterialNutrition(materialId);
   const { data: dailyValues } = useDailyValues();
   const { toast } = useToast();
@@ -235,7 +236,7 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
   }
 
   return (
-    <div className="space-y-6">
+    <fieldset disabled={disabled} className="space-y-6">
       {/* Image Import Dialog */}
       <ImageImportDialog
         open={imageImportDialogOpen}
@@ -293,6 +294,7 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
             <Select
               value={formData.data_source || 'manual'}
               onValueChange={(v) => updateField('data_source', v)}
+              disabled={disabled}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -653,7 +655,7 @@ export function MaterialNutritionTab({ materialId, isNewMaterial }: MaterialNutr
           </div>
         </CardContent>
       </Card>
-    </div>
+    </fieldset>
   );
 }
 
