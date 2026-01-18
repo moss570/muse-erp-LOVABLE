@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Pencil } from "lucide-react";
 import { ProductBasicInfoTab } from "./ProductBasicInfoTab";
 import { ProductSizesTab } from "./ProductSizesTab";
 import { ProductQATab } from "./ProductQATab";
@@ -63,7 +64,11 @@ export function ProductFormDialog({
   isSubmitting = false,
 }: ProductFormDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
-  const isEditing = !!product?.id;
+  const [isEditMode, setIsEditMode] = useState(false);
+  const isExistingProduct = !!product?.id;
+  
+  // For existing products, start in view mode. For new products, start in edit mode
+  const isFieldsDisabled = isExistingProduct && !isEditMode;
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -82,7 +87,7 @@ export function ProductFormDialog({
     },
   });
 
-  // Reset form when product changes, but only reset tab when dialog first opens
+  // Reset form and edit mode when product changes
   useEffect(() => {
     if (product) {
       form.reset({
@@ -98,6 +103,7 @@ export function ProductFormDialog({
         storage_requirements: product.storage_requirements || "",
         handling_instructions: product.handling_instructions || "",
       });
+      setIsEditMode(false); // Start in view mode for existing products
     } else {
       form.reset({
         sku: "",
@@ -112,6 +118,7 @@ export function ProductFormDialog({
         storage_requirements: "",
         handling_instructions: "",
       });
+      setIsEditMode(true); // New products start in edit mode
     }
   }, [product, form]);
 
@@ -124,6 +131,30 @@ export function ProductFormDialog({
 
   const handleFormSubmit = (data: ProductFormData) => {
     onSubmit(data);
+  };
+
+  const handleStartEdit = () => {
+    setIsEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form to original values
+    if (product) {
+      form.reset({
+        sku: product.sku || "",
+        name: product.name || "",
+        description: product.description || "",
+        product_category_id: product.product_category_id || undefined,
+        unit_id: product.unit_id || undefined,
+        is_base_product: product.is_base_product || false,
+        is_active: product.is_active ?? true,
+        requires_upc: product.requires_upc || false,
+        shelf_life_days: product.shelf_life_days || undefined,
+        storage_requirements: product.storage_requirements || "",
+        handling_instructions: product.handling_instructions || "",
+      });
+    }
+    setIsEditMode(false);
   };
 
   const {
@@ -147,22 +178,41 @@ export function ProductFormDialog({
     <>
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? `Edit Product: ${product?.name}` : "Add New Product"}
-          </DialogTitle>
+        <DialogHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <DialogTitle>
+              {isExistingProduct ? product?.name : "Add New Product"}
+            </DialogTitle>
+            {isExistingProduct && (
+              <Badge variant={isEditMode ? "default" : "secondary"}>
+                {isEditMode ? "Editing" : "Viewing"}
+              </Badge>
+            )}
+          </div>
+          {isExistingProduct && !isEditMode && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleStartEdit}
+              className="gap-2"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          )}
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="basic">Basic</TabsTrigger>
-            <TabsTrigger value="bom" disabled={!isEditing}>Recipe</TabsTrigger>
-            <TabsTrigger value="nutrition" disabled={!isEditing}>Nutrition</TabsTrigger>
-            <TabsTrigger value="qa" disabled={!isEditing}>QA</TabsTrigger>
-            <TabsTrigger value="sizes" disabled={!isEditing}>Sizes & UPC</TabsTrigger>
-            <TabsTrigger value="spec" disabled={!isEditing}>Spec Sheet</TabsTrigger>
-            <TabsTrigger value="inventory" disabled={!isEditing}>Inventory</TabsTrigger>
-            <TabsTrigger value="analytics" disabled={!isEditing}>Analytics</TabsTrigger>
+            <TabsTrigger value="bom" disabled={!isExistingProduct}>Recipe</TabsTrigger>
+            <TabsTrigger value="nutrition" disabled={!isExistingProduct}>Nutrition</TabsTrigger>
+            <TabsTrigger value="qa" disabled={!isExistingProduct}>QA</TabsTrigger>
+            <TabsTrigger value="sizes" disabled={!isExistingProduct}>Sizes & UPC</TabsTrigger>
+            <TabsTrigger value="spec" disabled={!isExistingProduct}>Spec Sheet</TabsTrigger>
+            <TabsTrigger value="inventory" disabled={!isExistingProduct}>Inventory</TabsTrigger>
+            <TabsTrigger value="analytics" disabled={!isExistingProduct}>Analytics</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4">
@@ -170,7 +220,11 @@ export function ProductFormDialog({
             <TabsContent value="basic" className="mt-0">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleFormSubmit)} id="product-form">
-                  <ProductBasicInfoTab form={form} isEditing={isEditing} />
+                  <ProductBasicInfoTab 
+                    form={form} 
+                    isEditing={isExistingProduct} 
+                    isFieldsDisabled={isFieldsDisabled}
+                  />
                 </form>
               </Form>
             </TabsContent>
@@ -219,14 +273,32 @@ export function ProductFormDialog({
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          {activeTab === "basic" && (
-            <Button type="submit" form="product-form" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save Changes" : "Create Product"}
+          {isExistingProduct && isEditMode ? (
+            <>
+              <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                Cancel Edit
+              </Button>
+              {activeTab === "basic" && (
+                <Button type="submit" form="product-form" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              )}
+            </>
+          ) : isExistingProduct && !isEditMode ? (
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Close
             </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="product-form" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Product
+              </Button>
+            </>
           )}
         </div>
       </DialogContent>
@@ -238,7 +310,7 @@ export function ProductFormDialog({
       onDiscard={handleDiscardChanges}
       onKeepEditing={() => setShowUnsavedChangesDialog(false)}
       onSaveAndClose={handleSaveAndClose}
-      showSaveOption={activeTab === "basic"}
+      showSaveOption={activeTab === "basic" && isEditMode}
       isSaving={isSubmitting}
     />
     </>
