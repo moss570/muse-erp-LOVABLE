@@ -1,0 +1,1 @@
+export { SuppliersAtRiskWidget } from './SuppliersAtRiskWidget';
