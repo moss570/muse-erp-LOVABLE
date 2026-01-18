@@ -187,6 +187,210 @@ export type Database = {
           },
         ]
       }
+      audit_findings: {
+        Row: {
+          assigned_to: string | null
+          audit_id: string
+          capa_id: string | null
+          capa_required: boolean | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          evidence: string | null
+          finding_number: string
+          finding_type: string
+          id: string
+          location: string | null
+          requirement: string | null
+          response: string | null
+          response_date: string | null
+          response_due_date: string | null
+          severity: string | null
+          status: string
+          title: string
+          updated_at: string
+          verification_notes: string | null
+          verified_by: string | null
+          verified_date: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          audit_id: string
+          capa_id?: string | null
+          capa_required?: boolean | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          evidence?: string | null
+          finding_number: string
+          finding_type: string
+          id?: string
+          location?: string | null
+          requirement?: string | null
+          response?: string | null
+          response_date?: string | null
+          response_due_date?: string | null
+          severity?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          verification_notes?: string | null
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          audit_id?: string
+          capa_id?: string | null
+          capa_required?: boolean | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          evidence?: string | null
+          finding_number?: string
+          finding_type?: string
+          id?: string
+          location?: string | null
+          requirement?: string | null
+          response?: string | null
+          response_date?: string | null
+          response_due_date?: string | null
+          severity?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          verification_notes?: string | null
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_findings_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_findings_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_findings_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_findings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_findings_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audits: {
+        Row: {
+          audit_date: string
+          audit_end_date: string | null
+          audit_number: string
+          audit_scope: string | null
+          audit_type: string
+          auditor_name: string | null
+          auditor_organization: string | null
+          auditor_type: string | null
+          created_at: string
+          created_by: string | null
+          critical_findings: number | null
+          description: string | null
+          id: string
+          lead_auditor_id: string | null
+          major_findings: number | null
+          minor_findings: number | null
+          observations: number | null
+          status: string
+          title: string
+          total_findings: number | null
+          updated_at: string
+        }
+        Insert: {
+          audit_date: string
+          audit_end_date?: string | null
+          audit_number: string
+          audit_scope?: string | null
+          audit_type: string
+          auditor_name?: string | null
+          auditor_organization?: string | null
+          auditor_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_findings?: number | null
+          description?: string | null
+          id?: string
+          lead_auditor_id?: string | null
+          major_findings?: number | null
+          minor_findings?: number | null
+          observations?: number | null
+          status?: string
+          title: string
+          total_findings?: number | null
+          updated_at?: string
+        }
+        Update: {
+          audit_date?: string
+          audit_end_date?: string | null
+          audit_number?: string
+          audit_scope?: string | null
+          audit_type?: string
+          auditor_name?: string | null
+          auditor_organization?: string | null
+          auditor_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_findings?: number | null
+          description?: string | null
+          id?: string
+          lead_auditor_id?: string | null
+          major_findings?: number | null
+          minor_findings?: number | null
+          observations?: number | null
+          status?: string
+          title?: string
+          total_findings?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audits_lead_auditor_id_fkey"
+            columns: ["lead_auditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills_of_lading: {
         Row: {
           bol_number: string
