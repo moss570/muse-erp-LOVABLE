@@ -16,9 +16,10 @@ import type { ProductFormData } from "./ProductFormDialog";
 interface ProductBasicInfoTabProps {
   form: UseFormReturn<ProductFormData>;
   isEditing?: boolean;
+  isFieldsDisabled?: boolean;
 }
 
-export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInfoTabProps) {
+export function ProductBasicInfoTab({ form, isEditing = false, isFieldsDisabled = false }: ProductBasicInfoTabProps) {
   const { activeCategories, isLoading: categoriesLoading } = useProductCategories();
   const [skuCheckStatus, setSkuCheckStatus] = useState<'idle' | 'checking' | 'unique' | 'duplicate'>('idle');
   const [isGeneratingSku, setIsGeneratingSku] = useState(false);
@@ -123,6 +124,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
           <FormItem>
             <FormLabel>Product Category *</FormLabel>
             <Select
+              disabled={isFieldsDisabled}
               value={field.value || "__none__"}
               onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)}
             >
@@ -159,7 +161,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
           <FormItem>
             <FormLabel>Product Name *</FormLabel>
             <FormControl>
-              <Input placeholder="e.g., Vanilla" {...field} />
+              <Input placeholder="e.g., Vanilla" {...field} disabled={isFieldsDisabled} />
             </FormControl>
             <FormDescription>
               Used to generate the flavor code portion of the SKU
@@ -190,7 +192,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
                 <Input 
                   placeholder="Auto-generated from category + name" 
                   {...field} 
-                  disabled={isEditing}
+                  disabled={isEditing || isFieldsDisabled}
                   className={isEditing ? "bg-muted cursor-not-allowed" : ""}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -233,7 +235,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
           <FormItem>
             <FormLabel>Description</FormLabel>
             <FormControl>
-              <Textarea placeholder="Enter product description" {...field} />
+              <Textarea placeholder="Enter product description" {...field} disabled={isFieldsDisabled} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -256,6 +258,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
                   {...field}
                   value={field.value || ""}
                   onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                  disabled={isFieldsDisabled}
                 />
               </FormControl>
               <FormMessage />
@@ -274,6 +277,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
               <Textarea
                 placeholder="e.g., Keep frozen at -18°C or below"
                 {...field}
+                disabled={isFieldsDisabled}
               />
             </FormControl>
             <FormMessage />
@@ -291,6 +295,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
               <Textarea
                 placeholder="e.g., Thaw in refrigerator before serving"
                 {...field}
+                disabled={isFieldsDisabled}
               />
             </FormControl>
             <FormMessage />
@@ -308,6 +313,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
                 <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isFieldsDisabled}
                 />
               </FormControl>
               <FormLabel className="!mt-0">Requires UPC Code</FormLabel>
@@ -323,6 +329,7 @@ export function ProductBasicInfoTab({ form, isEditing = false }: ProductBasicInf
                 <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isFieldsDisabled}
                 />
               </FormControl>
               <FormLabel className="!mt-0">Active</FormLabel>
