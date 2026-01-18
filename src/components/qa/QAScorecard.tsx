@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   AlertCircle, 
@@ -100,24 +99,6 @@ export function QAScorecard({
     );
   };
 
-  // Filter available statuses based on check results
-  const getAvailableStatuses = () => {
-    const baseStatuses = ['Draft', 'Pending_QA', 'Rejected', 'Archived'];
-    
-    if (summary.isBlocked) {
-      return baseStatuses;
-    }
-    
-    if (summary.canConditionalApprove && !summary.canFullApprove) {
-      return [...baseStatuses, 'Conditional'];
-    }
-    
-    if (summary.canFullApprove) {
-      return [...baseStatuses, 'Conditional', 'Approved'];
-    }
-    
-    return baseStatuses;
-  };
 
   if (isLoading) {
     return (
@@ -176,10 +157,9 @@ export function QAScorecard({
             {!isFieldsDisabled && (
               <ApprovalActionsDropdown
                 currentStatus={material.approval_status || 'Draft'}
-                onStatusChange={onStatusChange}
                 tableName="materials"
                 recordId={material.id}
-                availableStatuses={getAvailableStatuses()}
+                onActionComplete={onStatusChange ? () => onStatusChange(material.approval_status || 'Draft') : undefined}
               />
             )}
           </div>
@@ -324,8 +304,20 @@ export function QAScorecard({
       {/* Document Compliance Summary */}
       <DocumentComplianceSummary
         entityType="material"
-        entityId={material.id}
-        entityCategory={material.category || undefined}
+        documents={documents.map(d => ({
+          id: d.id || '',
+          document_name: d.document_name,
+          requirement_id: d.requirement_id || undefined,
+          expiry_date: d.expiry_date || undefined,
+          file_path: undefined,
+          file_url: undefined,
+          is_archived: d.is_archived,
+        }))}
+        requirements={documentRequirements.map(r => ({
+          id: r.id,
+          document_name: r.document_name,
+          is_required: r.is_required,
+        }))}
       />
 
       {/* Approval History */}

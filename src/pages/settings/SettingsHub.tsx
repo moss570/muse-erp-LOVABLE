@@ -161,6 +161,13 @@ const settingsCategories: SettingCategory[] = [
         icon: Scale,
         status: 'active',
       },
+      {
+        title: 'QA Approval Rules',
+        description: 'Configure approval workflows, check tiers, and conditional durations',
+        href: '/settings/qa-approval-rules',
+        icon: Shield,
+        status: 'active',
+      },
     ],
   },
   {

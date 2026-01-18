@@ -40,10 +40,10 @@ export default function QAApprovalRules() {
   const { data: settings, isLoading: settingsLoading } = useQASettings();
   const { data: checkDefinitions, isLoading: checksLoading } = useQACheckDefinitions({ activeOnly: false });
   const updateSettings = useQASettingsMutation();
-  const { checkPermission } = usePermission();
+  const { canWrite } = usePermission('qa_settings_manage');
 
   // Check permissions
-  const canEdit = checkPermission('qa_settings_manage', 'full');
+  const canEdit = canWrite;
   const isReadOnly = !canEdit;
 
   // Local state for edits
