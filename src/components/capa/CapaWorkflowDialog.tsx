@@ -20,7 +20,6 @@ import {
   useUpdateCapaStatus,
   useCapaActivityLog,
   useCapaAttachments,
-  type CapaRow,
 } from '@/hooks/useCapa';
 import { useCapaTasks } from '@/hooks/useCapaTasks';
 import { useProfiles } from '@/hooks/useReceivingCapa';
@@ -141,7 +140,8 @@ export function CapaWorkflowDialog({
   const [expandedSections, setExpandedSections] = useState<string[]>(['problem', 'containment']);
 
   const { data: capaData, isLoading } = useCapa(capaId);
-  const capa = capaData as (CapaRow & Record<string, unknown>) | null | undefined;
+  // Cast to any to avoid type issues with dynamic workflow fields
+  const capa = capaData as any;
   const { data: tasks } = useCapaTasks(capaId);
   const { data: activities } = useCapaActivityLog(capaId);
   const { data: attachments } = useCapaAttachments(capaId);
@@ -160,9 +160,9 @@ export function CapaWorkflowDialog({
 
     if (capa.containment_actions) completed++;
     if (capa.root_cause) completed++;
-    if (capa.corrective_actions_text && capa.preventive_actions_text) completed++;
-    if (capa.verification_results) completed++;
-    if (capa.effectiveness_verified) completed++;
+    if ((capa as any).corrective_actions_text && (capa as any).preventive_actions_text) completed++;
+    if ((capa as any).verification_results) completed++;
+    if ((capa as any).effectiveness_verified) completed++;
 
     return (completed / phases.length) * 100;
   };
