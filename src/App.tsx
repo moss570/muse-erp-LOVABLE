@@ -57,6 +57,8 @@ import ContainerSizes from "./pages/settings/ContainerSizes";
 import QualityTests from "./pages/settings/QualityTests";
 import QAApprovalRules from "./pages/settings/QAApprovalRules";
 import BatchQATests from "./pages/manufacturing/BatchQATests";
+import QAWorkQueue from "./pages/qa/QAWorkQueue";
+import OverrideRequests from "./pages/qa/OverrideRequests";
 
 const queryClient = new QueryClient();
 
@@ -153,6 +155,8 @@ const App = () => (
             />
             {/* Quality routes */}
             <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
+            <Route path="/quality/work-queue" element={<AppLayout><QAWorkQueue /></AppLayout>} />
+            <Route path="/quality/override-requests" element={<AppLayout><OverrideRequests /></AppLayout>} />
             <Route
               path="/quality/*"
               element={

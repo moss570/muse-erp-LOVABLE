@@ -25,8 +25,8 @@ export interface OverrideRequest {
   resolution_notes: string | null;
   created_at: string;
   updated_at: string;
-  requester?: { full_name: string | null; email: string | null };
-  reviewer?: { full_name: string | null } | null;
+  requester?: { first_name: string | null; last_name: string | null; email: string | null };
+  reviewer?: { first_name: string | null; last_name: string | null } | null;
 }
 
 export interface CreateOverrideRequest {
@@ -49,14 +49,14 @@ export const usePendingOverrideRequests = () => {
         .from('qa_override_requests')
         .select(`
           *,
-          requester:profiles!qa_override_requests_requested_by_fkey(full_name, email),
-          reviewer:profiles!qa_override_requests_reviewed_by_fkey(full_name)
+          requester:profiles!qa_override_requests_requested_by_fkey(first_name, last_name, email),
+          reviewer:profiles!qa_override_requests_reviewed_by_fkey(first_name, last_name)
         `)
         .eq('status', 'pending')
         .order('requested_at', { ascending: true });
       
       if (error) throw error;
-      return data as OverrideRequest[];
+      return data as unknown as OverrideRequest[];
     },
   });
 };
@@ -70,8 +70,8 @@ export const useOverrideRequests = (filters?: { status?: string; tableName?: str
         .from('qa_override_requests')
         .select(`
           *,
-          requester:profiles!qa_override_requests_requested_by_fkey(full_name, email),
-          reviewer:profiles!qa_override_requests_reviewed_by_fkey(full_name)
+          requester:profiles!qa_override_requests_requested_by_fkey(first_name, last_name, email),
+          reviewer:profiles!qa_override_requests_reviewed_by_fkey(first_name, last_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -84,7 +84,7 @@ export const useOverrideRequests = (filters?: { status?: string; tableName?: str
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as OverrideRequest[];
+      return data as unknown as OverrideRequest[];
     },
   });
 };
@@ -98,15 +98,15 @@ export const useRecordOverrideRequests = (recordId: string, tableName: string, e
         .from('qa_override_requests')
         .select(`
           *,
-          requester:profiles!qa_override_requests_requested_by_fkey(full_name, email),
-          reviewer:profiles!qa_override_requests_reviewed_by_fkey(full_name)
+          requester:profiles!qa_override_requests_requested_by_fkey(first_name, last_name, email),
+          reviewer:profiles!qa_override_requests_reviewed_by_fkey(first_name, last_name)
         `)
         .eq('related_record_id', recordId)
         .eq('related_table_name', tableName)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as OverrideRequest[];
+      return data as unknown as OverrideRequest[];
     },
     enabled: enabled && !!recordId && !!tableName,
   });
