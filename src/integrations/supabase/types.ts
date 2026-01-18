@@ -7895,6 +7895,278 @@ export type Database = {
           },
         ]
       }
+      supplier_performance_metrics: {
+        Row: {
+          avg_capa_closure_days: number | null
+          base_score: number
+          calculated_at: string
+          calculated_by: string | null
+          closed_capas: number
+          critical_capas: number
+          document_compliance_rate: number
+          documentation_failures: number
+          expired_documents: number
+          expiring_soon_documents: number
+          final_score: number
+          id: string
+          late_deliveries: number
+          lots_accepted: number
+          lots_on_hold: number
+          lots_rejected: number
+          major_capas: number
+          minor_capas: number
+          missing_documents: number
+          notes: string | null
+          on_time_deliveries: number
+          on_time_rate: number
+          open_capas: number
+          period_end: string
+          period_start: string
+          probation_triggered: boolean
+          rejection_rate: number
+          review_required: boolean
+          rolling_months: number
+          score_grade: string
+          spec_failures: number
+          supplier_id: string
+          temperature_failures: number
+          total_capas: number
+          total_deductions: number
+          total_deliveries: number
+          total_lots_received: number
+          total_required_documents: number
+          trigger_reasons: Json | null
+          valid_documents: number
+        }
+        Insert: {
+          avg_capa_closure_days?: number | null
+          base_score?: number
+          calculated_at?: string
+          calculated_by?: string | null
+          closed_capas?: number
+          critical_capas?: number
+          document_compliance_rate?: number
+          documentation_failures?: number
+          expired_documents?: number
+          expiring_soon_documents?: number
+          final_score?: number
+          id?: string
+          late_deliveries?: number
+          lots_accepted?: number
+          lots_on_hold?: number
+          lots_rejected?: number
+          major_capas?: number
+          minor_capas?: number
+          missing_documents?: number
+          notes?: string | null
+          on_time_deliveries?: number
+          on_time_rate?: number
+          open_capas?: number
+          period_end: string
+          period_start: string
+          probation_triggered?: boolean
+          rejection_rate?: number
+          review_required?: boolean
+          rolling_months?: number
+          score_grade?: string
+          spec_failures?: number
+          supplier_id: string
+          temperature_failures?: number
+          total_capas?: number
+          total_deductions?: number
+          total_deliveries?: number
+          total_lots_received?: number
+          total_required_documents?: number
+          trigger_reasons?: Json | null
+          valid_documents?: number
+        }
+        Update: {
+          avg_capa_closure_days?: number | null
+          base_score?: number
+          calculated_at?: string
+          calculated_by?: string | null
+          closed_capas?: number
+          critical_capas?: number
+          document_compliance_rate?: number
+          documentation_failures?: number
+          expired_documents?: number
+          expiring_soon_documents?: number
+          final_score?: number
+          id?: string
+          late_deliveries?: number
+          lots_accepted?: number
+          lots_on_hold?: number
+          lots_rejected?: number
+          major_capas?: number
+          minor_capas?: number
+          missing_documents?: number
+          notes?: string | null
+          on_time_deliveries?: number
+          on_time_rate?: number
+          open_capas?: number
+          period_end?: string
+          period_start?: string
+          probation_triggered?: boolean
+          rejection_rate?: number
+          review_required?: boolean
+          rolling_months?: number
+          score_grade?: string
+          spec_failures?: number
+          supplier_id?: string
+          temperature_failures?: number
+          total_capas?: number
+          total_deductions?: number
+          total_deliveries?: number
+          total_lots_received?: number
+          total_required_documents?: number
+          trigger_reasons?: Json | null
+          valid_documents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_performance_metrics_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_scoring_rules: {
+        Row: {
+          action_type: string | null
+          created_at: string
+          created_by: string | null
+          deduction_per_unit: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          max_deduction: number | null
+          metric_key: string
+          priority: number
+          rule_code: string
+          rule_name: string
+          rule_type: string
+          threshold_operator: string | null
+          threshold_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          action_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          deduction_per_unit?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_deduction?: number | null
+          metric_key: string
+          priority?: number
+          rule_code: string
+          rule_name: string
+          rule_type: string
+          threshold_operator?: string | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          deduction_per_unit?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_deduction?: number | null
+          metric_key?: string
+          priority?: number
+          rule_code?: string
+          rule_name?: string
+          rule_type?: string
+          threshold_operator?: string | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_scoring_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_status_history: {
+        Row: {
+          change_reason: string
+          created_at: string
+          effective_date: string
+          id: string
+          metrics_snapshot_id: string | null
+          new_status: string
+          notes: string | null
+          performance_score_at_change: number | null
+          previous_status: string | null
+          supplier_id: string
+          trigger_details: Json | null
+          triggered_by: string
+          triggered_by_user_id: string | null
+        }
+        Insert: {
+          change_reason: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          metrics_snapshot_id?: string | null
+          new_status: string
+          notes?: string | null
+          performance_score_at_change?: number | null
+          previous_status?: string | null
+          supplier_id: string
+          trigger_details?: Json | null
+          triggered_by: string
+          triggered_by_user_id?: string | null
+        }
+        Update: {
+          change_reason?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          metrics_snapshot_id?: string | null
+          new_status?: string
+          notes?: string | null
+          performance_score_at_change?: number | null
+          previous_status?: string | null
+          supplier_id?: string
+          trigger_details?: Json | null
+          triggered_by?: string
+          triggered_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_status_history_metrics_snapshot_id_fkey"
+            columns: ["metrics_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_performance_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_status_history_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_status_history_triggered_by_user_id_fkey"
+            columns: ["triggered_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           active_override_id: string | null
@@ -7915,6 +8187,8 @@ export type Database = {
           country: string | null
           created_at: string
           credit_limit: number | null
+          current_grade: string | null
+          current_score: number | null
           email: string | null
           fax: string | null
           food_safety_certification: string | null
@@ -7922,14 +8196,19 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_audit_date: string | null
+          last_score_date: string | null
           name: string
           next_review_date: string | null
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          probation_end_date: string | null
+          probation_review_date: string | null
+          probation_start_date: string | null
           qa_verified_at: string | null
           qa_verified_by: string | null
           risk_level: string | null
+          score_trend: string | null
           state: string | null
           supplier_type: string | null
           updated_at: string
@@ -7955,6 +8234,8 @@ export type Database = {
           country?: string | null
           created_at?: string
           credit_limit?: number | null
+          current_grade?: string | null
+          current_score?: number | null
           email?: string | null
           fax?: string | null
           food_safety_certification?: string | null
@@ -7962,14 +8243,19 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_audit_date?: string | null
+          last_score_date?: string | null
           name: string
           next_review_date?: string | null
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          probation_end_date?: string | null
+          probation_review_date?: string | null
+          probation_start_date?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           risk_level?: string | null
+          score_trend?: string | null
           state?: string | null
           supplier_type?: string | null
           updated_at?: string
@@ -7995,6 +8281,8 @@ export type Database = {
           country?: string | null
           created_at?: string
           credit_limit?: number | null
+          current_grade?: string | null
+          current_score?: number | null
           email?: string | null
           fax?: string | null
           food_safety_certification?: string | null
@@ -8002,14 +8290,19 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_audit_date?: string | null
+          last_score_date?: string | null
           name?: string
           next_review_date?: string | null
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          probation_end_date?: string | null
+          probation_review_date?: string | null
+          probation_start_date?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           risk_level?: string | null
+          score_trend?: string | null
           state?: string | null
           supplier_type?: string | null
           updated_at?: string
@@ -8537,6 +8830,7 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
+      calculate_score_grade: { Args: { score: number }; Returns: string }
       can_ship_production_lot: { Args: { p_lot_id: string }; Returns: boolean }
       check_permission: {
         Args: {
