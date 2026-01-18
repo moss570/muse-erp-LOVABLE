@@ -85,16 +85,20 @@ export function useCreateAudit() {
       const { data, error } = await supabase
         .from('audits')
         .insert({
-          ...input,
+          title: input.title || 'Untitled Audit',
+          audit_type: input.audit_type || 'internal',
+          audit_date: input.audit_date || new Date().toISOString().split('T')[0],
+          audit_end_date: input.audit_end_date,
+          audit_scope: input.audit_scope,
+          description: input.description,
+          auditor_type: input.auditor_type,
+          auditor_name: input.auditor_name,
+          auditor_organization: input.auditor_organization,
+          lead_auditor_id: input.lead_auditor_id,
           audit_number: auditNumber,
           status: 'scheduled',
-          total_findings: 0,
-          critical_findings: 0,
-          major_findings: 0,
-          minor_findings: 0,
-          observations: 0,
           created_by: user?.id,
-        })
+        } as any)
         .select()
         .single();
 
