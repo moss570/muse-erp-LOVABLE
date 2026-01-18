@@ -416,6 +416,36 @@ export type Database = {
           },
         ]
       }
+      capa_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type?: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       capa_severity_settings: {
         Row: {
           color_code: string | null
@@ -4708,6 +4738,7 @@ export type Database = {
           quantity_received: number
           receiving_lot_id: string | null
           receiving_session_id: string
+          rejection_category: string | null
           rejection_reason: string | null
           supplier_lot_number: string | null
           temperature_in_range: boolean | null
@@ -4730,6 +4761,7 @@ export type Database = {
           quantity_received: number
           receiving_lot_id?: string | null
           receiving_session_id: string
+          rejection_category?: string | null
           rejection_reason?: string | null
           supplier_lot_number?: string | null
           temperature_in_range?: boolean | null
@@ -4752,6 +4784,7 @@ export type Database = {
           quantity_received?: number
           receiving_lot_id?: string | null
           receiving_session_id?: string
+          rejection_category?: string | null
           rejection_reason?: string | null
           supplier_lot_number?: string | null
           temperature_in_range?: boolean | null
@@ -7245,6 +7278,8 @@ export type Database = {
       }
       receiving_lots: {
         Row: {
+          capa_id: string | null
+          capa_required: boolean | null
           container_status: string | null
           cost_finalized: boolean | null
           cost_per_base_unit: number | null
@@ -7267,6 +7302,7 @@ export type Database = {
           quantity_received: number
           received_by: string | null
           received_date: string
+          rejection_category: string | null
           status: string | null
           supplier_id: string | null
           supplier_lot_number: string | null
@@ -7274,6 +7310,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          capa_id?: string | null
+          capa_required?: boolean | null
           container_status?: string | null
           cost_finalized?: boolean | null
           cost_per_base_unit?: number | null
@@ -7296,6 +7334,7 @@ export type Database = {
           quantity_received: number
           received_by?: string | null
           received_date?: string
+          rejection_category?: string | null
           status?: string | null
           supplier_id?: string | null
           supplier_lot_number?: string | null
@@ -7303,6 +7342,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          capa_id?: string | null
+          capa_required?: boolean | null
           container_status?: string | null
           cost_finalized?: boolean | null
           cost_per_base_unit?: number | null
@@ -7325,6 +7366,7 @@ export type Database = {
           quantity_received?: number
           received_by?: string | null
           received_date?: string
+          rejection_category?: string | null
           status?: string | null
           supplier_id?: string | null
           supplier_lot_number?: string | null
@@ -7337,6 +7379,13 @@ export type Database = {
             columns: ["current_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
             referencedColumns: ["id"]
           },
           {
