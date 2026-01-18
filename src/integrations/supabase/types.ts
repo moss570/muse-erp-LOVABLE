@@ -7528,6 +7528,7 @@ export type Database = {
           received_by: string | null
           received_date: string
           rejection_category: string | null
+          rejection_reason: string | null
           status: string | null
           supplier_id: string | null
           supplier_lot_number: string | null
@@ -7560,6 +7561,7 @@ export type Database = {
           received_by?: string | null
           received_date?: string
           rejection_category?: string | null
+          rejection_reason?: string | null
           status?: string | null
           supplier_id?: string | null
           supplier_lot_number?: string | null
@@ -7592,6 +7594,7 @@ export type Database = {
           received_by?: string | null
           received_date?: string
           rejection_category?: string | null
+          rejection_reason?: string | null
           status?: string | null
           supplier_id?: string | null
           supplier_lot_number?: string | null
