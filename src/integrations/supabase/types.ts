@@ -3303,6 +3303,10 @@ export type Database = {
           coa_critical_limits: Json | null
           coa_required: boolean | null
           code: string
+          conditional_approval_at: string | null
+          conditional_approval_by: string | null
+          conditional_approval_expires_at: string | null
+          conditional_approval_reason: string | null
           cost_per_base_unit: number | null
           country_of_origin: string | null
           created_at: string
@@ -3375,6 +3379,10 @@ export type Database = {
           coa_critical_limits?: Json | null
           coa_required?: boolean | null
           code: string
+          conditional_approval_at?: string | null
+          conditional_approval_by?: string | null
+          conditional_approval_expires_at?: string | null
+          conditional_approval_reason?: string | null
           cost_per_base_unit?: number | null
           country_of_origin?: string | null
           created_at?: string
@@ -3447,6 +3455,10 @@ export type Database = {
           coa_critical_limits?: Json | null
           coa_required?: boolean | null
           code?: string
+          conditional_approval_at?: string | null
+          conditional_approval_by?: string | null
+          conditional_approval_expires_at?: string | null
+          conditional_approval_reason?: string | null
           cost_per_base_unit?: number | null
           country_of_origin?: string | null
           created_at?: string
@@ -3501,6 +3513,13 @@ export type Database = {
             columns: ["base_unit_id"]
             isOneToOne: false
             referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_conditional_approval_by_fkey"
+            columns: ["conditional_approval_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -5439,6 +5458,9 @@ export type Database = {
           case_upc_code: string | null
           case_weight_kg: number | null
           category: string | null
+          conditional_approval_at: string | null
+          conditional_approval_by: string | null
+          conditional_approval_expires_at: string | null
           created_at: string
           description: string | null
           handling_instructions: string | null
@@ -5469,6 +5491,9 @@ export type Database = {
           case_upc_code?: string | null
           case_weight_kg?: number | null
           category?: string | null
+          conditional_approval_at?: string | null
+          conditional_approval_by?: string | null
+          conditional_approval_expires_at?: string | null
           created_at?: string
           description?: string | null
           handling_instructions?: string | null
@@ -5499,6 +5524,9 @@ export type Database = {
           case_upc_code?: string | null
           case_weight_kg?: number | null
           category?: string | null
+          conditional_approval_at?: string | null
+          conditional_approval_by?: string | null
+          conditional_approval_expires_at?: string | null
           created_at?: string
           description?: string | null
           handling_instructions?: string | null
@@ -5528,6 +5556,13 @@ export type Database = {
             columns: ["base_product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_conditional_approval_by_fkey"
+            columns: ["conditional_approval_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -5954,6 +5989,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      qa_approval_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      qa_check_definitions: {
+        Row: {
+          applicable_categories: string[] | null
+          check_description: string | null
+          check_key: string
+          check_name: string
+          created_at: string | null
+          entity_type: string
+          id: string
+          is_active: boolean | null
+          sort_order: number | null
+          target_field: string | null
+          target_tab: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          applicable_categories?: string[] | null
+          check_description?: string | null
+          check_key: string
+          check_name: string
+          created_at?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          target_field?: string | null
+          target_tab?: string | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          applicable_categories?: string[] | null
+          check_description?: string | null
+          check_key?: string
+          check_name?: string
+          created_at?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          target_field?: string | null
+          target_tab?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       quality_complaints: {
         Row: {
@@ -6911,6 +7021,9 @@ export type Database = {
           certification_expiry_date: string | null
           city: string | null
           code: string
+          conditional_approval_at: string | null
+          conditional_approval_by: string | null
+          conditional_approval_expires_at: string | null
           conditional_notes: string | null
           contact_name: string | null
           country: string | null
@@ -6947,6 +7060,9 @@ export type Database = {
           certification_expiry_date?: string | null
           city?: string | null
           code: string
+          conditional_approval_at?: string | null
+          conditional_approval_by?: string | null
+          conditional_approval_expires_at?: string | null
           conditional_notes?: string | null
           contact_name?: string | null
           country?: string | null
@@ -6983,6 +7099,9 @@ export type Database = {
           certification_expiry_date?: string | null
           city?: string | null
           code?: string
+          conditional_approval_at?: string | null
+          conditional_approval_by?: string | null
+          conditional_approval_expires_at?: string | null
           conditional_notes?: string | null
           contact_name?: string | null
           country?: string | null
@@ -7013,6 +7132,13 @@ export type Database = {
           {
             foreignKeyName: "suppliers_approved_by_fkey"
             columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_conditional_approval_by_fkey"
+            columns: ["conditional_approval_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
