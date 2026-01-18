@@ -46,6 +46,7 @@ import { getSupplierFieldStyles, getSupplierItemStyles, shouldShowSupplierWarnin
 import { SupplierWarningDialog } from '@/components/ui/supplier-warning-dialog';
 import { useFormDialogUnsavedChanges } from '@/hooks/useFormDialogUnsavedChanges';
 import { UnsavedChangesDialog } from '@/components/ui/staged-edit';
+import { ProbationWarningBanner } from '@/components/purchasing/ProbationWarningBanner';
 
 type PurchaseOrder = Tables<'purchase_orders'>;
 
@@ -813,6 +814,18 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                 )}
               />
             </div>
+
+            {/* Probation/At-Risk Warning Banner */}
+            {selectedSupplierId && (() => {
+              const selectedSupplier = suppliers?.find(s => s.id === selectedSupplierId);
+              return selectedSupplier && shouldShowSupplierWarning(selectedSupplier.approval_status) ? (
+                <ProbationWarningBanner
+                  supplierId={selectedSupplierId}
+                  supplierName={selectedSupplier.name}
+                  approvalStatus={selectedSupplier.approval_status}
+                />
+              ) : null;
+            })()}
 
             {/* Line Items */}
             <div className="space-y-3">

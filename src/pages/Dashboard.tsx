@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Clock,
 } from 'lucide-react';
+import { SuppliersAtRiskWidget } from '@/components/dashboard/SuppliersAtRiskWidget';
 
 interface StatCardProps {
   title: string;
@@ -171,6 +172,11 @@ export default function Dashboard() {
             ))}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Suppliers At Risk Widget */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SuppliersAtRiskWidget />
       </div>
 
       {/* Getting Started */}
