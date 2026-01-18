@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,10 +63,9 @@ export default function QADashboard() {
   const expiringSoonDocs = expiringDocs?.filter(d => d.expiration_status === 'expiring_soon') || [];
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
               <ClipboardCheck className="h-8 w-8 text-primary" />
@@ -434,11 +431,10 @@ export default function QADashboard() {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </AppLayout>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
