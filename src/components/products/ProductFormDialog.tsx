@@ -237,6 +237,7 @@ export function ProductFormDialog({
                   productSku={product.sku || ""}
                   productName={product.name}
                   requiresUpc={product.requires_upc || false}
+                  isFieldsDisabled={isFieldsDisabled}
                 />
               )}
             </TabsContent>
@@ -246,16 +247,29 @@ export function ProductFormDialog({
                 <ProductQATab 
                   productId={product.id} 
                   productCategoryId={product.product_category_id || undefined}
+                  isFieldsDisabled={isFieldsDisabled}
                 />
               )}
             </TabsContent>
 
             <TabsContent value="bom" className="mt-0">
-              {product?.id && <ProductBOMTab productId={product.id} productName={product.name} />}
+              {product?.id && (
+                <ProductBOMTab 
+                  productId={product.id} 
+                  productName={product.name}
+                  isFieldsDisabled={isFieldsDisabled}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="nutrition" className="mt-0">
-              {product?.id && <ProductNutritionTab productId={product.id} productName={product.name} />}
+              {product?.id && (
+                <ProductNutritionTab 
+                  productId={product.id} 
+                  productName={product.name}
+                  isFieldsDisabled={isFieldsDisabled}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="spec" className="mt-0">

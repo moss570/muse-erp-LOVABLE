@@ -35,9 +35,10 @@ import { cn } from '@/lib/utils';
 interface ProductNutritionTabProps {
   productId: string;
   productName: string;
+  isFieldsDisabled?: boolean;
 }
 
-export function ProductNutritionTab({ productId, productName }: ProductNutritionTabProps) {
+export function ProductNutritionTab({ productId, productName, isFieldsDisabled = false }: ProductNutritionTabProps) {
   const {
     nutrition,
     isLoading,
@@ -135,7 +136,7 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
           <Button 
             variant="outline" 
             onClick={handleCalculate}
-            disabled={isCalculating}
+            disabled={isFieldsDisabled || isCalculating}
           >
             {isCalculating ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -146,7 +147,7 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
           </Button>
           <Button 
             onClick={handleCalculateAndSave}
-            disabled={isCalculating || isUpserting}
+            disabled={isFieldsDisabled || isCalculating || isUpserting}
           >
             {(isCalculating || isUpserting) ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -158,7 +159,7 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
           <Button
             variant="outline"
             onClick={() => setExportDialogOpen(true)}
-            disabled={!hasData}
+            disabled={isFieldsDisabled || !hasData}
           >
             <FileImage className="h-4 w-4 mr-2" />
             Export Label
@@ -188,6 +189,7 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
               value={servingSize}
               onChange={(e) => setServingSize(Number(e.target.value) || 95)}
               placeholder="95"
+              disabled={isFieldsDisabled}
             />
             <p className="text-xs text-muted-foreground">FDA: 2/3 cup = 95g</p>
           </div>
@@ -198,6 +200,7 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
               value={yieldLoss}
               onChange={(e) => setYieldLoss(Number(e.target.value) || 0)}
               placeholder="5"
+              disabled={isFieldsDisabled}
             />
             <p className="text-xs text-muted-foreground">Processing loss (typical: 5%)</p>
           </div>
@@ -208,6 +211,7 @@ export function ProductNutritionTab({ productId, productName }: ProductNutrition
               value={overrun}
               onChange={(e) => setOverrun(Number(e.target.value) || 0)}
               placeholder="50"
+              disabled={isFieldsDisabled}
             />
             <p className="text-xs text-muted-foreground">Air incorporation (typical: 50-100%)</p>
           </div>

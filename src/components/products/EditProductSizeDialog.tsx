@@ -39,6 +39,7 @@ interface EditProductSizeDialogProps {
   productName?: string;
   size: ProductSize | null;
   onSave: () => void;
+  isFieldsDisabled?: boolean;
 }
 
 export function EditProductSizeDialog({
@@ -49,6 +50,7 @@ export function EditProductSizeDialog({
   productName = "Product",
   size,
   onSave,
+  isFieldsDisabled = false,
 }: EditProductSizeDialogProps) {
   const isEditing = !!size;
   const { activeContainerSizes, isLoading: loadingContainers } = useContainerSizes();
@@ -322,6 +324,7 @@ export function EditProductSizeDialog({
   };
 
   const handleSave = async () => {
+    if (isFieldsDisabled) return;
     // Validation
     if (!containerSizeId) {
       toast.error("Please select a container size");
@@ -400,7 +403,10 @@ export function EditProductSizeDialog({
   const isLoading = loadingContainers;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (isFieldsDisabled) return;
+      onOpenChange(nextOpen);
+    }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -417,75 +423,81 @@ export function EditProductSizeDialog({
           </div>
         ) : (
         <div className="space-y-4">
-          {/* Container Size */}
-          <div className="space-y-2">
-            <Label htmlFor="container-size">Container Size *</Label>
-            <Select value={containerSizeId || "__none__"} onValueChange={(v) => setContainerSizeId(v === "__none__" ? "" : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select container size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Select container...</SelectItem>
-                {activeContainerSizes.map((cs) => (
-                  <SelectItem key={cs.id} value={cs.id}>
-                    {cs.name} ({cs.volume_gallons} gal) - Code {cs.sku_code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+           {/* Container Size */}
+           <div className="space-y-2">
+             <Label htmlFor="container-size">Container Size *</Label>
+             <Select
+               value={containerSizeId || "__none__"}
+               onValueChange={(v) => setContainerSizeId(v === "__none__" ? "" : v)}
+               disabled={isFieldsDisabled}
+             >
+               <SelectTrigger>
+                 <SelectValue placeholder="Select container size" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="__none__">Select container...</SelectItem>
+                 {activeContainerSizes.map((cs) => (
+                   <SelectItem key={cs.id} value={cs.id}>
+                     {cs.name} ({cs.volume_gallons} gal) - Code {cs.sku_code}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
+           </div>
 
-          {/* Case Pack Quantity */}
-          <div className="space-y-2">
-            <Label htmlFor="units-per-case">Case Pack Quantity *</Label>
-            <Select 
-              value={String(unitsPerCase)} 
-              onValueChange={(v) => setUnitsPerCase(parseInt(v))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select case pack" />
-              </SelectTrigger>
-              <SelectContent>
-                {casePackSizes.length > 0 ? (
-                  casePackSizes.map((size) => (
-                    <SelectItem key={size} value={String(size)}>
-                      {size} units per case
-                    </SelectItem>
-                  ))
-                ) : (
-                  <>
-                    <SelectItem value="1">1 unit per case</SelectItem>
-                    <SelectItem value="4">4 units per case</SelectItem>
-                    <SelectItem value="6">6 units per case</SelectItem>
-                    <SelectItem value="8">8 units per case</SelectItem>
-                    <SelectItem value="12">12 units per case</SelectItem>
-                    <SelectItem value="24">24 units per case</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+           {/* Case Pack Quantity */}
+           <div className="space-y-2">
+             <Label htmlFor="units-per-case">Case Pack Quantity *</Label>
+             <Select 
+               value={String(unitsPerCase)} 
+               onValueChange={(v) => setUnitsPerCase(parseInt(v))}
+               disabled={isFieldsDisabled}
+             >
+               <SelectTrigger>
+                 <SelectValue placeholder="Select case pack" />
+               </SelectTrigger>
+               <SelectContent>
+                 {casePackSizes.length > 0 ? (
+                   casePackSizes.map((size) => (
+                     <SelectItem key={size} value={String(size)}>
+                       {size} units per case
+                     </SelectItem>
+                   ))
+                 ) : (
+                   <>
+                     <SelectItem value="1">1 unit per case</SelectItem>
+                     <SelectItem value="4">4 units per case</SelectItem>
+                     <SelectItem value="6">6 units per case</SelectItem>
+                     <SelectItem value="8">8 units per case</SelectItem>
+                     <SelectItem value="12">12 units per case</SelectItem>
+                     <SelectItem value="24">24 units per case</SelectItem>
+                   </>
+                 )}
+               </SelectContent>
+             </Select>
+           </div>
 
-          {/* Box Material */}
-          <div className="space-y-2">
-            <Label htmlFor="box-material">Box Material</Label>
-            <Select 
-              value={boxMaterialId || "__none__"} 
-              onValueChange={(v) => setBoxMaterialId(v === "__none__" ? "" : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select box material" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {boxMaterials.map((mat) => (
-                  <SelectItem key={mat.id} value={mat.id}>
-                    {mat.code} - {mat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+           {/* Box Material */}
+           <div className="space-y-2">
+             <Label htmlFor="box-material">Box Material</Label>
+             <Select 
+               value={boxMaterialId || "__none__"} 
+               onValueChange={(v) => setBoxMaterialId(v === "__none__" ? "" : v)}
+               disabled={isFieldsDisabled}
+             >
+               <SelectTrigger>
+                 <SelectValue placeholder="Select box material" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="__none__">None</SelectItem>
+                 {boxMaterials.map((mat) => (
+                   <SelectItem key={mat.id} value={mat.id}>
+                     {mat.code} - {mat.name}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
+           </div>
 
           {/* Generated SKU Display */}
           {generatedSku && (
@@ -498,11 +510,11 @@ export function EditProductSizeDialog({
           )}
 
           {/* Weight Specifications - Collapsible */}
-          <Collapsible open={weightSectionOpen} onOpenChange={setWeightSectionOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-              Weight Specifications
-              <ChevronDown className={`h-4 w-4 transition-transform ${weightSectionOpen ? 'rotate-180' : ''}`} />
-            </CollapsibleTrigger>
+           <Collapsible open={weightSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setWeightSectionOpen(next)}>
+             <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
+               Weight Specifications
+               <ChevronDown className={`h-4 w-4 transition-transform ${weightSectionOpen ? 'rotate-180' : ''}`} />
+             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
               <p className="text-xs text-muted-foreground">
                 Enter target weight. Min/Max are auto-calculated based on variance %.
@@ -516,6 +528,7 @@ export function EditProductSizeDialog({
                     value={targetWeight ?? ""}
                     onChange={(e) => setTargetWeight(e.target.value ? parseFloat(e.target.value) : null)}
                     placeholder="e.g., 2.27"
+                    disabled={isFieldsDisabled}
                   />
                 </div>
                 <div className="space-y-2">
@@ -528,6 +541,7 @@ export function EditProductSizeDialog({
                     value={variancePercent}
                     onChange={(e) => setVariancePercent(e.target.value ? parseFloat(e.target.value) : 3.5)}
                     placeholder="3.5"
+                    disabled={isFieldsDisabled}
                   />
                 </div>
               </div>
@@ -557,11 +571,11 @@ export function EditProductSizeDialog({
           </Collapsible>
 
           {/* UPC Codes - Collapsible */}
-          <Collapsible open={upcSectionOpen} onOpenChange={setUpcSectionOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-              UPC Codes
-              <ChevronDown className={`h-4 w-4 transition-transform ${upcSectionOpen ? 'rotate-180' : ''}`} />
-            </CollapsibleTrigger>
+           <Collapsible open={upcSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setUpcSectionOpen(next)}>
+             <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
+               UPC Codes
+               <ChevronDown className={`h-4 w-4 transition-transform ${upcSectionOpen ? 'rotate-180' : ''}`} />
+             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -571,7 +585,7 @@ export function EditProductSizeDialog({
                     variant="ghost" 
                     size="sm"
                     onClick={handleGenerateUpc}
-                    disabled={isGeneratingUpc}
+                    disabled={isFieldsDisabled || isGeneratingUpc}
                   >
                     {isGeneratingUpc ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -586,6 +600,7 @@ export function EditProductSizeDialog({
                   onChange={(e) => setTubUpc(e.target.value)}
                   placeholder="Enter or generate UPC"
                   maxLength={12}
+                  disabled={isFieldsDisabled}
                 />
               </div>
               <div className="space-y-2">
@@ -595,6 +610,7 @@ export function EditProductSizeDialog({
                   onChange={(e) => setCaseUpc(e.target.value)}
                   placeholder="Enter or generate GTIN-14"
                   maxLength={14}
+                  disabled={isFieldsDisabled}
                 />
               </div>
             </CollapsibleContent>
@@ -612,7 +628,8 @@ export function EditProductSizeDialog({
                 value={caseWeightKg ?? ""}
                 onChange={(e) => setCaseWeightKg(e.target.value ? parseFloat(e.target.value) : null)}
                 placeholder={calculatedCaseWeightKg !== null ? "Auto-calculated" : "Total case weight"}
-                readOnly={calculatedCaseWeightKg !== null}
+                readOnly={calculatedCaseWeightKg !== null || isFieldsDisabled}
+                disabled={isFieldsDisabled}
                 className={calculatedCaseWeightKg !== null ? "bg-muted" : ""}
               />
               {calculatedCaseWeightKg === null && targetWeight && (
@@ -631,7 +648,8 @@ export function EditProductSizeDialog({
                 value={caseCubeM3 ?? ""}
                 onChange={(e) => setCaseCubeM3(e.target.value ? parseFloat(e.target.value) : null)}
                 placeholder={calculatedCaseCubeM3 !== null ? "Auto-calculated" : "Cubic volume"}
-                readOnly={calculatedCaseCubeM3 !== null}
+                readOnly={calculatedCaseCubeM3 !== null || isFieldsDisabled}
+                disabled={isFieldsDisabled}
                 className={calculatedCaseCubeM3 !== null ? "bg-muted" : ""}
               />
               {calculatedCaseCubeM3 === null && boxMaterialId && (
@@ -643,30 +661,30 @@ export function EditProductSizeDialog({
           </div>
 
           {/* Pallet Configuration - Collapsible */}
-          <Collapsible open={palletSectionOpen} onOpenChange={setPalletSectionOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
-              <span className="flex items-center gap-2">
-                <Layers className="h-4 w-4" />
-                Pallet Configuration
-                {overhangSeverity === 'danger' && (
-                  <Badge variant="destructive" className="text-xs">Overhang</Badge>
-                )}
-                {overhangSeverity === 'warning' && (
-                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Minor Overhang</Badge>
-                )}
-              </span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
-            </CollapsibleTrigger>
+           <Collapsible open={palletSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setPalletSectionOpen(next)}>
+             <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
+               <span className="flex items-center gap-2">
+                 <Layers className="h-4 w-4" />
+                 Pallet Configuration
+                 {overhangSeverity === 'danger' && (
+                   <Badge variant="destructive" className="text-xs">Overhang</Badge>
+                 )}
+                 {overhangSeverity === 'warning' && (
+                   <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Minor Overhang</Badge>
+                 )}
+               </span>
+               <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
+             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
               {/* Pallet Type Selector */}
-              <PalletTypeSelector
-                palletType={palletType}
-                onPalletTypeChange={setPalletType}
-                customLengthIn={customPalletLengthIn}
-                customWidthIn={customPalletWidthIn}
-                onCustomLengthChange={setCustomPalletLengthIn}
-                onCustomWidthChange={setCustomPalletWidthIn}
-              />
+               <PalletTypeSelector
+                 palletType={palletType}
+                 onPalletTypeChange={(v) => !isFieldsDisabled && setPalletType(v)}
+                 customLengthIn={customPalletLengthIn}
+                 customWidthIn={customPalletWidthIn}
+                 onCustomLengthChange={(v) => !isFieldsDisabled && setCustomPalletLengthIn(v)}
+                 onCustomWidthChange={(v) => !isFieldsDisabled && setCustomPalletWidthIn(v)}
+               />
 
               <Separator />
               
@@ -685,6 +703,7 @@ export function EditProductSizeDialog({
                     placeholder="e.g., 8"
                     value={tiCount ?? ""}
                     onChange={(e) => setTiCount(e.target.value ? parseInt(e.target.value) : null)}
+                    disabled={isFieldsDisabled}
                     className={tiValidation && !tiValidation.isValid ? "border-destructive" : ""}
                   />
                   {/* Ti validation messages */}
@@ -720,6 +739,7 @@ export function EditProductSizeDialog({
                     placeholder="e.g., 5"
                     value={hiCount ?? ""}
                     onChange={(e) => setHiCount(e.target.value ? parseInt(e.target.value) : null)}
+                    disabled={isFieldsDisabled}
                   />
                   <p className="text-xs text-muted-foreground">
                     Stacked layers on pallet
@@ -728,15 +748,15 @@ export function EditProductSizeDialog({
               </div>
 
               {/* Optimization Recommendations */}
-              <OptimizationRecommendationsPanel
-                boxLengthIn={selectedBoxMaterial?.box_length_in}
-                boxWidthIn={selectedBoxMaterial?.box_width_in}
-                palletType={palletType}
-                customPalletLengthIn={customPalletLengthIn}
-                customPalletWidthIn={customPalletWidthIn}
-                currentTi={tiCount}
-                onApplyTi={setTiCount}
-              />
+               <OptimizationRecommendationsPanel
+                 boxLengthIn={selectedBoxMaterial?.box_length_in}
+                 boxWidthIn={selectedBoxMaterial?.box_width_in}
+                 palletType={palletType}
+                 customPalletLengthIn={customPalletLengthIn}
+                 customPalletWidthIn={customPalletWidthIn}
+                 currentTi={tiCount}
+                 onApplyTi={(v) => !isFieldsDisabled && setTiCount(v)}
+               />
 
               {/* Overhang Warning */}
               {overhang && overhang.hasOverhang && (
@@ -902,6 +922,7 @@ export function EditProductSizeDialog({
                       variant="outline" 
                       size="sm"
                       onClick={() => setShowLabelPrintDialog(true)}
+                      disabled={isFieldsDisabled}
                     >
                       <Printer className="h-4 w-4 mr-2" />
                       Print Pallet Label
@@ -913,31 +934,33 @@ export function EditProductSizeDialog({
           </Collapsible>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={isDefault}
-                onCheckedChange={setIsDefault}
-                id="is-default"
-              />
-              <Label htmlFor="is-default">Default Size</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={isActive}
-                onCheckedChange={setIsActive}
-                id="is-active"
-              />
-              <Label htmlFor="is-active">Active</Label>
-            </div>
+             <div className="flex items-center gap-2">
+               <Switch
+                 checked={isDefault}
+                 onCheckedChange={setIsDefault}
+                 id="is-default"
+                 disabled={isFieldsDisabled}
+               />
+               <Label htmlFor="is-default">Default Size</Label>
+             </div>
+             <div className="flex items-center gap-2">
+               <Switch
+                 checked={isActive}
+                 onCheckedChange={setIsActive}
+                 id="is-active"
+                 disabled={isFieldsDisabled}
+               />
+               <Label htmlFor="is-active">Active</Label>
+             </div>
           </div>
         </div>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isFieldsDisabled}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving || isLoading}>
+          <Button onClick={handleSave} disabled={isFieldsDisabled || isSaving || isLoading}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEditing ? "Save Changes" : "Add Size"}
           </Button>
@@ -948,7 +971,10 @@ export function EditProductSizeDialog({
       {tiCount && hiCount && selectedContainer && (
         <PalletLabelPrintDialog
           open={showLabelPrintDialog}
-          onOpenChange={setShowLabelPrintDialog}
+          onOpenChange={(nextOpen) => {
+            if (isFieldsDisabled) return;
+            setShowLabelPrintDialog(nextOpen);
+          }}
           data={{
             productName,
             productSku: generatedSku || productSku,
