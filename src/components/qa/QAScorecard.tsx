@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   AlertCircle, 
@@ -9,12 +10,16 @@ import {
   CheckCircle2, 
   ChevronDown, 
   ChevronRight,
-  Shield
+  Shield,
+  ShieldAlert
 } from 'lucide-react';
 import { useQAChecks } from '@/hooks/useQAChecks';
 import { QACheckItem } from './QACheckItem';
+import { OverrideRequestDialog } from './OverrideRequestDialog';
+import { DirectOverrideDialog } from './DirectOverrideDialog';
 import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel, DocumentComplianceSummary } from '@/components/approval';
 import { useConditionalDurationMaterials } from '@/hooks/useQASettings';
+import { useCanRequestOverride, useCanDirectOverride, usePendingOverrideForRecord } from '@/hooks/useOverrideRequests';
 import type { MaterialCheckContext } from '@/types/qa-checks';
 
 interface QAScorecardProps {
@@ -44,8 +49,16 @@ export function QAScorecard({
   const [warningsOpen, setWarningsOpen] = useState(true);
   const [recommendationsOpen, setRecommendationsOpen] = useState(false);
   const [passedOpen, setPassedOpen] = useState(false);
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
   
   const conditionalDurations = useConditionalDurationMaterials();
+  const canRequestOverride = useCanRequestOverride();
+  const canDirectOverride = useCanDirectOverride();
+  const { data: pendingOverride } = usePendingOverrideForRecord(
+    material.id, 
+    'materials', 
+    !!(material.id && canRequestOverride)
+  );
 
   const context: MaterialCheckContext = {
     material,
@@ -68,6 +81,10 @@ export function QAScorecard({
   const conditionalDays = material.category 
     ? conditionalDurations[material.category] || 30 
     : 30;
+
+  // Get blocked checks for override
+  const blockedChecks = [...summary.criticalFailures, ...summary.importantFailures];
+  const showOverrideButton = canRequestOverride && blockedChecks.length > 0 && !pendingOverride;
 
   // Determine eligibility text
   const getEligibilityContent = () => {
@@ -178,6 +195,24 @@ export function QAScorecard({
             <div className="text-xs text-muted-foreground mb-1">Approval Eligibility</div>
             {getEligibilityContent()}
           </div>
+          
+          {/* Override Button */}
+          {showOverrideButton && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setOverrideDialogOpen(true)}
+              className="gap-2"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              {canDirectOverride ? 'Override (Admin)' : 'Request Override'}
+            </Button>
+          )}
+          {pendingOverride && (
+            <Badge variant="outline" className="text-orange-600">
+              Override Pending Approval
+            </Badge>
+          )}
         </CardContent>
       </Card>
 
@@ -325,6 +360,31 @@ export function QAScorecard({
         tableName="materials"
         recordId={material.id}
       />
+
+      {/* Override Dialogs */}
+      {canDirectOverride ? (
+        <DirectOverrideDialog
+          open={overrideDialogOpen}
+          onOpenChange={setOverrideDialogOpen}
+          recordId={material.id}
+          tableName="materials"
+          recordName={`${material.name} (${material.code})`}
+          blockedChecks={blockedChecks}
+          category={material.category || undefined}
+          onSuccess={() => onStatusChange?.(material.approval_status || 'Draft')}
+        />
+      ) : (
+        <OverrideRequestDialog
+          open={overrideDialogOpen}
+          onOpenChange={setOverrideDialogOpen}
+          recordId={material.id}
+          tableName="materials"
+          recordName={`${material.name} (${material.code})`}
+          blockedChecks={blockedChecks}
+          category={material.category || undefined}
+          onSuccess={() => onStatusChange?.(material.approval_status || 'Draft')}
+        />
+      )}
     </div>
   );
 }

@@ -155,7 +155,9 @@ export function PendingOverrideRequests({ onViewRecord }: PendingOverrideRequest
                 <p>
                   <span className="text-muted-foreground">Requested by:</span>{' '}
                   <span className="font-medium">
-                    {request.requester?.full_name || request.requester?.email || 'Unknown'}
+                    {request.requester?.first_name && request.requester?.last_name 
+                      ? `${request.requester.first_name} ${request.requester.last_name}`
+                      : request.requester?.email || 'Unknown'}
                   </span>
                 </p>
 

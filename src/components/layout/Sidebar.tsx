@@ -91,6 +91,8 @@ const navItems: NavItem[] = [
     icon: ClipboardCheck,
     children: [
       { title: 'QA Dashboard', href: '/quality/dashboard' },
+      { title: 'Work Queue', href: '/quality/work-queue' },
+      { title: 'Override Requests', href: '/quality/override-requests' },
       { title: 'Document Watchlist', href: '/quality/documents' },
     ],
   },

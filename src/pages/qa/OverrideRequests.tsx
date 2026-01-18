@@ -120,10 +120,14 @@ export default function OverrideRequestsPage() {
                         </TableCell>
                         <TableCell>{getReasonLabel(req.override_reason)}</TableCell>
                         <TableCell>
-                          {req.requester?.full_name || req.requester?.email || 'Unknown'}
+                          {req.requester?.first_name && req.requester?.last_name
+                            ? `${req.requester.first_name} ${req.requester.last_name}`
+                            : req.requester?.email || 'Unknown'}
                         </TableCell>
                         <TableCell>
-                          {req.reviewer?.full_name || 'Unknown'}
+                          {req.reviewer?.first_name && req.reviewer?.last_name
+                            ? `${req.reviewer.first_name} ${req.reviewer.last_name}`
+                            : 'Unknown'}
                         </TableCell>
                         <TableCell>
                           {req.reviewed_at && format(new Date(req.reviewed_at), 'PPp')}
@@ -179,10 +183,14 @@ export default function OverrideRequestsPage() {
                         </TableCell>
                         <TableCell>{getReasonLabel(req.override_reason)}</TableCell>
                         <TableCell>
-                          {req.requester?.full_name || req.requester?.email || 'Unknown'}
+                          {req.requester?.first_name && req.requester?.last_name
+                            ? `${req.requester.first_name} ${req.requester.last_name}`
+                            : req.requester?.email || 'Unknown'}
                         </TableCell>
                         <TableCell>
-                          {req.reviewer?.full_name || 'Unknown'}
+                          {req.reviewer?.first_name && req.reviewer?.last_name
+                            ? `${req.reviewer.first_name} ${req.reviewer.last_name}`
+                            : 'Unknown'}
                         </TableCell>
                         <TableCell>
                           {req.reviewed_at && format(new Date(req.reviewed_at), 'PPp')}
