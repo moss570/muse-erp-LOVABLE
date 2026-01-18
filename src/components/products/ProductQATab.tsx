@@ -18,6 +18,7 @@ import { SelectTestTemplatesDialog } from "./SelectTestTemplatesDialog";
 interface ProductQATabProps {
   productId: string;
   productCategoryId?: string;
+  isFieldsDisabled?: boolean;
 }
 
 const PRODUCTION_STAGES = [
@@ -27,7 +28,7 @@ const PRODUCTION_STAGES = [
   { value: "case_pack", label: "Case Pack" },
 ];
 
-export function ProductQATab({ productId, productCategoryId }: ProductQATabProps) {
+export function ProductQATab({ productId, productCategoryId, isFieldsDisabled = false }: ProductQATabProps) {
   const { requirements, createRequirement, deleteRequirement, bulkCreateRequirements, isLoading } = 
     useProductQARequirements(productId);
   const { categories } = useProductCategories();
@@ -60,6 +61,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
     test_method: string | null;
     frequency: string | null;
   }>) => {
+    if (isFieldsDisabled) return;
     const newRequirements = templates.map((t, index) => ({
       product_id: productId,
       test_template_id: t.test_template_id,
@@ -81,6 +83,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
 
 
   const handleAddRequirement = async () => {
+    if (isFieldsDisabled) return;
     if (!newReq.parameter_name) {
       toast.error("Parameter name is required");
       return;
@@ -113,6 +116,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
 
   // Immediate save/delete on claim toggle
   const handleClaimToggle = async (claim: string, isCurrentlyChecked: boolean) => {
+    if (isFieldsDisabled) return;
     if (isCurrentlyChecked) {
       // Find and delete the existing claim
       const existing = claims.find(c => c.attribute_value === claim);
@@ -150,7 +154,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsSelectingTemplates(true)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsSelectingTemplates(true)} disabled={isFieldsDisabled}>
                 <FlaskConical className="h-4 w-4 mr-2" />
                 Select from Test Library
               </Button>
@@ -195,7 +199,8 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => deleteRequirement.mutate(req.id)}
+                      onClick={() => !isFieldsDisabled && deleteRequirement.mutate(req.id)}
+                      disabled={isFieldsDisabled}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -219,6 +224,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                       placeholder="Parameter name"
                       value={newReq.parameter_name}
                       onChange={(e) => setNewReq({ ...newReq, parameter_name: e.target.value })}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
@@ -226,6 +232,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                       placeholder="Target"
                       value={newReq.target_value}
                       onChange={(e) => setNewReq({ ...newReq, target_value: e.target.value })}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
@@ -234,6 +241,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                       placeholder="Min"
                       value={newReq.min_value}
                       onChange={(e) => setNewReq({ ...newReq, min_value: e.target.value })}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
@@ -242,6 +250,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                       placeholder="Max"
                       value={newReq.max_value}
                       onChange={(e) => setNewReq({ ...newReq, max_value: e.target.value })}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
@@ -250,12 +259,14 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                       className="w-16"
                       value={newReq.uom}
                       onChange={(e) => setNewReq({ ...newReq, uom: e.target.value })}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
                     <Select
                       value={newReq.required_at_stage || "__none__"}
                       onValueChange={(val) => setNewReq({ ...newReq, required_at_stage: val === "__none__" ? "" : val })}
+                      disabled={isFieldsDisabled}
                     >
                       <SelectTrigger className="w-28">
                         <SelectValue placeholder="Stage" />
@@ -274,14 +285,15 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                     <Switch
                       checked={newReq.is_critical}
                       onCheckedChange={(checked) => setNewReq({ ...newReq, is_critical: checked })}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button type="button" size="sm" onClick={handleAddRequirement}>
+                      <Button type="button" size="sm" onClick={handleAddRequirement} disabled={isFieldsDisabled}>
                         Add
                       </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setIsAddingReq(false)}>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setIsAddingReq(false)} disabled={isFieldsDisabled}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -292,7 +304,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
           </Table>
 
           {!isAddingReq && (
-            <Button type="button" variant="outline" className="mt-4" onClick={() => setIsAddingReq(true)}>
+            <Button type="button" variant="outline" className="mt-4" onClick={() => setIsAddingReq(true)} disabled={isFieldsDisabled}>
               <Plus className="h-4 w-4 mr-2" />
               Add Requirement
             </Button>
@@ -317,7 +329,7 @@ export function ProductQATab({ productId, productCategoryId }: ProductQATabProps
                     id={`claim-${claim}`}
                     checked={isChecked}
                     onCheckedChange={() => handleClaimToggle(claim, isChecked)}
-                    disabled={isPending}
+                    disabled={isFieldsDisabled || isPending}
                   />
                   <label
                     htmlFor={`claim-${claim}`}

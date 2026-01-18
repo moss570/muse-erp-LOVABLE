@@ -19,9 +19,16 @@ interface ProductSizesTabProps {
   productSku?: string;
   productName?: string;
   requiresUpc?: boolean;
+  isFieldsDisabled?: boolean;
 }
 
-export function ProductSizesTab({ productId, productSku = "", productName = "Product", requiresUpc = false }: ProductSizesTabProps) {
+export function ProductSizesTab({
+  productId,
+  productSku = "",
+  productName = "Product",
+  requiresUpc = false,
+  isFieldsDisabled = false,
+}: ProductSizesTabProps) {
   const { sizes, createSize, updateSize, deleteSize, isLoading } = useProductSizes(productId);
   const [isAddingSize, setIsAddingSize] = useState(false);
   const [generatingUpc, setGeneratingUpc] = useState<string | null>(null);
@@ -112,6 +119,7 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
   };
 
   const handleSetDefault = async (sizeId: string) => {
+    if (isFieldsDisabled) return;
     // First, unset all defaults
     for (const size of sizes) {
       if (size.is_default && size.id !== sizeId) {
@@ -197,6 +205,7 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
                     <Switch
                       checked={size.is_default}
                       onCheckedChange={() => handleSetDefault(size.id)}
+                      disabled={isFieldsDisabled}
                     />
                   </TableCell>
                   <TableCell>
@@ -205,20 +214,22 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
                         variant="ghost"
                         size="icon"
                         onClick={(e) => {
+                          if (isFieldsDisabled) return;
                           e.stopPropagation();
                           e.preventDefault();
                           setEditingSize(size);
                           setEditDialogOpen(true);
                         }}
                         title="Edit size"
+                        disabled={isFieldsDisabled}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleGenerateUPC(size.id)}
-                        disabled={generatingUpc === size.id}
+                        onClick={() => !isFieldsDisabled && handleGenerateUPC(size.id)}
+                        disabled={isFieldsDisabled || generatingUpc === size.id}
                         title="Generate UPC codes"
                       >
                         {generatingUpc === size.id ? (
@@ -230,7 +241,8 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteSize.mutate(size.id)}
+                        onClick={() => !isFieldsDisabled && deleteSize.mutate(size.id)}
+                        disabled={isFieldsDisabled}
                         className="text-destructive hover:text-destructive"
                         title="Delete size"
                       >
@@ -322,11 +334,13 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
                 type="button"
                 variant="outline"
                 onClick={(e) => {
+                  if (isFieldsDisabled) return;
                   e.preventDefault();
                   e.stopPropagation();
                   setEditingSize(null);
                   setEditDialogOpen(true);
                 }}
+                disabled={isFieldsDisabled}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Size
@@ -338,7 +352,10 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
 
       <EditProductSizeDialog
         open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (isFieldsDisabled) return;
+          setEditDialogOpen(nextOpen);
+        }}
         productId={productId}
         productSku={productSku}
         productName={productName}
@@ -346,6 +363,7 @@ export function ProductSizesTab({ productId, productSku = "", productName = "Pro
         onSave={() => {
           // Sizes are automatically refetched via query invalidation
         }}
+        isFieldsDisabled={isFieldsDisabled}
       />
     </div>
   );

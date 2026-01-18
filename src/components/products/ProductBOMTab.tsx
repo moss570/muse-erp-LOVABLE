@@ -72,6 +72,7 @@ import {
 interface ProductBOMTabProps {
   productId: string;
   productName: string;
+  isFieldsDisabled?: boolean;
 }
 
 interface MaterialSupplier {
@@ -143,7 +144,7 @@ interface Recipe {
   } | null;
 }
 
-export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
+export function ProductBOMTab({ productId, productName, isFieldsDisabled = false }: ProductBOMTabProps) {
   const [createRecipeDialogOpen, setCreateRecipeDialogOpen] = useState(false);
   const [editRecipeDialogOpen, setEditRecipeDialogOpen] = useState(false);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
@@ -612,7 +613,8 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               type="button"
               variant="outline" 
               size="sm" 
-              onClick={() => setCreateSubRecipeDialogOpen(true)}
+              onClick={() => !isFieldsDisabled && setCreateSubRecipeDialogOpen(true)}
+              disabled={isFieldsDisabled}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Sub BOM
@@ -637,10 +639,11 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
                   itemsLoading={itemsLoading && selectedRecipe?.id === tab.recipe.id}
                   isPrimary={tab.id === "primary"}
                   primaryRecipeId={activePrimaryRecipe.id}
-                  onEditRecipe={() => setEditRecipeDialogOpen(true)}
-                  onAddMaterial={() => setAddItemDialogOpen(true)}
-                  onEditItem={setEditingItem}
-                  onDeleteItem={setDeleteItemId}
+                  isFieldsDisabled={isFieldsDisabled}
+                  onEditRecipe={() => !isFieldsDisabled && setEditRecipeDialogOpen(true)}
+                  onAddMaterial={() => !isFieldsDisabled && setAddItemDialogOpen(true)}
+                  onEditItem={(item) => !isFieldsDisabled && setEditingItem(item)}
+                  onDeleteItem={(itemId) => !isFieldsDisabled && setDeleteItemId(itemId)}
                 />
               </TabsContent>
             ))}
@@ -681,7 +684,10 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       )}
 
       {/* Edit Recipe Dialog */}
-      <Dialog open={editRecipeDialogOpen} onOpenChange={setEditRecipeDialogOpen}>
+      <Dialog open={editRecipeDialogOpen} onOpenChange={(nextOpen) => {
+        if (isFieldsDisabled) return;
+        setEditRecipeDialogOpen(nextOpen);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit {selectedRecipe?.recipe_type === "sub" ? "Sub BOM" : "Recipe"}</DialogTitle>
@@ -704,6 +710,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               onCancel={() => setEditRecipeDialogOpen(false)}
               isLoading={updateRecipeMutation.isPending}
               showActiveToggle
+              isFieldsDisabled={isFieldsDisabled}
               onDelete={selectedRecipe.recipe_type === "sub" ? () => {
                 setEditRecipeDialogOpen(false);
                 setDeleteRecipeDialogOpen(true);
@@ -715,7 +722,10 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       </Dialog>
 
       {/* Create Sub Recipe Dialog */}
-      <Dialog open={createSubRecipeDialogOpen} onOpenChange={setCreateSubRecipeDialogOpen}>
+      <Dialog open={createSubRecipeDialogOpen} onOpenChange={(nextOpen) => {
+        if (isFieldsDisabled) return;
+        setCreateSubRecipeDialogOpen(nextOpen);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Sub BOM</DialogTitle>
@@ -735,6 +745,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
             onSave={(data) => createSubRecipeMutation.mutate(data)}
             onCancel={() => setCreateSubRecipeDialogOpen(false)}
             isLoading={createSubRecipeMutation.isPending}
+            isFieldsDisabled={isFieldsDisabled}
           />
         </DialogContent>
       </Dialog>
@@ -765,7 +776,10 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
       </AlertDialog>
 
       {/* Add Item Dialog */}
-      <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
+      <Dialog open={addItemDialogOpen} onOpenChange={(nextOpen) => {
+        if (isFieldsDisabled) return;
+        setAddItemDialogOpen(nextOpen);
+      }}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Material to {selectedRecipe?.recipe_type === "sub" ? "Sub BOM" : "Recipe"}</DialogTitle>
@@ -782,13 +796,17 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               onSave={(data) => addItemMutation.mutate(data)}
               onCancel={() => setAddItemDialogOpen(false)}
               isLoading={addItemMutation.isPending}
+              isFieldsDisabled={isFieldsDisabled}
             />
           )}
         </DialogContent>
       </Dialog>
 
       {/* Edit Item Dialog */}
-      <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+      <Dialog open={!!editingItem} onOpenChange={(open) => {
+        if (isFieldsDisabled) return;
+        !open && setEditingItem(null);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Recipe Item</DialogTitle>
@@ -803,6 +821,7 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
               onSave={(data) => updateItemMutation.mutate({ id: editingItem.id, ...data })}
               onCancel={() => setEditingItem(null)}
               isLoading={updateItemMutation.isPending}
+              isFieldsDisabled={isFieldsDisabled}
             />
           )}
         </DialogContent>
@@ -820,7 +839,8 @@ export function ProductBOMTab({ productId, productName }: ProductBOMTabProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteItemId && deleteItemMutation.mutate(deleteItemId)}
+              onClick={() => !isFieldsDisabled && deleteItemId && deleteItemMutation.mutate(deleteItemId)}
+              disabled={isFieldsDisabled}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteItemMutation.isPending ? (
@@ -841,10 +861,12 @@ function BOMTable({
   recipeItems,
   onEditItem,
   onDeleteItem,
+  isFieldsDisabled = false,
 }: {
   recipeItems: RecipeItem[];
   onEditItem: (item: RecipeItem) => void;
   onDeleteItem: (itemId: string) => void;
+  isFieldsDisabled?: boolean;
 }) {
   // Get the cost per purchase unit from a material (using supplier cost if base cost not set)
   const getMaterialCostPerPurchaseUnit = (material: {
@@ -972,14 +994,16 @@ function BOMTable({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onEditItem(item)}
+                    onClick={() => !isFieldsDisabled && onEditItem(item)}
+                    disabled={isFieldsDisabled}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onDeleteItem(item.id)}
+                    onClick={() => !isFieldsDisabled && onDeleteItem(item.id)}
+                    disabled={isFieldsDisabled}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -1012,6 +1036,7 @@ function RecipeContent({
   itemsLoading,
   isPrimary,
   primaryRecipeId,
+  isFieldsDisabled = false,
   onEditRecipe,
   onAddMaterial,
   onEditItem,
@@ -1022,6 +1047,7 @@ function RecipeContent({
   itemsLoading: boolean;
   isPrimary: boolean;
   primaryRecipeId: string;
+  isFieldsDisabled?: boolean;
   onEditRecipe: () => void;
   onAddMaterial: () => void;
   onEditItem: (item: RecipeItem) => void;
@@ -1046,11 +1072,11 @@ function RecipeContent({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onEditRecipe}>
+          <Button variant="outline" size="sm" onClick={onEditRecipe} disabled={isFieldsDisabled}>
             <Settings2 className="h-4 w-4 mr-1" />
             Edit
           </Button>
-          <Button size="sm" onClick={onAddMaterial}>
+          <Button size="sm" onClick={onAddMaterial} disabled={isFieldsDisabled}>
             <Plus className="h-4 w-4 mr-1" />
             Add Material
           </Button>
@@ -1079,7 +1105,8 @@ function RecipeContent({
         <BOMTable 
           recipeItems={recipeItems} 
           onEditItem={onEditItem} 
-          onDeleteItem={onDeleteItem} 
+          onDeleteItem={onDeleteItem}
+          isFieldsDisabled={isFieldsDisabled}
         />
       )}
 
@@ -1117,6 +1144,7 @@ function RecipeForm({
   onCancel,
   isLoading,
   showActiveToggle = false,
+  isFieldsDisabled = false,
   onDelete,
   showDeleteButton = false,
 }: {
@@ -1140,6 +1168,7 @@ function RecipeForm({
   onCancel: () => void;
   isLoading: boolean;
   showActiveToggle?: boolean;
+  isFieldsDisabled?: boolean;
   onDelete?: () => void;
   showDeleteButton?: boolean;
 }) {
@@ -1152,6 +1181,7 @@ function RecipeForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isFieldsDisabled) return;
     onSave({
       recipe_name: recipeName,
       recipe_version: recipeVersion,
@@ -1171,6 +1201,7 @@ function RecipeForm({
           value={recipeName}
           onChange={(e) => setRecipeName(e.target.value)}
           required
+          disabled={isFieldsDisabled}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -1180,6 +1211,7 @@ function RecipeForm({
             id="recipe-version"
             value={recipeVersion}
             onChange={(e) => setRecipeVersion(e.target.value)}
+            disabled={isFieldsDisabled}
           />
         </div>
         <div className="space-y-2">
@@ -1191,12 +1223,13 @@ function RecipeForm({
             value={batchSize}
             onChange={(e) => setBatchSize(e.target.value)}
             required
+            disabled={isFieldsDisabled}
           />
         </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="batch-unit">Batch Unit</Label>
-        <Select value={batchUnitId} onValueChange={setBatchUnitId}>
+        <Select value={batchUnitId} onValueChange={setBatchUnitId} disabled={isFieldsDisabled}>
           <SelectTrigger>
             <SelectValue placeholder="Select unit" />
           </SelectTrigger>
@@ -1217,6 +1250,7 @@ function RecipeForm({
           onChange={(e) => setInstructions(e.target.value)}
           placeholder="Recipe instructions..."
           rows={4}
+          disabled={isFieldsDisabled}
         />
       </div>
       {showActiveToggle && (
@@ -1227,6 +1261,7 @@ function RecipeForm({
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300"
+            disabled={isFieldsDisabled}
           />
           <Label htmlFor="is-active">Active</Label>
         </div>
@@ -1234,17 +1269,17 @@ function RecipeForm({
       <DialogFooter className="flex justify-between">
         <div>
           {showDeleteButton && onDelete && (
-            <Button type="button" variant="destructive" onClick={onDelete}>
+            <Button type="button" variant="destructive" onClick={onDelete} disabled={isFieldsDisabled}>
               <Trash2 className="h-4 w-4 mr-1" />
               Delete
             </Button>
           )}
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isFieldsDisabled}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading || !recipeName}>
+          <Button type="submit" disabled={isFieldsDisabled || isLoading || !recipeName}>
             {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Save
           </Button>
@@ -1263,6 +1298,7 @@ function AddItemForm({
   onSave,
   onCancel,
   isLoading,
+  isFieldsDisabled = false,
 }: {
   recipeId: string;
   listedMaterials: { id: string; name: string; code: string; linkedMaterialsCount: number }[];
@@ -1278,6 +1314,7 @@ function AddItemForm({
   }) => void;
   onCancel: () => void;
   isLoading: boolean;
+  isFieldsDisabled?: boolean;
 }) {
   const [listedMaterialId, setListedMaterialId] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -1295,6 +1332,7 @@ function AddItemForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isFieldsDisabled) return;
     onSave({
       recipe_id: recipeId,
       listed_material_id: listedMaterialId,
@@ -1309,13 +1347,14 @@ function AddItemForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>Listed Material</Label>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={(nextOpen) => !isFieldsDisabled && setOpen(nextOpen)}>
           <PopoverTrigger asChild>
             <Button
               type="button"
               variant="outline"
               role="combobox"
               aria-expanded={open}
+              disabled={isFieldsDisabled}
               className={cn(
                 "w-full justify-between",
                 selectedMaterial?.linkedMaterialsCount === 0 && "border-amber-500 bg-amber-50"
@@ -1339,7 +1378,7 @@ function AddItemForm({
           </PopoverTrigger>
           <PopoverContent className="w-[600px] p-0" align="start">
             <Command>
-              <CommandInput placeholder="Search by name or code..." />
+              <CommandInput placeholder="Search by name or code..." disabled={isFieldsDisabled} />
               <CommandList>
                 <CommandEmpty>No listed material found.</CommandEmpty>
                 <CommandGroup className="max-h-[300px] overflow-auto">
@@ -1348,9 +1387,11 @@ function AddItemForm({
                       key={mat.id}
                       value={`${mat.code} ${mat.name}`}
                       onSelect={() => {
+                        if (isFieldsDisabled) return;
                         setListedMaterialId(mat.id);
                         setOpen(false);
                       }}
+                      disabled={isFieldsDisabled}
                       className={cn(
                         mat.linkedMaterialsCount === 0 && "bg-amber-50"
                       )}
@@ -1401,11 +1442,12 @@ function AddItemForm({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             required
+            disabled={isFieldsDisabled}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="unit">Unit</Label>
-          <Select value={unitId} onValueChange={setUnitId}>
+          <Select value={unitId} onValueChange={setUnitId} disabled={isFieldsDisabled}>
             <SelectTrigger>
               <SelectValue placeholder="Select unit" />
             </SelectTrigger>
@@ -1427,6 +1469,7 @@ function AddItemForm({
           step="0.1"
           value={wastage}
           onChange={(e) => setWastage(e.target.value)}
+          disabled={isFieldsDisabled}
         />
       </div>
       <div className="space-y-2">
@@ -1436,13 +1479,14 @@ function AddItemForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Optional notes..."
+          disabled={isFieldsDisabled}
         />
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isFieldsDisabled}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading || !listedMaterialId || !quantity}>
+        <Button type="submit" disabled={isFieldsDisabled || isLoading || !listedMaterialId || !quantity}>
           {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Add Material
         </Button>
@@ -1458,6 +1502,7 @@ function EditItemForm({
   onSave,
   onCancel,
   isLoading,
+  isFieldsDisabled = false,
 }: {
   item: RecipeItem;
   units: { id: string; code: string; name: string }[];
@@ -1469,6 +1514,7 @@ function EditItemForm({
   }) => void;
   onCancel: () => void;
   isLoading: boolean;
+  isFieldsDisabled?: boolean;
 }) {
   const [quantity, setQuantity] = useState(item.quantity_required.toString());
   const [unitId, setUnitId] = useState(item.unit_id || "");
@@ -1477,6 +1523,7 @@ function EditItemForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isFieldsDisabled) return;
     onSave({
       quantity_required: parseFloat(quantity) || 0,
       unit_id: unitId || null,
@@ -1497,11 +1544,12 @@ function EditItemForm({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             required
+            disabled={isFieldsDisabled}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="unit">Unit</Label>
-          <Select value={unitId} onValueChange={setUnitId}>
+          <Select value={unitId} onValueChange={setUnitId} disabled={isFieldsDisabled}>
             <SelectTrigger>
               <SelectValue placeholder="Select unit" />
             </SelectTrigger>
@@ -1523,6 +1571,7 @@ function EditItemForm({
           step="0.1"
           value={wastage}
           onChange={(e) => setWastage(e.target.value)}
+          disabled={isFieldsDisabled}
         />
       </div>
       <div className="space-y-2">
@@ -1532,13 +1581,14 @@ function EditItemForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Optional notes..."
+          disabled={isFieldsDisabled}
         />
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isFieldsDisabled}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isFieldsDisabled || isLoading}>
           {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save Changes
         </Button>
