@@ -1,4 +1,4 @@
-import { AlertTriangle, AlertCircle, Clock, FileText, ClipboardCheck } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Clock, FileText, ClipboardCheck, FileX } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { WorkQueueSummary as WorkQueueSummaryType } from '@/hooks/useQAWorkQueue';
@@ -32,11 +32,18 @@ export function WorkQueueSummary({ summary, isLoading }: WorkQueueSummaryProps) 
       bgColor: 'bg-yellow-500/10',
     },
     {
-      label: 'Docs',
+      label: 'Expiring',
       value: summary.docsExpiring,
       icon: FileText,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
+    },
+    {
+      label: 'Missing',
+      value: summary.docsMissing,
+      icon: FileX,
+      color: 'text-red-400',
+      bgColor: 'bg-red-400/10',
     },
     {
       label: 'Reviews',
@@ -50,7 +57,7 @@ export function WorkQueueSummary({ summary, isLoading }: WorkQueueSummaryProps) 
   return (
     <Card>
       <CardContent className="pt-4">
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-6 gap-4">
           {cards.map((card) => {
             const Icon = card.icon;
             return (

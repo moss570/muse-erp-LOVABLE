@@ -22,6 +22,7 @@ const TYPE_LABELS: Record<WorkQueueItemType, string> = {
   material_issue_important: 'Material Issue (Important)',
   supplier_issue: 'Supplier Issue',
   document_expiry: 'Document Expiry',
+  missing_required_doc: 'Missing Required Document',
   conditional_expiry: 'Conditional Expiring',
   override_request: 'Override Request',
   override_followup: 'Override Follow-up',
