@@ -5,3 +5,7 @@ export { CapaStatusBadge } from './CapaStatusBadge';
 export { CapaSeverityBadge } from './CapaSeverityBadge';
 export { CapaFormDialog } from './CapaFormDialog';
 export { CapaDetailDialog } from './CapaDetailDialog';
+export { FiveWhysAnalysis } from './FiveWhysAnalysis';
+export { FishboneDiagram } from './FishboneDiagram';
+export { CapaTaskList } from './CapaTaskList';
+export { CapaActivityTimeline } from './CapaActivityTimeline';

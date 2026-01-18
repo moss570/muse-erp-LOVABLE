@@ -301,3 +301,201 @@ export interface CapaFilters {
   date_to?: string;
   search?: string;
 }
+
+// ============================================
+// CAPA TASKS
+// ============================================
+
+export type CapaTaskType = 
+  | 'containment'
+  | 'investigation'
+  | 'corrective'
+  | 'preventive'
+  | 'verification'
+  | 'effectiveness';
+
+export type CapaTaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'overdue';
+
+export interface CapaTask {
+  id: string;
+  capa_id: string;
+  task_type: CapaTaskType;
+  title: string;
+  description: string | null;
+  assigned_to: string | null;
+  due_date: string | null;
+  status: CapaTaskStatus;
+  completed_date: string | null;
+  completed_by: string | null;
+  completion_notes: string | null;
+  evidence_required: boolean;
+  evidence_attached: boolean;
+  sort_order: number;
+  created_at: string;
+  created_by: string | null;
+  // Joined
+  assigned_to_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+}
+
+export const CAPA_TASK_TYPE_CONFIG: Record<CapaTaskType, { label: string; icon: string; color: string }> = {
+  containment: { label: 'Containment', icon: 'ShieldAlert', color: 'red' },
+  investigation: { label: 'Investigation', icon: 'Search', color: 'amber' },
+  corrective: { label: 'Corrective Action', icon: 'Wrench', color: 'orange' },
+  preventive: { label: 'Preventive Action', icon: 'Shield', color: 'blue' },
+  verification: { label: 'Verification', icon: 'CheckCircle2', color: 'purple' },
+  effectiveness: { label: 'Effectiveness', icon: 'TrendingUp', color: 'green' },
+};
+
+// ============================================
+// ROOT CAUSE ANALYSIS
+// ============================================
+
+export type RcaMethod = 'five_whys' | 'fishbone' | 'fault_tree' | 'pareto' | 'other';
+
+export interface FiveWhysEntry {
+  level: number;
+  question: string;
+  answer: string;
+}
+
+export interface FishboneCategory {
+  name: string;
+  causes: string[];
+}
+
+export interface RootCauseAnalysis {
+  id: string;
+  capa_id: string;
+  method: RcaMethod;
+  five_whys_data: FiveWhysEntry[] | null;
+  fishbone_data: { categories: FishboneCategory[] } | null;
+  analysis_summary: string | null;
+  root_cause_statement: string | null;
+  contributing_factors: string[] | null;
+  analyzed_by: string | null;
+  analyzed_at: string;
+  updated_at: string;
+  // Joined
+  analyzed_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+}
+
+export type RootCauseCategory = 
+  | 'human_error'
+  | 'equipment_failure'
+  | 'material_defect'
+  | 'method_deviation'
+  | 'environmental'
+  | 'measurement_error'
+  | 'management_system'
+  | 'other';
+
+export const ROOT_CAUSE_CATEGORY_CONFIG: Record<RootCauseCategory, {
+  label: string;
+  description: string;
+  icon: string;
+}> = {
+  human_error: {
+    label: 'Human Error',
+    description: 'Training gaps, procedural non-compliance, or operator mistakes',
+    icon: 'User',
+  },
+  equipment_failure: {
+    label: 'Equipment Failure',
+    description: 'Machine malfunction, calibration drift, or maintenance issues',
+    icon: 'Wrench',
+  },
+  material_defect: {
+    label: 'Material Defect',
+    description: 'Raw material quality issues or supplier problems',
+    icon: 'Package',
+  },
+  method_deviation: {
+    label: 'Method/Process',
+    description: 'SOP inadequacy, process design flaws, or procedure gaps',
+    icon: 'GitBranch',
+  },
+  environmental: {
+    label: 'Environmental',
+    description: 'Temperature, humidity, contamination, or facility issues',
+    icon: 'Cloud',
+  },
+  measurement_error: {
+    label: 'Measurement Error',
+    description: 'Testing errors, instrument issues, or sampling problems',
+    icon: 'Ruler',
+  },
+  management_system: {
+    label: 'Management System',
+    description: 'Policy gaps, resource allocation, or organizational issues',
+    icon: 'Building',
+  },
+  other: {
+    label: 'Other',
+    description: 'Other root cause not covered by standard categories',
+    icon: 'MoreHorizontal',
+  },
+};
+
+export const RCA_METHOD_CONFIG: Record<RcaMethod, { label: string; description: string }> = {
+  five_whys: { label: '5 Whys', description: 'Ask "why" repeatedly to identify root cause' },
+  fishbone: { label: 'Fishbone (Ishikawa)', description: 'Diagram showing cause-and-effect relationships' },
+  fault_tree: { label: 'Fault Tree Analysis', description: 'Top-down deductive analysis' },
+  pareto: { label: 'Pareto Analysis', description: 'Identify the vital few causes from the trivial many' },
+  other: { label: 'Other', description: 'Alternative root cause analysis method' },
+};
+
+// ============================================
+// CAPA APPROVALS
+// ============================================
+
+export type ApprovalStage = 
+  | 'containment'
+  | 'root_cause'
+  | 'action_plan'
+  | 'implementation'
+  | 'verification'
+  | 'closure';
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested';
+
+export interface CapaApproval {
+  id: string;
+  capa_id: string;
+  stage: ApprovalStage;
+  status: ApprovalStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  comments: string | null;
+  revision_comments: string | null;
+  requested_at: string;
+  requested_by: string | null;
+  // Joined
+  approved_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+  requested_by_profile?: { id: string; first_name: string | null; last_name: string | null } | null;
+}
+
+export const APPROVAL_STAGE_CONFIG: Record<ApprovalStage, { label: string; step: number }> = {
+  containment: { label: 'Containment', step: 1 },
+  root_cause: { label: 'Root Cause', step: 2 },
+  action_plan: { label: 'Action Plan', step: 3 },
+  implementation: { label: 'Implementation', step: 4 },
+  verification: { label: 'Verification', step: 5 },
+  closure: { label: 'Closure', step: 6 },
+};
+
+// ============================================
+// WORKFLOW STATE
+// ============================================
+
+export interface CapaWorkflowState {
+  currentPhase: 'containment' | 'investigation' | 'planning' | 'implementation' | 'verification' | 'effectiveness' | 'closed';
+  containmentComplete: boolean;
+  investigationComplete: boolean;
+  actionPlanComplete: boolean;
+  implementationComplete: boolean;
+  verificationComplete: boolean;
+  effectivenessComplete: boolean;
+  pendingApprovals: ApprovalStage[];
+  overdueItems: string[];
+  nextActions: string[];
+}
