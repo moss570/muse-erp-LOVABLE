@@ -289,16 +289,48 @@ export default function Suppliers() {
   // Handle ?edit= query param to open edit dialog
   useEffect(() => {
     const editId = searchParams.get('edit');
-    if (editId && suppliers) {
-      const supplierToEdit = suppliers.find(s => s.id === editId);
-      if (supplierToEdit) {
-        setEditingSupplier(supplierToEdit);
-        setIsDialogOpen(true);
-        // Clear the query param
-        setSearchParams({}, { replace: true });
-      }
-    }
-  }, [searchParams, suppliers, setSearchParams]);
+    if (!editId || !suppliers) return;
+
+    const supplierToEdit = suppliers.find((s) => s.id === editId);
+    if (!supplierToEdit) return;
+
+    setEditingSupplier(supplierToEdit);
+    form.reset({
+      code: supplierToEdit.code,
+      name: supplierToEdit.name,
+      supplier_type: supplierToEdit.supplier_type || 'manufacturer',
+      categories: (supplierToEdit as any).categories || [],
+      contact_name: supplierToEdit.contact_name || '',
+      email: supplierToEdit.email || '',
+      phone: supplierToEdit.phone || '',
+      fax: supplierToEdit.fax || '',
+      website: supplierToEdit.website || '',
+      address: supplierToEdit.address || '',
+      city: supplierToEdit.city || '',
+      state: supplierToEdit.state || '',
+      zip: supplierToEdit.zip || '',
+      country: supplierToEdit.country || 'USA',
+      approval_status: supplierToEdit.approval_status || 'Draft',
+      approval_date: supplierToEdit.approval_date || '',
+      next_review_date: supplierToEdit.next_review_date || '',
+      risk_level: supplierToEdit.risk_level || 'medium',
+      gfsi_certified: supplierToEdit.gfsi_certified || false,
+      food_safety_certification: supplierToEdit.food_safety_certification || '',
+      certification_expiry_date: supplierToEdit.certification_expiry_date || '',
+      last_audit_date: supplierToEdit.last_audit_date || '',
+      audit_score: supplierToEdit.audit_score ?? undefined,
+      payment_terms: supplierToEdit.payment_terms || '',
+      credit_limit: supplierToEdit.credit_limit ?? undefined,
+      notes: supplierToEdit.notes || '',
+      is_active: supplierToEdit.is_active ?? true,
+    });
+
+    setActiveTab('general');
+    setIsDialogOpen(true);
+
+    // Clear the query param
+    setSearchParams({}, { replace: true });
+  }, [searchParams, suppliers, setSearchParams, form]);
 
   // Fetch document requirements for suppliers
   const { data: documentRequirements } = useQuery({
