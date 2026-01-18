@@ -173,11 +173,11 @@ export default function QAWorkQueue() {
                     // Build the URL based on entity type
                     const getItemUrl = () => {
                       switch (item.entityType) {
-                        case 'material':
+                        case 'materials':
                           return `/inventory/materials?id=${item.entityId}`;
-                        case 'supplier':
+                        case 'suppliers':
                           return `/purchasing/suppliers?id=${item.entityId}`;
-                        case 'product':
+                        case 'products':
                           return `/inventory/products?id=${item.entityId}`;
                         case 'override_request':
                           return `/qa/override-requests?id=${item.entityId}`;
