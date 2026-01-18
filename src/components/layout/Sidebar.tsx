@@ -92,6 +92,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'QA Dashboard', href: '/quality/dashboard' },
       { title: 'Work Queue', href: '/quality/work-queue' },
+      { title: 'Corrective Actions', href: '/quality/capa' },
       { title: 'Override Requests', href: '/quality/override-requests' },
       { title: 'Document Watchlist', href: '/quality/documents' },
     ],
