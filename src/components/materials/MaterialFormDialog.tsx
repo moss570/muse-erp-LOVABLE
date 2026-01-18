@@ -1888,7 +1888,6 @@ function MaterialFormContent({
       
       <Form {...form}>
         <form className="space-y-4">
-          <fieldset disabled={!isEditing && !!material} className="contents">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`grid w-full`} style={{
               gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`
@@ -1908,6 +1907,7 @@ function MaterialFormContent({
               </TabsTrigger>
             </TabsList>
 
+            <fieldset disabled={!isEditing && !!material} className="contents">
               {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4 mt-4">
                 {/* Category - Required First */}
@@ -3679,8 +3679,8 @@ function MaterialFormContent({
                     </div>
                   </div>}
               </TabsContent>
-            </Tabs>
-          </fieldset>
+            </fieldset>
+          </Tabs>
 
             <StagedEditActionBar
               onSave={async () => {
