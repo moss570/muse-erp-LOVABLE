@@ -59,6 +59,7 @@ import QAApprovalRules from "./pages/settings/QAApprovalRules";
 import BatchQATests from "./pages/manufacturing/BatchQATests";
 import QAWorkQueue from "./pages/qa/QAWorkQueue";
 import OverrideRequests from "./pages/qa/OverrideRequests";
+import CapaManagement from "./pages/quality/CapaManagement";
 
 const queryClient = new QueryClient();
 
@@ -156,6 +157,7 @@ const App = () => (
             {/* Quality routes */}
             <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
             <Route path="/quality/work-queue" element={<AppLayout><QAWorkQueue /></AppLayout>} />
+            <Route path="/quality/capa" element={<AppLayout><CapaManagement /></AppLayout>} />
             <Route path="/quality/override-requests" element={<AppLayout><OverrideRequests /></AppLayout>} />
             <Route
               path="/quality/*"
