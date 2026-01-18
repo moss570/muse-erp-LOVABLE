@@ -31,6 +31,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEmployees, type EmployeeWithRelations } from '@/hooks/useEmployees';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFormDialogUnsavedChanges } from '@/hooks/useFormDialogUnsavedChanges';
+import { UnsavedChangesDialog } from '@/components/ui/staged-edit';
 
 const employeeSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
@@ -220,8 +222,23 @@ export function EmployeeFormDialog({
     // Form stays open - user closes explicitly via Close button or onOpenChange
   };
 
+  const {
+    showUnsavedChangesDialog,
+    setShowUnsavedChangesDialog,
+    handleDialogOpenChange,
+    handleDiscardChanges,
+    handleSaveAndClose,
+  } = useFormDialogUnsavedChanges({
+    form,
+    onOpenChange,
+    onSave: async () => {
+      await form.handleSubmit(onSubmit)();
+    },
+  });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -757,5 +774,16 @@ export function EmployeeFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
+    
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={true}
+      isSaving={createEmployee.isPending || updateEmployee.isPending}
+    />
+    </>
   );
 }

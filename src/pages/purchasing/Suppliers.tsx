@@ -83,6 +83,7 @@ import { DataTablePagination } from '@/components/ui/data-table/DataTablePaginat
 import { ApprovalStatusBadge, ApprovalActionsDropdown, ApprovalHistoryPanel, DocumentComplianceSummary, DocumentExpiryBadge } from '@/components/approval';
 import type { Tables } from '@/integrations/supabase/types';
 import { calculateExpiryDate, isAutoCalculatedExpiry } from '@/lib/documentDateUtils';
+import { UnsavedChangesDialog } from '@/components/ui/staged-edit';
 
 const SUPPLIER_TYPES = [
   { value: 'manufacturer', label: 'Manufacturer Only' },
@@ -230,6 +231,7 @@ export default function Suppliers() {
   const [showArchivedDocs, setShowArchivedDocs] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string; isNew: boolean } | null>(null);
   const [documentToArchive, setDocumentToArchive] = useState<{ id: string; name: string; isExpired: boolean } | null>(null);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -822,6 +824,31 @@ export default function Suppliers() {
     form.reset();
   };
 
+  const handleDialogOpenChange = (newOpen: boolean) => {
+    if (!newOpen && form.formState.isDirty) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      if (!newOpen) {
+        handleCloseDialog();
+      } else {
+        setIsDialogOpen(true);
+      }
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setShowUnsavedChangesDialog(false);
+    handleCloseDialog();
+  };
+
+  const handleSaveAndClose = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+      await form.handleSubmit(onSubmit)();
+    }
+    setShowUnsavedChangesDialog(false);
+  };
+
   const onSubmit = (data: SupplierFormData) => {
     if (editingSupplier) {
       updateMutation.mutate({ ...data, id: editingSupplier.id });
@@ -1013,7 +1040,7 @@ export default function Suppliers() {
         )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingSupplier ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
@@ -2028,6 +2055,17 @@ export default function Suppliers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={showUnsavedChangesDialog}
+        onOpenChange={setShowUnsavedChangesDialog}
+        onDiscard={handleDiscardChanges}
+        onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+        onSaveAndClose={handleSaveAndClose}
+        showSaveOption={true}
+        isSaving={createMutation.isPending || updateMutation.isPending || isUploading}
+      />
     </div>
   );
 }

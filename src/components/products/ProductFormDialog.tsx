@@ -15,6 +15,8 @@ import { ProductSpecSheetTab } from "./ProductSpecSheetTab";
 import { ProductInventoryTab } from "./ProductInventoryTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductNutritionTab } from "./ProductNutritionTab";
+import { useFormDialogUnsavedChanges } from "@/hooks/useFormDialogUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/staged-edit";
 
 const productSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
@@ -124,8 +126,26 @@ export function ProductFormDialog({
     onSubmit(data);
   };
 
+  const {
+    showUnsavedChangesDialog,
+    setShowUnsavedChangesDialog,
+    handleDialogOpenChange,
+    handleDiscardChanges,
+    handleSaveAndClose,
+  } = useFormDialogUnsavedChanges({
+    form,
+    onOpenChange,
+    onSave: async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        await form.handleSubmit(handleFormSubmit)();
+      }
+    },
+  });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
@@ -211,5 +231,16 @@ export function ProductFormDialog({
         </div>
       </DialogContent>
     </Dialog>
+    
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={activeTab === "basic"}
+      isSaving={isSubmitting}
+    />
+    </>
   );
 }

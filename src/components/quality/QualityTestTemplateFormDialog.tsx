@@ -43,6 +43,8 @@ import {
   QualityTestTemplate,
 } from '@/hooks/useQualityTests';
 import { useProductCategories } from '@/hooks/useProductCategories';
+import { useFormDialogUnsavedChanges } from '@/hooks/useFormDialogUnsavedChanges';
+import { UnsavedChangesDialog } from '@/components/ui/staged-edit';
 
 const formSchema = z.object({
   test_name: z.string().min(1, 'Test name is required'),
@@ -199,8 +201,23 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
     }
   };
 
+  const {
+    showUnsavedChangesDialog,
+    setShowUnsavedChangesDialog,
+    handleDialogOpenChange,
+    handleDiscardChanges,
+    handleSaveAndClose,
+  } = useFormDialogUnsavedChanges({
+    form,
+    onOpenChange,
+    onSave: async () => {
+      await form.handleSubmit(onSubmit)();
+    },
+  });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -616,5 +633,16 @@ export function QualityTestTemplateFormDialog({ open, onOpenChange, template }: 
         </Form>
       </DialogContent>
     </Dialog>
+    
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={true}
+      isSaving={createTemplate.isPending || updateTemplate.isPending}
+    />
+    </>
   );
 }

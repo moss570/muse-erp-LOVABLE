@@ -44,6 +44,8 @@ import { EditPresenceIndicator } from '@/components/ui/edit-presence-indicator';
 import { ConflictDialog } from '@/components/ui/conflict-dialog';
 import { getSupplierFieldStyles, getSupplierItemStyles, shouldShowSupplierWarning, getApprovalStatusLabel } from '@/components/ui/supplier-status-indicator';
 import { SupplierWarningDialog } from '@/components/ui/supplier-warning-dialog';
+import { useFormDialogUnsavedChanges } from '@/hooks/useFormDialogUnsavedChanges';
+import { UnsavedChangesDialog } from '@/components/ui/staged-edit';
 
 type PurchaseOrder = Tables<'purchase_orders'>;
 
@@ -614,9 +616,23 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
   const total = calculateTotal();
   const requiresApproval = total >= APPROVAL_THRESHOLD;
 
+  const {
+    showUnsavedChangesDialog,
+    setShowUnsavedChangesDialog,
+    handleDialogOpenChange,
+    handleDiscardChanges,
+    handleSaveAndClose,
+  } = useFormDialogUnsavedChanges({
+    form,
+    onOpenChange,
+    onSave: async () => {
+      await form.handleSubmit(onSubmit)();
+    },
+  });
+
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -1020,6 +1036,16 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
       open={supplierWarningOpen}
       onOpenChange={setSupplierWarningOpen}
       supplierName={warningSupplierName}
+    />
+
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={true}
+      isSaving={isSubmitting}
     />
     </>
   );

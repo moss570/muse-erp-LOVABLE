@@ -36,6 +36,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useFormDialogUnsavedChanges } from "@/hooks/useFormDialogUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/staged-edit";
 
 const formSchema = z.object({
   work_order_type: z.enum(["base", "flavoring", "freezing", "case_pack"]),
@@ -207,8 +209,23 @@ export function WorkOrderFormDialog({
 
   const isSubmitting = createWorkOrder.isPending || updateWorkOrder.isPending;
 
+  const {
+    showUnsavedChangesDialog,
+    setShowUnsavedChangesDialog,
+    handleDialogOpenChange,
+    handleDiscardChanges,
+    handleSaveAndClose,
+  } = useFormDialogUnsavedChanges({
+    form,
+    onOpenChange,
+    onSave: async () => {
+      await form.handleSubmit(onSubmit)();
+    },
+  });
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -596,5 +613,16 @@ export function WorkOrderFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
+    
+    <UnsavedChangesDialog
+      open={showUnsavedChangesDialog}
+      onOpenChange={setShowUnsavedChangesDialog}
+      onDiscard={handleDiscardChanges}
+      onKeepEditing={() => setShowUnsavedChangesDialog(false)}
+      onSaveAndClose={handleSaveAndClose}
+      showSaveOption={true}
+      isSaving={isSubmitting}
+    />
+    </>
   );
 }
