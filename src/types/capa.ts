@@ -88,33 +88,53 @@ export interface CorrectiveAction {
   immediate_action_date: string | null;
   immediate_action_by: string | null;
   
+  // Containment (Workflow fields)
+  containment_actions: string | null;
+  containment_completed_at: string | null;
+  containment_verified_by: string | null;
+  
   // Root Cause Analysis
   root_cause: string | null;
   root_cause_method: RootCauseMethod | null;
   root_cause_completed_at: string | null;
   root_cause_completed_by: string | null;
+  root_cause_category: string | null;
+  root_cause_verified: boolean | null;
+  investigation_summary: string | null;
   
   // Corrective Action
   corrective_action: string | null;
   corrective_action_completed_at: string | null;
   corrective_action_completed_by: string | null;
+  corrective_actions_text: string | null;
   
   // Preventive Action
   preventive_action: string | null;
   preventive_action_completed_at: string | null;
   preventive_action_completed_by: string | null;
+  preventive_actions_text: string | null;
   
   // Verification
   verification_method: string | null;
   verification_result: VerificationResult | null;
+  verification_results: string | null;
   verification_date: string | null;
+  verification_completed_at: string | null;
   verified_by: string | null;
+  implementation_evidence: string | null;
   
   // Effectiveness Review
+  effectiveness_criteria: string | null;
+  effectiveness_results: string | null;
+  effectiveness_verified: boolean | null;
+  effectiveness_verified_at: string | null;
+  effectiveness_verified_by: string | null;
   effectiveness_review_result: EffectivenessResult | null;
   effectiveness_review_completed_at: string | null;
   effectiveness_review_notes: string | null;
   effectiveness_reviewed_by: string | null;
+  recurrence_check_date: string | null;
+  recurrence_found: boolean | null;
   
   // Financial Impact
   estimated_cost: number | null;

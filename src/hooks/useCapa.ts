@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { addHours, addDays, format } from 'date-fns';
+import type { Database } from '@/integrations/supabase/types';
 import type { 
   CorrectiveAction, 
   CapaListItem, 
@@ -14,6 +15,10 @@ import type {
   CapaSeverity,
   CapaType
 } from '@/types/capa';
+
+// Type for CAPA data from the database
+export type CapaRow = Database['public']['Tables']['corrective_actions']['Row'];
+export type CapaUpdate = Database['public']['Tables']['corrective_actions']['Update'];
 
 // ============================================
 // CAPA LIST & FILTERING
@@ -201,7 +206,7 @@ export function useCapa(id: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data as CorrectiveAction & Record<string, unknown>;
+      return data;
     },
     enabled: !!id,
   });
@@ -311,7 +316,7 @@ export function useUpdateCapa() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<CorrectiveAction> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & CapaUpdate) => {
       // Get current state for activity logging
       const { data: current, error: fetchError } = await supabase
         .from('corrective_actions')
