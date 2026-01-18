@@ -1952,7 +1952,7 @@ function MaterialFormContent({
               </TabsTrigger>
             </TabsList>
 
-            <fieldset disabled={!isEditing && !!material} className="contents">
+            <div className="contents">
               {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4 mt-4">
                 {/* Category - Required First */}
@@ -3724,7 +3724,7 @@ function MaterialFormContent({
                     </div>
                   </div>}
               </TabsContent>
-            </fieldset>
+            </div>
           </Tabs>
 
             <StagedEditActionBar
