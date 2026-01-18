@@ -2760,7 +2760,7 @@ function MaterialFormContent({
                     field
                   }) => <FormItem>
                         <FormLabel>Fraud Vulnerability Score</FormLabel>
-                        <Select onValueChange={val => field.onChange(val === '__none__' ? '' : val)} value={field.value || '__none__'}>
+                        <Select onValueChange={val => field.onChange(val === '__none__' ? '' : val)} value={field.value || '__none__'} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select score" />
@@ -2778,7 +2778,7 @@ function MaterialFormContent({
                     field
                   }) => <FormItem>
                         <FormLabel>Supply Chain Complexity</FormLabel>
-                        <Select onValueChange={val => field.onChange(val === '__none__' ? '' : val)} value={field.value || '__none__'}>
+                        <Select onValueChange={val => field.onChange(val === '__none__' ? '' : val)} value={field.value || '__none__'} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select complexity" />
