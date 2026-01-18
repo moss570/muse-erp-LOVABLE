@@ -359,6 +359,67 @@ export type Database = {
           },
         ]
       }
+      capa_approvals: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          capa_id: string
+          comments: string | null
+          id: string
+          requested_at: string
+          requested_by: string | null
+          revision_comments: string | null
+          stage: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          capa_id: string
+          comments?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          revision_comments?: string | null
+          stage: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          capa_id?: string
+          comments?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          revision_comments?: string | null
+          stage?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capa_approvals_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_approvals_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_approvals_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capa_attachments: {
         Row: {
           attachment_category: string | null
@@ -412,6 +473,63 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capa_root_cause_analysis: {
+        Row: {
+          analysis_summary: string | null
+          analyzed_at: string
+          analyzed_by: string | null
+          capa_id: string
+          contributing_factors: string[] | null
+          fishbone_data: Json | null
+          five_whys_data: Json | null
+          id: string
+          method: string
+          root_cause_statement: string | null
+          updated_at: string
+        }
+        Insert: {
+          analysis_summary?: string | null
+          analyzed_at?: string
+          analyzed_by?: string | null
+          capa_id: string
+          contributing_factors?: string[] | null
+          fishbone_data?: Json | null
+          five_whys_data?: Json | null
+          id?: string
+          method: string
+          root_cause_statement?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analysis_summary?: string | null
+          analyzed_at?: string
+          analyzed_by?: string | null
+          capa_id?: string
+          contributing_factors?: string[] | null
+          fishbone_data?: Json | null
+          five_whys_data?: Json | null
+          id?: string
+          method?: string
+          root_cause_statement?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capa_root_cause_analysis_analyzed_by_fkey"
+            columns: ["analyzed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_root_cause_analysis_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
             referencedColumns: ["id"]
           },
         ]
@@ -487,6 +605,95 @@ export type Database = {
           verification_days?: number
         }
         Relationships: []
+      }
+      capa_tasks: {
+        Row: {
+          assigned_to: string | null
+          capa_id: string
+          completed_by: string | null
+          completed_date: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          evidence_attached: boolean | null
+          evidence_required: boolean | null
+          id: string
+          sort_order: number | null
+          status: string
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          capa_id: string
+          completed_by?: string | null
+          completed_date?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          evidence_attached?: boolean | null
+          evidence_required?: boolean | null
+          id?: string
+          sort_order?: number | null
+          status?: string
+          task_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          capa_id?: string
+          completed_by?: string | null
+          completed_date?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          evidence_attached?: boolean | null
+          evidence_required?: boolean | null
+          id?: string
+          sort_order?: number | null
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capa_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_tasks_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capa_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_settings: {
         Row: {
@@ -732,11 +939,15 @@ export type Database = {
           closed_at: string | null
           closed_by: string | null
           closure_notes: string | null
+          containment_actions: string | null
+          containment_completed_at: string | null
           containment_due_date: string | null
+          containment_verified_by: string | null
           corrective_action: string | null
           corrective_action_completed_at: string | null
           corrective_action_completed_by: string | null
           corrective_action_due_date: string | null
+          corrective_actions_text: string | null
           cost_recovery_amount: number | null
           cost_recovery_source: string | null
           created_at: string
@@ -744,11 +955,16 @@ export type Database = {
           department_id: string | null
           description: string
           discovery_date: string
+          effectiveness_criteria: string | null
+          effectiveness_results: string | null
           effectiveness_review_completed_at: string | null
           effectiveness_review_due_date: string | null
           effectiveness_review_notes: string | null
           effectiveness_review_result: string | null
           effectiveness_reviewed_by: string | null
+          effectiveness_verified: boolean | null
+          effectiveness_verified_at: string | null
+          effectiveness_verified_by: string | null
           employee_id: string | null
           equipment_id: string | null
           estimated_cost: number | null
@@ -756,6 +972,8 @@ export type Database = {
           immediate_action: string | null
           immediate_action_by: string | null
           immediate_action_date: string | null
+          implementation_evidence: string | null
+          investigation_summary: string | null
           is_recurring: boolean | null
           location_id: string | null
           material_id: string | null
@@ -764,15 +982,20 @@ export type Database = {
           preventive_action_completed_at: string | null
           preventive_action_completed_by: string | null
           preventive_action_due_date: string | null
+          preventive_actions_text: string | null
           product_id: string | null
           production_lot_id: string | null
           receiving_lot_id: string | null
+          recurrence_check_date: string | null
+          recurrence_found: boolean | null
           related_capa_id: string | null
           root_cause: string | null
+          root_cause_category: string | null
           root_cause_completed_at: string | null
           root_cause_completed_by: string | null
           root_cause_due_date: string | null
           root_cause_method: string | null
+          root_cause_verified: boolean | null
           severity: string
           source_id: string | null
           source_type: string | null
@@ -780,10 +1003,12 @@ export type Database = {
           supplier_id: string | null
           title: string
           updated_at: string
+          verification_completed_at: string | null
           verification_date: string | null
           verification_due_date: string | null
           verification_method: string | null
           verification_result: string | null
+          verification_results: string | null
           verified_by: string | null
         }
         Insert: {
@@ -794,11 +1019,15 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           closure_notes?: string | null
+          containment_actions?: string | null
+          containment_completed_at?: string | null
           containment_due_date?: string | null
+          containment_verified_by?: string | null
           corrective_action?: string | null
           corrective_action_completed_at?: string | null
           corrective_action_completed_by?: string | null
           corrective_action_due_date?: string | null
+          corrective_actions_text?: string | null
           cost_recovery_amount?: number | null
           cost_recovery_source?: string | null
           created_at?: string
@@ -806,11 +1035,16 @@ export type Database = {
           department_id?: string | null
           description: string
           discovery_date?: string
+          effectiveness_criteria?: string | null
+          effectiveness_results?: string | null
           effectiveness_review_completed_at?: string | null
           effectiveness_review_due_date?: string | null
           effectiveness_review_notes?: string | null
           effectiveness_review_result?: string | null
           effectiveness_reviewed_by?: string | null
+          effectiveness_verified?: boolean | null
+          effectiveness_verified_at?: string | null
+          effectiveness_verified_by?: string | null
           employee_id?: string | null
           equipment_id?: string | null
           estimated_cost?: number | null
@@ -818,6 +1052,8 @@ export type Database = {
           immediate_action?: string | null
           immediate_action_by?: string | null
           immediate_action_date?: string | null
+          implementation_evidence?: string | null
+          investigation_summary?: string | null
           is_recurring?: boolean | null
           location_id?: string | null
           material_id?: string | null
@@ -826,15 +1062,20 @@ export type Database = {
           preventive_action_completed_at?: string | null
           preventive_action_completed_by?: string | null
           preventive_action_due_date?: string | null
+          preventive_actions_text?: string | null
           product_id?: string | null
           production_lot_id?: string | null
           receiving_lot_id?: string | null
+          recurrence_check_date?: string | null
+          recurrence_found?: boolean | null
           related_capa_id?: string | null
           root_cause?: string | null
+          root_cause_category?: string | null
           root_cause_completed_at?: string | null
           root_cause_completed_by?: string | null
           root_cause_due_date?: string | null
           root_cause_method?: string | null
+          root_cause_verified?: boolean | null
           severity?: string
           source_id?: string | null
           source_type?: string | null
@@ -842,10 +1083,12 @@ export type Database = {
           supplier_id?: string | null
           title: string
           updated_at?: string
+          verification_completed_at?: string | null
           verification_date?: string | null
           verification_due_date?: string | null
           verification_method?: string | null
           verification_result?: string | null
+          verification_results?: string | null
           verified_by?: string | null
         }
         Update: {
@@ -856,11 +1099,15 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           closure_notes?: string | null
+          containment_actions?: string | null
+          containment_completed_at?: string | null
           containment_due_date?: string | null
+          containment_verified_by?: string | null
           corrective_action?: string | null
           corrective_action_completed_at?: string | null
           corrective_action_completed_by?: string | null
           corrective_action_due_date?: string | null
+          corrective_actions_text?: string | null
           cost_recovery_amount?: number | null
           cost_recovery_source?: string | null
           created_at?: string
@@ -868,11 +1115,16 @@ export type Database = {
           department_id?: string | null
           description?: string
           discovery_date?: string
+          effectiveness_criteria?: string | null
+          effectiveness_results?: string | null
           effectiveness_review_completed_at?: string | null
           effectiveness_review_due_date?: string | null
           effectiveness_review_notes?: string | null
           effectiveness_review_result?: string | null
           effectiveness_reviewed_by?: string | null
+          effectiveness_verified?: boolean | null
+          effectiveness_verified_at?: string | null
+          effectiveness_verified_by?: string | null
           employee_id?: string | null
           equipment_id?: string | null
           estimated_cost?: number | null
@@ -880,6 +1132,8 @@ export type Database = {
           immediate_action?: string | null
           immediate_action_by?: string | null
           immediate_action_date?: string | null
+          implementation_evidence?: string | null
+          investigation_summary?: string | null
           is_recurring?: boolean | null
           location_id?: string | null
           material_id?: string | null
@@ -888,15 +1142,20 @@ export type Database = {
           preventive_action_completed_at?: string | null
           preventive_action_completed_by?: string | null
           preventive_action_due_date?: string | null
+          preventive_actions_text?: string | null
           product_id?: string | null
           production_lot_id?: string | null
           receiving_lot_id?: string | null
+          recurrence_check_date?: string | null
+          recurrence_found?: boolean | null
           related_capa_id?: string | null
           root_cause?: string | null
+          root_cause_category?: string | null
           root_cause_completed_at?: string | null
           root_cause_completed_by?: string | null
           root_cause_due_date?: string | null
           root_cause_method?: string | null
+          root_cause_verified?: boolean | null
           severity?: string
           source_id?: string | null
           source_type?: string | null
@@ -904,10 +1163,12 @@ export type Database = {
           supplier_id?: string | null
           title?: string
           updated_at?: string
+          verification_completed_at?: string | null
           verification_date?: string | null
           verification_due_date?: string | null
           verification_method?: string | null
           verification_result?: string | null
+          verification_results?: string | null
           verified_by?: string | null
         }
         Relationships: [
@@ -921,6 +1182,13 @@ export type Database = {
           {
             foreignKeyName: "corrective_actions_closed_by_fkey"
             columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_containment_verified_by_fkey"
+            columns: ["containment_verified_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -949,6 +1217,13 @@ export type Database = {
           {
             foreignKeyName: "corrective_actions_effectiveness_reviewed_by_fkey"
             columns: ["effectiveness_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_effectiveness_verified_by_fkey"
+            columns: ["effectiveness_verified_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
