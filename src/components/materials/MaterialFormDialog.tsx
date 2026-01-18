@@ -2741,7 +2741,7 @@ function MaterialFormContent({
 
               {/* Nutrition Tab - Only for food categories */}
               <TabsContent value="nutrition" className="mt-4">
-                <MaterialNutritionTab materialId={material?.id} isNewMaterial={!material} />
+                <MaterialNutritionTab materialId={material?.id} isNewMaterial={!material} disabled={isFieldsDisabled} />
               </TabsContent>
 
               {/* Food Safety (VACCP) Tab */}
