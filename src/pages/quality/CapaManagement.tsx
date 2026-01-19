@@ -34,7 +34,7 @@ import {
 import { CapaStatusBadge } from '@/components/capa/CapaStatusBadge';
 import { CapaSeverityBadge } from '@/components/capa/CapaSeverityBadge';
 import { CapaFormDialog } from '@/components/capa/CapaFormDialog';
-import { CapaDetailDialog } from '@/components/capa/CapaDetailDialog';
+import { CapaWorkflowDialog } from '@/components/capa/CapaWorkflowDialog';
 
 import { useCapaList, useCapaDashboardMetrics, type CapaFilters } from '@/hooks/useCapa';
 import { 
@@ -308,10 +308,11 @@ export default function CapaManagement() {
         onOpenChange={setShowCreateDialog} 
       />
 
-      <CapaDetailDialog
+      <CapaWorkflowDialog
         open={!!selectedCapaId}
         onOpenChange={(open) => !open && setSelectedCapaId(null)}
-        capaId={selectedCapaId}
+        capaId={selectedCapaId || undefined}
+        mode="edit"
       />
     </div>
   );
