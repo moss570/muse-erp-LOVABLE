@@ -109,8 +109,11 @@ interface MaterialGroup {
   usageUnitConversion: number | null;
   baseUnit: { id: string; code: string; name: string } | null;
   totalOnHand: number;
+  totalOnHandInUsageUnit: number; // Pre-calculated total in usage unit
   lotCount: number;
   lots: InventoryLot[];
+  hasMultipleUnits: boolean; // Flag when lots have different units
+  primaryUnitId: string | null; // The unit used for usage_unit_conversion
 }
 
 const STATUS_OPTIONS = [
@@ -245,7 +248,7 @@ export default function MaterialInventory() {
     });
   }, [lots, search, statusFilter, locationFilter, categoryFilter, showOnlyActive]);
 
-  // Group lots by material
+  // Group lots by material with proper unit-aware calculation
   const materialGroups = useMemo(() => {
     const groups = new Map<string, MaterialGroup>();
     
@@ -254,12 +257,26 @@ export default function MaterialInventory() {
       
       const materialId = lot.material.id;
       const existing = groups.get(materialId);
+      const lotUnitId = lot.unit?.id;
       
       if (existing) {
         existing.totalOnHand += lot.quantity_in_base_unit;
         existing.lotCount += 1;
         existing.lots.push(lot);
+        
+        // Check if this lot has a different unit than the primary unit
+        if (lotUnitId && existing.primaryUnitId && lotUnitId !== existing.primaryUnitId) {
+          existing.hasMultipleUnits = true;
+        }
+        
+        // Only add to usage unit total if lot unit matches the primary unit
+        // (the unit that the usage_unit_conversion is based on)
+        if (lotUnitId && existing.primaryUnitId && lotUnitId === existing.primaryUnitId && existing.usageUnitConversion) {
+          existing.totalOnHandInUsageUnit += lot.quantity_in_base_unit * existing.usageUnitConversion;
+        }
       } else {
+        const usageConversion = lot.material.usage_unit_conversion;
+        
         groups.set(materialId, {
           materialId,
           materialCode: lot.material.code,
@@ -267,11 +284,15 @@ export default function MaterialInventory() {
           category: lot.material.category,
           minStockLevel: lot.material.min_stock_level,
           usageUnit: lot.material.usage_unit,
-          usageUnitConversion: lot.material.usage_unit_conversion,
+          usageUnitConversion: usageConversion,
           baseUnit: lot.unit,
           totalOnHand: lot.quantity_in_base_unit,
+          // Calculate initial usage unit total - only if we have a conversion
+          totalOnHandInUsageUnit: usageConversion ? lot.quantity_in_base_unit * usageConversion : 0,
           lotCount: 1,
           lots: [lot],
+          hasMultipleUnits: false,
+          primaryUnitId: lotUnitId || null, // First lot's unit becomes the primary unit
         });
       }
     });
@@ -600,7 +621,11 @@ export default function MaterialInventory() {
                 ) : (
                   paginatedGroups.map((group) => {
                     const isExpanded = expandedMaterials.has(group.materialId);
-                    const isLowStock = group.minStockLevel && group.totalOnHand < group.minStockLevel;
+                    // Use totalOnHandInUsageUnit when comparing to minStockLevel (which is typically in usage units)
+                    const totalForComparison = group.usageUnit && group.usageUnitConversion 
+                      ? group.totalOnHandInUsageUnit 
+                      : group.totalOnHand;
+                    const isLowStock = group.minStockLevel && totalForComparison < group.minStockLevel;
                     const isFullySelected = isMaterialFullySelected(group.lots);
                     const isPartiallySelected = isMaterialPartiallySelected(group.lots);
                     
@@ -660,12 +685,29 @@ export default function MaterialInventory() {
                             </TableCell>
                             <TableCell className="text-right">
                               {group.usageUnit && group.usageUnitConversion ? (
-                                <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
-                                  {(group.totalOnHand * group.usageUnitConversion).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                                  <span className="text-muted-foreground ml-1 text-xs font-normal">
-                                    {group.usageUnit.code}
-                                  </span>
-                                </span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''} ${group.hasMultipleUnits ? 'cursor-help' : ''}`}>
+                                        {group.totalOnHandInUsageUnit.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                        <span className="text-muted-foreground ml-1 text-xs font-normal">
+                                          {group.usageUnit.code}
+                                        </span>
+                                        {group.hasMultipleUnits && (
+                                          <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-500" />
+                                        )}
+                                      </span>
+                                    </TooltipTrigger>
+                                    {group.hasMultipleUnits && (
+                                      <TooltipContent>
+                                        <p className="max-w-xs">
+                                          Mixed units detected. Total only includes lots with matching primary unit ({group.baseUnit?.code}).
+                                          Other lots are not included in this total.
+                                        </p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
                               ) : (
                                 <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
                                   {Number(group.totalOnHand).toLocaleString()}
