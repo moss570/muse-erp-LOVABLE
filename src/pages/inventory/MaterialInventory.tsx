@@ -77,11 +77,12 @@ interface InventoryLot {
     name: string;
     category: string | null;
     min_stock_level: number | null;
+    base_unit_id: string | null; // The primary purchase unit
     usage_unit_id: string | null;
-    usage_unit_conversion: number | null;
+    usage_unit_conversion: number | null; // Conversion for the base/primary purchase unit
     listed_material: { name: string } | null;
     usage_unit: { id: string; code: string; name: string } | null;
-    // Purchase units with their specific conversions
+    // Additional purchase units with their specific conversions
     material_purchase_units: Array<{
       unit_id: string;
       conversion_to_base: number;
@@ -171,6 +172,7 @@ export default function MaterialInventory() {
             name, 
             category, 
             min_stock_level,
+            base_unit_id,
             usage_unit_id,
             usage_unit_conversion,
             listed_material:listed_material_names(name),
@@ -251,14 +253,25 @@ export default function MaterialInventory() {
 
   // Helper function to get the conversion factor for a specific lot
   const getLotUsageConversion = (lot: InventoryLot): number | null => {
-    if (!lot.material?.material_purchase_units || !lot.unit?.id) return null;
+    if (!lot.unit?.id || !lot.material) return null;
     
-    // Find the purchase unit that matches this lot's unit
-    const purchaseUnit = lot.material.material_purchase_units.find(
-      pu => pu.unit_id === lot.unit.id
-    );
+    // First, check if the lot's unit matches the material's primary base unit
+    // In that case, use the material's usage_unit_conversion
+    if (lot.material.base_unit_id && lot.unit.id === lot.material.base_unit_id) {
+      return lot.material.usage_unit_conversion ?? null;
+    }
     
-    return purchaseUnit?.conversion_to_base ?? null;
+    // Otherwise, look for a matching purchase unit variant
+    if (lot.material.material_purchase_units) {
+      const purchaseUnit = lot.material.material_purchase_units.find(
+        pu => pu.unit_id === lot.unit.id
+      );
+      if (purchaseUnit) {
+        return purchaseUnit.conversion_to_base;
+      }
+    }
+    
+    return null;
   };
 
   // Group lots by material with proper unit-aware calculation
