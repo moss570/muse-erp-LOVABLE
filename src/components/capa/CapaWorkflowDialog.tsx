@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, isPast } from 'date-fns';
 import {
   ShieldCheck,
@@ -69,6 +69,7 @@ import { FishboneDiagram } from './FishboneDiagram';
 import { CapaTaskList } from './CapaTaskList';
 import { CapaActivityTimeline } from './CapaActivityTimeline';
 import { CapaAttachments } from './CapaAttachments';
+import { DebouncedTextarea } from './DebouncedTextarea';
 
 import {
   CAPA_STATUS_CONFIG,
@@ -622,12 +623,11 @@ export function CapaWorkflowDialog({
                         {capa.investigation_summary || 'No notes documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="Document investigation findings, interviews, data analysis, etc..."
                         value={capa.investigation_summary || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, investigation_summary: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, investigation_summary: value })}
                         rows={4}
-                        className="mt-1"
                       />
                     )}
                   </div>
@@ -672,10 +672,10 @@ export function CapaWorkflowDialog({
                         {capa.root_cause || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="The root cause of this issue is..."
                         value={capa.root_cause || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, root_cause: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, root_cause: value })}
                         rows={3}
                         className="border-l-4 border-primary"
                       />
@@ -720,12 +720,11 @@ export function CapaWorkflowDialog({
                         {capa.corrective_actions_text || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="Describe the corrective actions to be taken..."
                         value={capa.corrective_actions_text || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, corrective_actions_text: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, corrective_actions_text: value })}
                         rows={4}
-                        className="mt-1"
                       />
                     )}
                   </div>
@@ -753,12 +752,11 @@ export function CapaWorkflowDialog({
                         {capa.preventive_actions_text || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="Describe the preventive actions to be implemented..."
                         value={capa.preventive_actions_text || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, preventive_actions_text: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, preventive_actions_text: value })}
                         rows={4}
-                        className="mt-1"
                       />
                     )}
                   </div>
@@ -798,12 +796,11 @@ export function CapaWorkflowDialog({
                         {capa.verification_method || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="How were the actions verified? (inspection, testing, documentation review, etc.)"
                         value={capa.verification_method || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, verification_method: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, verification_method: value })}
                         rows={3}
-                        className="mt-1"
                       />
                     )}
                   </div>
@@ -815,12 +812,11 @@ export function CapaWorkflowDialog({
                         {capa.verification_results || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="Results of the verification activities..."
                         value={capa.verification_results || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, verification_results: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, verification_results: value })}
                         rows={3}
-                        className="mt-1"
                       />
                     )}
                   </div>
@@ -860,12 +856,11 @@ export function CapaWorkflowDialog({
                         {capa.effectiveness_criteria || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="What criteria will be used to evaluate effectiveness?"
                         value={capa.effectiveness_criteria || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, effectiveness_criteria: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, effectiveness_criteria: value })}
                         rows={3}
-                        className="mt-1"
                       />
                     )}
                   </div>
@@ -877,12 +872,11 @@ export function CapaWorkflowDialog({
                         {capa.effectiveness_results || 'Not documented'}
                       </div>
                     ) : (
-                      <Textarea
+                      <DebouncedTextarea
                         placeholder="Results of effectiveness evaluation..."
                         value={capa.effectiveness_results || ''}
-                        onChange={(e) => updateCapa.mutate({ id: capaId!, effectiveness_results: e.target.value })}
+                        onSave={(value) => updateCapa.mutate({ id: capaId!, effectiveness_results: value })}
                         rows={3}
-                        className="mt-1"
                       />
                     )}
                   </div>
