@@ -510,14 +510,14 @@ export function CapaWorkflowDialog({
                         </p>
                       ) : (
                         <Select
-                          value={capa.assigned_to || ''}
-                          onValueChange={(v) => updateCapa.mutate({ id: capaId!, assigned_to: v || null })}
+                          value={capa.assigned_to || 'unassigned'}
+                          onValueChange={(v) => updateCapa.mutate({ id: capaId!, assigned_to: v === 'unassigned' ? null : v })}
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue placeholder="Select assignee" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
                             {profiles?.map(p => (
                               <SelectItem key={p.id} value={p.id}>
                                 {p.first_name} {p.last_name}
