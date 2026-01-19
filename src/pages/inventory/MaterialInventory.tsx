@@ -81,6 +81,11 @@ interface InventoryLot {
     usage_unit_conversion: number | null;
     listed_material: { name: string } | null;
     usage_unit: { id: string; code: string; name: string } | null;
+    // Purchase units with their specific conversions
+    material_purchase_units: Array<{
+      unit_id: string;
+      conversion_to_base: number;
+    }>;
   };
   unit: {
     id: string;
@@ -106,14 +111,9 @@ interface MaterialGroup {
   category: string | null;
   minStockLevel: number | null;
   usageUnit: { id: string; code: string; name: string } | null;
-  usageUnitConversion: number | null;
-  baseUnit: { id: string; code: string; name: string } | null;
-  totalOnHand: number;
   totalOnHandInUsageUnit: number; // Pre-calculated total in usage unit
   lotCount: number;
   lots: InventoryLot[];
-  hasMultipleUnits: boolean; // Flag when lots have different units
-  primaryUnitId: string | null; // The unit used for usage_unit_conversion
 }
 
 const STATUS_OPTIONS = [
@@ -174,7 +174,8 @@ export default function MaterialInventory() {
             usage_unit_id,
             usage_unit_conversion,
             listed_material:listed_material_names(name),
-            usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name)
+            usage_unit:units_of_measure!materials_usage_unit_id_fkey(id, code, name),
+            material_purchase_units(unit_id, conversion_to_base)
           ),
           unit:units_of_measure(id, code, name),
           location:locations!receiving_lots_location_id_fkey(id, name, location_code),
@@ -248,6 +249,18 @@ export default function MaterialInventory() {
     });
   }, [lots, search, statusFilter, locationFilter, categoryFilter, showOnlyActive]);
 
+  // Helper function to get the conversion factor for a specific lot
+  const getLotUsageConversion = (lot: InventoryLot): number | null => {
+    if (!lot.material?.material_purchase_units || !lot.unit?.id) return null;
+    
+    // Find the purchase unit that matches this lot's unit
+    const purchaseUnit = lot.material.material_purchase_units.find(
+      pu => pu.unit_id === lot.unit.id
+    );
+    
+    return purchaseUnit?.conversion_to_base ?? null;
+  };
+
   // Group lots by material with proper unit-aware calculation
   const materialGroups = useMemo(() => {
     const groups = new Map<string, MaterialGroup>();
@@ -257,26 +270,16 @@ export default function MaterialInventory() {
       
       const materialId = lot.material.id;
       const existing = groups.get(materialId);
-      const lotUnitId = lot.unit?.id;
+      
+      // Get the conversion factor for THIS specific lot's purchase unit
+      const lotConversion = getLotUsageConversion(lot);
+      const lotUsageQty = lotConversion ? lot.quantity_in_base_unit * lotConversion : 0;
       
       if (existing) {
-        existing.totalOnHand += lot.quantity_in_base_unit;
         existing.lotCount += 1;
         existing.lots.push(lot);
-        
-        // Check if this lot has a different unit than the primary unit
-        if (lotUnitId && existing.primaryUnitId && lotUnitId !== existing.primaryUnitId) {
-          existing.hasMultipleUnits = true;
-        }
-        
-        // Only add to usage unit total if lot unit matches the primary unit
-        // (the unit that the usage_unit_conversion is based on)
-        if (lotUnitId && existing.primaryUnitId && lotUnitId === existing.primaryUnitId && existing.usageUnitConversion) {
-          existing.totalOnHandInUsageUnit += lot.quantity_in_base_unit * existing.usageUnitConversion;
-        }
+        existing.totalOnHandInUsageUnit += lotUsageQty;
       } else {
-        const usageConversion = lot.material.usage_unit_conversion;
-        
         groups.set(materialId, {
           materialId,
           materialCode: lot.material.code,
@@ -284,15 +287,9 @@ export default function MaterialInventory() {
           category: lot.material.category,
           minStockLevel: lot.material.min_stock_level,
           usageUnit: lot.material.usage_unit,
-          usageUnitConversion: usageConversion,
-          baseUnit: lot.unit,
-          totalOnHand: lot.quantity_in_base_unit,
-          // Calculate initial usage unit total - only if we have a conversion
-          totalOnHandInUsageUnit: usageConversion ? lot.quantity_in_base_unit * usageConversion : 0,
+          totalOnHandInUsageUnit: lotUsageQty,
           lotCount: 1,
           lots: [lot],
-          hasMultipleUnits: false,
-          primaryUnitId: lotUnitId || null, // First lot's unit becomes the primary unit
         });
       }
     });
@@ -622,11 +619,8 @@ export default function MaterialInventory() {
                 ) : (
                   paginatedGroups.map((group) => {
                     const isExpanded = expandedMaterials.has(group.materialId);
-                    // Use totalOnHandInUsageUnit when comparing to minStockLevel (which is typically in usage units)
-                    const totalForComparison = group.usageUnit && group.usageUnitConversion 
-                      ? group.totalOnHandInUsageUnit 
-                      : group.totalOnHand;
-                    const isLowStock = group.minStockLevel && totalForComparison < group.minStockLevel;
+                    // Compare totalOnHandInUsageUnit with minStockLevel (which is typically in usage units)
+                    const isLowStock = group.minStockLevel && group.totalOnHandInUsageUnit < group.minStockLevel;
                     const isFullySelected = isMaterialFullySelected(group.lots);
                     const isPartiallySelected = isMaterialPartiallySelected(group.lots);
                     
@@ -690,37 +684,15 @@ export default function MaterialInventory() {
                             </TableCell>
                             {/* Usage UOM - show total */}
                             <TableCell className="text-right">
-                              {group.usageUnit && group.usageUnitConversion ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''} ${group.hasMultipleUnits ? 'cursor-help' : ''}`}>
-                                        {group.totalOnHandInUsageUnit.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                                        <span className="text-muted-foreground ml-1 text-xs font-normal">
-                                          {group.usageUnit.code}
-                                        </span>
-                                        {group.hasMultipleUnits && (
-                                          <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-500" />
-                                        )}
-                                      </span>
-                                    </TooltipTrigger>
-                                    {group.hasMultipleUnits && (
-                                      <TooltipContent>
-                                        <p className="max-w-xs">
-                                          Mixed units detected. Total only includes lots with matching primary unit ({group.baseUnit?.code}).
-                                          Other lots are not included in this total.
-                                        </p>
-                                      </TooltipContent>
-                                    )}
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : (
+                              {group.usageUnit ? (
                                 <span className={`font-semibold ${isLowStock ? 'text-destructive' : ''}`}>
-                                  {Number(group.totalOnHand).toLocaleString()}
+                                  {group.totalOnHandInUsageUnit.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                   <span className="text-muted-foreground ml-1 text-xs font-normal">
-                                    {group.baseUnit?.code}
+                                    {group.usageUnit.code}
                                   </span>
                                 </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
                               )}
                             </TableCell>
                             <TableCell className="text-right">
@@ -796,18 +768,22 @@ export default function MaterialInventory() {
                                       {lot.unit?.code}
                                     </span>
                                   </TableCell>
-                                  {/* Usage UOM column - show converted quantity */}
+                                  {/* Usage UOM column - show converted quantity using lot-specific conversion */}
                                   <TableCell className="text-right text-sm">
-                                    {lot.material?.usage_unit && lot.material?.usage_unit_conversion ? (
-                                      <>
-                                        {(lot.quantity_in_base_unit * lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                                        <span className="text-muted-foreground ml-1 text-xs">
-                                          {lot.material.usage_unit.code}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <span className="text-muted-foreground">—</span>
-                                    )}
+                                    {(() => {
+                                      const lotConversion = getLotUsageConversion(lot);
+                                      if (lotConversion && lot.material?.usage_unit) {
+                                        return (
+                                          <>
+                                            {(lot.quantity_in_base_unit * lotConversion).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                            <span className="text-muted-foreground ml-1 text-xs">
+                                              {lot.material.usage_unit.code}
+                                            </span>
+                                          </>
+                                        );
+                                      }
+                                      return <span className="text-muted-foreground">—</span>;
+                                    })()}
                                   </TableCell>
                                   <TableCell></TableCell>
                                   <TableCell className="text-center">
