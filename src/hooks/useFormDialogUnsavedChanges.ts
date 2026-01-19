@@ -104,10 +104,14 @@ export function useFormDialogUnsavedChanges<T extends FieldValues>({
       const isValid = await form.trigger();
       if (isValid) {
         await onSave();
+        // After successful save, close both the unsaved changes dialog and main dialog
+        setShowUnsavedChangesDialog(false);
+        onOpenChange(false);
+        return;
       }
     }
     setShowUnsavedChangesDialog(false);
-  }, [form, onSave]);
+  }, [form, onSave, onOpenChange]);
 
   return {
     showUnsavedChangesDialog,

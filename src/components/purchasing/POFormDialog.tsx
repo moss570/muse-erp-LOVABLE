@@ -1023,12 +1023,26 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => handleDialogOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {purchaseOrder ? 'Update PO' : 'Create PO'}
+              </Button>
+              <Button 
+                type="button" 
+                disabled={isSubmitting}
+                onClick={async () => {
+                  const isValid = await form.trigger();
+                  if (isValid) {
+                    await form.handleSubmit(onSubmit)();
+                    onOpenChange(false);
+                  }
+                }}
+              >
+                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save & Close
               </Button>
             </div>
           </form>
