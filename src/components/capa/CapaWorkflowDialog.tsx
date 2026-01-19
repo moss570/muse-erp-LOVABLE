@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, isPast } from 'date-fns';
 import {
   ShieldCheck,
@@ -155,25 +155,17 @@ export function CapaWorkflowDialog({
   const updateStatus = useUpdateCapaStatus();
   const saveRca = useSaveRootCauseAnalysis();
 
-  // Initialize RCA data when loaded
-  useState(() => {
+  // Initialize and sync RCA data when loaded
+  useEffect(() => {
     if (rcaData) {
-      if (rcaData.five_whys_data) {
+      if (rcaData.five_whys_data && rcaData.five_whys_data.length > 0) {
         setFiveWhysData(rcaData.five_whys_data);
       }
-      if (rcaData.fishbone_data) {
+      if (rcaData.fishbone_data && rcaData.fishbone_data.categories && rcaData.fishbone_data.categories.length > 0) {
         setFishboneData(rcaData.fishbone_data);
       }
     }
-  });
-
-  // Sync RCA data when it changes
-  if (rcaData && fiveWhysData.length === 0 && rcaData.five_whys_data && rcaData.five_whys_data.length > 0) {
-    setFiveWhysData(rcaData.five_whys_data);
-  }
-  if (rcaData && fishboneData.categories.length === 0 && rcaData.fishbone_data && rcaData.fishbone_data.categories.length > 0) {
-    setFishboneData(rcaData.fishbone_data);
-  }
+  }, [rcaData]);
 
   const handleSaveFiveWhys = async () => {
     if (!capaId) return;

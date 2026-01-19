@@ -2,7 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import type { CustomerComplaint } from '@/types/customer-complaints';
+import type { CustomerComplaint, ComplaintType, ComplaintSeverity } from '@/types/customer-complaints';
+
+// Re-export configs from types
+export { COMPLAINT_TYPE_CONFIG, COMPLAINT_STATUS_CONFIG } from '@/types/customer-complaints';
+
+export const SEVERITY_CONFIG: Record<ComplaintSeverity, { label: string; color: string }> = {
+  minor: { label: 'Minor', color: 'bg-blue-100 text-blue-800' },
+  major: { label: 'Major', color: 'bg-amber-100 text-amber-800' },
+  critical: { label: 'Critical', color: 'bg-red-100 text-red-800' },
+};
 
 // ============================================
 // COMPLAINTS

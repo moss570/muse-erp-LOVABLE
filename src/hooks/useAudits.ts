@@ -2,7 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Audit, AuditFinding } from '@/types/audits';
+import type { Audit, AuditFinding, AuditType, AuditStatus } from '@/types/audits';
+
+// Re-export configs from types
+export { AUDIT_TYPE_CONFIG, FINDING_TYPE_CONFIG, FINDING_CATEGORY_CONFIG, FINDING_STATUS_CONFIG } from '@/types/audits';
+
+export const AUDIT_STATUS_CONFIG: Record<AuditStatus, { label: string; color: string }> = {
+  scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-800' },
+  in_progress: { label: 'In Progress', color: 'bg-amber-100 text-amber-800' },
+  completed: { label: 'Completed', color: 'bg-green-100 text-green-800' },
+  findings_review: { label: 'Findings Review', color: 'bg-purple-100 text-purple-800' },
+  closed: { label: 'Closed', color: 'bg-gray-100 text-gray-800' },
+};
 
 // ============================================
 // AUDITS
