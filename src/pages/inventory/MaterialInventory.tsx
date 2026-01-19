@@ -604,7 +604,8 @@ export default function MaterialInventory() {
                   <TableHead>Category</TableHead>
                   <TableHead>Material</TableHead>
                   <TableHead className="text-center">Lots</TableHead>
-                  <TableHead className="text-right">Total On Hand</TableHead>
+                  <TableHead className="text-right">Purchase UOM</TableHead>
+                  <TableHead className="text-right">Usage UOM</TableHead>
                   <TableHead className="text-right">Par Level</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                 </TableRow>
@@ -612,7 +613,7 @@ export default function MaterialInventory() {
               <TableBody>
                 {paginatedGroups.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       <Package className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No inventory found</p>
                       <p className="text-sm">Try adjusting your search or filters</p>
@@ -683,6 +684,11 @@ export default function MaterialInventory() {
                             <TableCell className="text-center">
                               <Badge variant="secondary">{group.lotCount}</Badge>
                             </TableCell>
+                            {/* Purchase UOM - show dash for summary row */}
+                            <TableCell className="text-right text-muted-foreground">
+                              —
+                            </TableCell>
+                            {/* Usage UOM - show total */}
                             <TableCell className="text-right">
                               {group.usageUnit && group.usageUnitConversion ? (
                                 <TooltipProvider>
@@ -783,32 +789,24 @@ export default function MaterialInventory() {
                                     </div>
                                   </TableCell>
                                   <TableCell></TableCell>
+                                  {/* Purchase UOM column - show quantity in purchase unit */}
+                                  <TableCell className="text-right text-sm">
+                                    {Number(lot.quantity_in_base_unit).toLocaleString()}
+                                    <span className="text-muted-foreground ml-1 text-xs">
+                                      {lot.unit?.code}
+                                    </span>
+                                  </TableCell>
+                                  {/* Usage UOM column - show converted quantity */}
                                   <TableCell className="text-right text-sm">
                                     {lot.material?.usage_unit && lot.material?.usage_unit_conversion ? (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <span className="cursor-help">
-                                              {Number(lot.quantity_in_base_unit).toLocaleString()}
-                                              <span className="text-muted-foreground ml-1 text-xs">
-                                                {lot.unit?.code}
-                                              </span>
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>
-                                              {(lot.quantity_in_base_unit * lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })} {lot.material.usage_unit.code}
-                                            </p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    ) : (
                                       <>
-                                        {Number(lot.quantity_in_base_unit).toLocaleString()}
+                                        {(lot.quantity_in_base_unit * lot.material.usage_unit_conversion).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                         <span className="text-muted-foreground ml-1 text-xs">
-                                          {lot.unit?.code}
+                                          {lot.material.usage_unit.code}
                                         </span>
                                       </>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
                                     )}
                                   </TableCell>
                                   <TableCell></TableCell>
