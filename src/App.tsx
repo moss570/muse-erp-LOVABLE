@@ -63,6 +63,10 @@ import CapaManagement from "./pages/quality/CapaManagement";
 import CapaAnalytics from "./pages/quality/CapaAnalytics";
 import Complaints from "./pages/quality/Complaints";
 import Audits from "./pages/quality/Audits";
+import SupplierScoringPage from "./pages/suppliers/SupplierScoringPage";
+import SupplierScoringSettings from "./pages/settings/SupplierScoringSettings";
+import ComplaintSettings from "./pages/settings/ComplaintSettings";
+import AuditSettings from "./pages/settings/AuditSettings";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +93,7 @@ const App = () => (
             
             {/* Purchasing routes */}
             <Route path="/purchasing/suppliers" element={<AppLayout><Suppliers /></AppLayout>} />
+            <Route path="/purchasing/suppliers/scoring" element={<AppLayout><SupplierScoringPage /></AppLayout>} />
             <Route path="/purchasing/orders" element={<AppLayout><PurchaseOrders /></AppLayout>} />
             <Route path="/purchasing/orders/:id" element={<AppLayout><PurchaseOrderDetail /></AppLayout>} />
             <Route path="/purchasing/receiving" element={<AppLayout><Receiving /></AppLayout>} />
@@ -121,6 +126,9 @@ const App = () => (
             <Route path="/settings/container-sizes" element={<AppLayout><ContainerSizes /></AppLayout>} />
             <Route path="/settings/quality-tests" element={<AppLayout><QualityTests /></AppLayout>} />
             <Route path="/settings/qa-approval-rules" element={<AppLayout><QAApprovalRules /></AppLayout>} />
+            <Route path="/settings/supplier-scoring" element={<AppLayout><SupplierScoringSettings /></AppLayout>} />
+            <Route path="/settings/complaints" element={<AppLayout><ComplaintSettings /></AppLayout>} />
+            <Route path="/settings/audits" element={<AppLayout><AuditSettings /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

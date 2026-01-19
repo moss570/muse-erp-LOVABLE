@@ -128,10 +128,12 @@ export interface ScoreHistoryPoint {
   grade: string;
 }
 
-export const GRADE_CONFIG: Record<string, { color: string; bgColor: string; label: string }> = {
-  A: { color: 'text-green-700', bgColor: 'bg-green-100', label: 'Excellent' },
-  B: { color: 'text-blue-700', bgColor: 'bg-blue-100', label: 'Good' },
-  C: { color: 'text-amber-700', bgColor: 'bg-amber-100', label: 'Fair' },
-  D: { color: 'text-orange-700', bgColor: 'bg-orange-100', label: 'Poor' },
-  F: { color: 'text-red-700', bgColor: 'bg-red-100', label: 'Critical' },
+export type SupplierGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+
+export const GRADE_CONFIG: Record<SupplierGrade, { color: string; bgColor: string; label: string; description: string }> = {
+  A: { color: 'text-green-700', bgColor: 'bg-green-100', label: 'Excellent', description: 'Top-tier supplier, preferred status' },
+  B: { color: 'text-blue-700', bgColor: 'bg-blue-100', label: 'Good', description: 'Reliable supplier, approved status' },
+  C: { color: 'text-amber-700', bgColor: 'bg-amber-100', label: 'Fair', description: 'Acceptable, requires monitoring' },
+  D: { color: 'text-orange-700', bgColor: 'bg-orange-100', label: 'Poor', description: 'Improvement required' },
+  F: { color: 'text-red-700', bgColor: 'bg-red-100', label: 'Critical', description: 'Probation or removal' },
 };
