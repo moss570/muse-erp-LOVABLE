@@ -60,6 +60,9 @@ import BatchQATests from "./pages/manufacturing/BatchQATests";
 import QAWorkQueue from "./pages/qa/QAWorkQueue";
 import OverrideRequests from "./pages/qa/OverrideRequests";
 import CapaManagement from "./pages/quality/CapaManagement";
+import CapaAnalytics from "./pages/quality/CapaAnalytics";
+import Complaints from "./pages/quality/Complaints";
+import Audits from "./pages/quality/Audits";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +161,9 @@ const App = () => (
             <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
             <Route path="/quality/work-queue" element={<AppLayout><QAWorkQueue /></AppLayout>} />
             <Route path="/quality/capa" element={<AppLayout><CapaManagement /></AppLayout>} />
+            <Route path="/quality/capa-analytics" element={<AppLayout><CapaAnalytics /></AppLayout>} />
+            <Route path="/quality/complaints" element={<AppLayout><Complaints /></AppLayout>} />
+            <Route path="/quality/audits" element={<AppLayout><Audits /></AppLayout>} />
             <Route path="/quality/override-requests" element={<AppLayout><OverrideRequests /></AppLayout>} />
             <Route
               path="/quality/*"
