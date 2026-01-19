@@ -21,7 +21,8 @@ import {
   useCapaActivityLog,
   useCapaAttachments,
 } from '@/hooks/useCapa';
-import { useCapaTasks } from '@/hooks/useCapaTasks';
+import { useCapaTasks, useRootCauseAnalysis, useSaveRootCauseAnalysis } from '@/hooks/useCapaTasks';
+import type { FiveWhysEntry, FishboneCategory } from '@/types/capa';
 import { useProfiles } from '@/hooks/useReceivingCapa';
 
 import { Button } from '@/components/ui/button';
@@ -138,6 +139,8 @@ export function CapaWorkflowDialog({
 }: CapaWorkflowDialogProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'investigation' | 'actions' | 'activity' | 'attachments'>('details');
   const [expandedSections, setExpandedSections] = useState<string[]>(['problem', 'containment']);
+  const [fiveWhysData, setFiveWhysData] = useState<FiveWhysEntry[]>([]);
+  const [fishboneData, setFishboneData] = useState<{ categories: FishboneCategory[] }>({ categories: [] });
 
   const { data: capaData, isLoading } = useCapa(capaId);
   // Cast to any to avoid type issues with dynamic workflow fields
@@ -146,9 +149,49 @@ export function CapaWorkflowDialog({
   const { data: activities } = useCapaActivityLog(capaId);
   const { data: attachments } = useCapaAttachments(capaId);
   const { data: profiles } = useProfiles();
+  const { data: rcaData } = useRootCauseAnalysis(capaId);
 
   const updateCapa = useUpdateCapa();
   const updateStatus = useUpdateCapaStatus();
+  const saveRca = useSaveRootCauseAnalysis();
+
+  // Initialize RCA data when loaded
+  useState(() => {
+    if (rcaData) {
+      if (rcaData.five_whys_data) {
+        setFiveWhysData(rcaData.five_whys_data);
+      }
+      if (rcaData.fishbone_data) {
+        setFishboneData(rcaData.fishbone_data);
+      }
+    }
+  });
+
+  // Sync RCA data when it changes
+  if (rcaData && fiveWhysData.length === 0 && rcaData.five_whys_data && rcaData.five_whys_data.length > 0) {
+    setFiveWhysData(rcaData.five_whys_data);
+  }
+  if (rcaData && fishboneData.categories.length === 0 && rcaData.fishbone_data && rcaData.fishbone_data.categories.length > 0) {
+    setFishboneData(rcaData.fishbone_data);
+  }
+
+  const handleSaveFiveWhys = async () => {
+    if (!capaId) return;
+    await saveRca.mutateAsync({
+      capa_id: capaId,
+      method: 'five_whys',
+      five_whys_data: fiveWhysData,
+    });
+  };
+
+  const handleSaveFishbone = async () => {
+    if (!capaId) return;
+    await saveRca.mutateAsync({
+      capa_id: capaId,
+      method: 'fishbone',
+      fishbone_data: fishboneData,
+    });
+  };
 
   const isViewMode = mode === 'view' || capa?.status === 'closed';
 
@@ -552,17 +595,21 @@ export function CapaWorkflowDialog({
 
                     <TabsContent value="five_whys" className="mt-4">
                       <FiveWhysAnalysis
-                        data={[]}
-                        onChange={() => {}}
+                        data={fiveWhysData}
+                        onChange={setFiveWhysData}
+                        onSave={handleSaveFiveWhys}
+                        isSaving={saveRca.isPending}
                         readOnly={isViewMode}
                       />
                     </TabsContent>
 
                     <TabsContent value="fishbone" className="mt-4">
                       <FishboneDiagram
-                        data={{ categories: [] }}
-                        onChange={() => {}}
+                        data={fishboneData}
+                        onChange={setFishboneData}
                         problem={capa.title || 'Problem'}
+                        onSave={handleSaveFishbone}
+                        isSaving={saveRca.isPending}
                         readOnly={isViewMode}
                       />
                     </TabsContent>
