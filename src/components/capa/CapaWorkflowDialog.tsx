@@ -641,19 +641,17 @@ export function CapaWorkflowDialog({
                         </p>
                       ) : (
                         <Select
-                          value={capa.root_cause_category || ''}
-                          onValueChange={(v) => updateCapa.mutate({ id: capaId!, root_cause_category: v as RootCauseCategory })}
+                          value={capa.root_cause_category || 'unselected'}
+                          onValueChange={(v) => updateCapa.mutate({ id: capaId!, root_cause_category: v === 'unselected' ? null : v as RootCauseCategory })}
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[200]">
+                            <SelectItem value="unselected">Not classified</SelectItem>
                             {Object.entries(ROOT_CAUSE_CATEGORY_CONFIG).map(([value, config]) => (
                               <SelectItem key={value} value={value}>
-                                <div>
-                                  <div className="font-medium">{config.label}</div>
-                                  <div className="text-xs text-muted-foreground">{config.description}</div>
-                                </div>
+                                {config.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
