@@ -23,6 +23,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -40,7 +46,10 @@ import {
   AlertTriangle,
   Loader2,
   Printer,
-  Download
+  Download,
+  ChevronDown,
+  Mail,
+  CheckSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePermissions } from '@/hooks/usePermission';
@@ -265,6 +274,32 @@ export default function PurchaseOrderDetail() {
     },
   });
 
+  // Mark as sent mutation (without sending email)
+  const markAsSentMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('purchase_orders')
+        .update({ 
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          sent_by: user?.id,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-order', id] });
+      toast({ 
+        title: 'PO Marked as Sent',
+        description: 'The purchase order has been marked as sent to the supplier.'
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error updating PO', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const handleApprovalClick = (action: 'approve' | 'reject') => {
     setApprovalAction(action);
     setIsApprovalDialogOpen(true);
@@ -480,14 +515,29 @@ export default function PurchaseOrderDetail() {
           )}
           
           {canSend && (
-            <Button onClick={handleSendToSupplier} disabled={isSending}>
-              {isSending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Send to Supplier
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button disabled={isSending || markAsSentMutation.isPending}>
+                  {(isSending || markAsSentMutation.isPending) ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Send to Supplier
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleSendToSupplier} disabled={isSending}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send via Email
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => markAsSentMutation.mutate()} disabled={markAsSentMutation.isPending}>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Mark as Sent
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           
           {canReceive && (
