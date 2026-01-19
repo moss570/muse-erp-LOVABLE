@@ -252,8 +252,8 @@ export function CapaWorkflowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-5xl h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
           <div className="flex items-start justify-between">
             <div>
               <DialogTitle className="flex items-center gap-2">
@@ -317,8 +317,8 @@ export function CapaWorkflowDialog({
         </DialogHeader>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="flex-shrink-0">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex-1 min-h-0 flex flex-col px-6">
+          <TabsList className="flex-shrink-0 mb-4">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="investigation">
               Investigation
@@ -342,9 +342,9 @@ export function CapaWorkflowDialog({
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0 pb-6">
             {/* Details Tab */}
-            <TabsContent value="details" className="mt-0 p-4 space-y-4">
+            <TabsContent value="details" className="mt-0 pr-4 space-y-4" forceMount={activeTab === 'details' ? true : undefined}>
               {/* Problem Description Section */}
               <Collapsible open={expandedSections.includes('problem')} onOpenChange={() => toggleSection('problem')}>
                 <Card>
@@ -567,7 +567,7 @@ export function CapaWorkflowDialog({
             </TabsContent>
 
             {/* Investigation Tab */}
-            <TabsContent value="investigation" className="mt-0 p-4 space-y-4">
+            <TabsContent value="investigation" className="mt-0 pr-4 space-y-4" forceMount={activeTab === 'investigation' ? true : undefined}>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
@@ -700,7 +700,7 @@ export function CapaWorkflowDialog({
             </TabsContent>
 
             {/* Actions Tab */}
-            <TabsContent value="actions" className="mt-0 p-4 space-y-4">
+            <TabsContent value="actions" className="mt-0 pr-4 space-y-4" forceMount={activeTab === 'actions' ? true : undefined}>
               {/* Corrective Actions */}
               <Card>
                 <CardHeader>
@@ -905,12 +905,12 @@ export function CapaWorkflowDialog({
             </TabsContent>
 
             {/* Activity Tab */}
-            <TabsContent value="activity" className="mt-0 p-4">
+            <TabsContent value="activity" className="mt-0 pr-4" forceMount={activeTab === 'activity' ? true : undefined}>
               <CapaActivityTimeline capaId={capaId!} />
             </TabsContent>
 
             {/* Attachments Tab */}
-            <TabsContent value="attachments" className="mt-0 p-4">
+            <TabsContent value="attachments" className="mt-0 pr-4" forceMount={activeTab === 'attachments' ? true : undefined}>
               <CapaAttachments capaId={capaId!} readOnly={isViewMode} />
             </TabsContent>
           </ScrollArea>
