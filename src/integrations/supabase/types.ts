@@ -5439,6 +5439,156 @@ export type Database = {
         }
         Relationships: []
       }
+      lot_consumption: {
+        Row: {
+          actual_total_cost: number | null
+          actual_unit_cost: number | null
+          ai_validation_notes: string | null
+          ai_validation_status: string | null
+          consumed_lot_id: string | null
+          consumption_method: string | null
+          consumption_type: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          manually_entered_at: string | null
+          manually_entered_by: string | null
+          material_id: string | null
+          notes: string | null
+          override_at: string | null
+          override_by: string | null
+          override_reason: string | null
+          quantity_consumed: number
+          quantity_uom: string
+          scanned_at: string | null
+          scanned_by: string | null
+          stage: string | null
+          supervisor_override: boolean | null
+          work_order_id: string | null
+        }
+        Insert: {
+          actual_total_cost?: number | null
+          actual_unit_cost?: number | null
+          ai_validation_notes?: string | null
+          ai_validation_status?: string | null
+          consumed_lot_id?: string | null
+          consumption_method?: string | null
+          consumption_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          manually_entered_at?: string | null
+          manually_entered_by?: string | null
+          material_id?: string | null
+          notes?: string | null
+          override_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          quantity_consumed: number
+          quantity_uom: string
+          scanned_at?: string | null
+          scanned_by?: string | null
+          stage?: string | null
+          supervisor_override?: boolean | null
+          work_order_id?: string | null
+        }
+        Update: {
+          actual_total_cost?: number | null
+          actual_unit_cost?: number | null
+          ai_validation_notes?: string | null
+          ai_validation_status?: string | null
+          consumed_lot_id?: string | null
+          consumption_method?: string | null
+          consumption_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          manually_entered_at?: string | null
+          manually_entered_by?: string | null
+          material_id?: string | null
+          notes?: string | null
+          override_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          quantity_consumed?: number
+          quantity_uom?: string
+          scanned_at?: string | null
+          scanned_by?: string | null
+          stage?: string | null
+          supervisor_override?: boolean | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_consumption_consumed_lot_id_fkey"
+            columns: ["consumed_lot_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturing_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_consumption_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lot_genealogy: {
+        Row: {
+          child_lot_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          parent_lot_id: string | null
+          quantity_uom: string
+          quantity_used: number
+          stage: string | null
+          usage_date: string | null
+        }
+        Insert: {
+          child_lot_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          parent_lot_id?: string | null
+          quantity_uom: string
+          quantity_used: number
+          stage?: string | null
+          usage_date?: string | null
+        }
+        Update: {
+          child_lot_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          parent_lot_id?: string | null
+          quantity_uom?: string
+          quantity_used?: number
+          stage?: string | null
+          usage_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_genealogy_child_lot_id_fkey"
+            columns: ["child_lot_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturing_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_genealogy_parent_lot_id_fkey"
+            columns: ["parent_lot_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturing_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machines: {
         Row: {
           created_at: string
@@ -5476,6 +5626,171 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manufacturing_audit_log: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string | null
+          field_name: string | null
+          id: string
+          ip_address: unknown
+          new_value: string | null
+          notes: string | null
+          old_value: string | null
+          record_id: string
+          table_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by?: string | null
+          field_name?: string | null
+          id?: string
+          ip_address?: unknown
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          record_id: string
+          table_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          field_name?: string | null
+          id?: string
+          ip_address?: unknown
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          record_id?: string
+          table_name?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      manufacturing_lots: {
+        Row: {
+          approved_by: string | null
+          approved_date: string | null
+          created_at: string | null
+          created_by: string | null
+          expiration_date: string | null
+          hold_by: string | null
+          hold_date: string | null
+          hold_reason: string | null
+          id: string
+          is_opened: boolean | null
+          lot_number: string
+          lot_status: string
+          lot_type: string
+          material_id: string | null
+          notes: string | null
+          opened_by: string | null
+          opened_date: string | null
+          operator_id: string | null
+          production_date: string
+          production_line_id: string | null
+          quantity: number
+          quantity_remaining: number
+          quantity_uom: string
+          rejected_by: string | null
+          rejected_date: string | null
+          rejection_reason: string | null
+          shift: string | null
+          storage_location: string | null
+          temperature_log: Json | null
+          updated_at: string | null
+          updated_by: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expiration_date?: string | null
+          hold_by?: string | null
+          hold_date?: string | null
+          hold_reason?: string | null
+          id?: string
+          is_opened?: boolean | null
+          lot_number: string
+          lot_status?: string
+          lot_type: string
+          material_id?: string | null
+          notes?: string | null
+          opened_by?: string | null
+          opened_date?: string | null
+          operator_id?: string | null
+          production_date: string
+          production_line_id?: string | null
+          quantity: number
+          quantity_remaining: number
+          quantity_uom: string
+          rejected_by?: string | null
+          rejected_date?: string | null
+          rejection_reason?: string | null
+          shift?: string | null
+          storage_location?: string | null
+          temperature_log?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expiration_date?: string | null
+          hold_by?: string | null
+          hold_date?: string | null
+          hold_reason?: string | null
+          id?: string
+          is_opened?: boolean | null
+          lot_number?: string
+          lot_status?: string
+          lot_type?: string
+          material_id?: string | null
+          notes?: string | null
+          opened_by?: string | null
+          opened_date?: string | null
+          operator_id?: string | null
+          production_date?: string
+          production_line_id?: string | null
+          quantity?: number
+          quantity_remaining?: number
+          quantity_uom?: string
+          rejected_by?: string | null
+          rejected_date?: string | null
+          rejection_reason?: string | null
+          shift?: string | null
+          storage_location?: string | null
+          temperature_log?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manufacturing_lots_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manufacturing_lots_production_line_id_fkey"
+            columns: ["production_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
             referencedColumns: ["id"]
           },
         ]
@@ -8683,6 +8998,132 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      production_line_capacity_rules: {
+        Row: {
+          capacity_per_hour: number | null
+          capacity_uom: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          material_id: string | null
+          notes: string | null
+          package_type: string | null
+          production_line_id: string | null
+          setup_time_minutes: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          capacity_per_hour?: number | null
+          capacity_uom?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          package_type?: string | null
+          production_line_id?: string | null
+          setup_time_minutes?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          capacity_per_hour?: number | null
+          capacity_uom?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          package_type?: string | null
+          production_line_id?: string | null
+          setup_time_minutes?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_line_capacity_rules_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_line_capacity_rules_production_line_id_fkey"
+            columns: ["production_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_lines: {
+        Row: {
+          average_runtime_hours: number | null
+          capacity_basis: string | null
+          capacity_uom: string | null
+          capacity_value: number | null
+          changeover_time_minutes: number | null
+          cleaning_time_minutes: number | null
+          created_at: string | null
+          created_by: string | null
+          dedicated_allergen: string | null
+          id: string
+          is_active: boolean | null
+          is_allergen_dedicated: boolean | null
+          line_code: string
+          line_name: string
+          line_type: string
+          notes: string | null
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          average_runtime_hours?: number | null
+          capacity_basis?: string | null
+          capacity_uom?: string | null
+          capacity_value?: number | null
+          changeover_time_minutes?: number | null
+          cleaning_time_minutes?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          dedicated_allergen?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_allergen_dedicated?: boolean | null
+          line_code: string
+          line_name: string
+          line_type: string
+          notes?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          average_runtime_hours?: number | null
+          capacity_basis?: string | null
+          capacity_uom?: string | null
+          capacity_value?: number | null
+          changeover_time_minutes?: number | null
+          cleaning_time_minutes?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          dedicated_allergen?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_allergen_dedicated?: boolean | null
+          line_code?: string
+          line_name?: string
+          line_type?: string
+          notes?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       production_lot_materials: {
         Row: {
@@ -13124,6 +13565,10 @@ export type Database = {
       generate_complaint_number: { Args: never; Returns: string }
       generate_employee_number: { Args: never; Returns: string }
       generate_listed_material_code: { Args: never; Returns: string }
+      generate_lot_number: {
+        Args: { p_material_id: string; p_production_date?: string }
+        Returns: string
+      }
       generate_material_code: { Args: { p_category: string }; Returns: string }
       generate_nc_number: { Args: never; Returns: string }
       generate_pallet_number: {
@@ -13159,6 +13604,21 @@ export type Database = {
           p_type: Database["public"]["Enums"]["work_order_type"]
         }
         Returns: string
+      }
+      get_lot_genealogy_tree: {
+        Args: { p_direction?: string; p_lot_id: string }
+        Returns: {
+          depth: number
+          lot_id: string
+          lot_number: string
+          lot_status: string
+          lot_type: string
+          material_name: string
+          production_date: string
+          quantity: number
+          quantity_uom: string
+          relationship: string
+        }[]
       }
       get_nc_metrics: {
         Args: {
@@ -13213,6 +13673,10 @@ export type Database = {
       supplier_has_valid_documents: {
         Args: { p_supplier_id: string }
         Returns: boolean
+      }
+      validate_lot_number_format: {
+        Args: { p_lot_number: string }
+        Returns: Json
       }
     }
     Enums: {
