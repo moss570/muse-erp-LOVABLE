@@ -4159,9 +4159,11 @@ export type Database = {
           id: string
           is_3pl: boolean | null
           is_active: boolean
+          location_barcode: string | null
           location_code: string
           location_type: string
           name: string
+          requires_scan_confirmation: boolean | null
           state: string | null
           target_temperature_max: number | null
           target_temperature_min: number | null
@@ -4182,9 +4184,11 @@ export type Database = {
           id?: string
           is_3pl?: boolean | null
           is_active?: boolean
+          location_barcode?: string | null
           location_code: string
           location_type: string
           name: string
+          requires_scan_confirmation?: boolean | null
           state?: string | null
           target_temperature_max?: number | null
           target_temperature_min?: number | null
@@ -4205,9 +4209,11 @@ export type Database = {
           id?: string
           is_3pl?: boolean | null
           is_active?: boolean
+          location_barcode?: string | null
           location_code?: string
           location_type?: string
           name?: string
+          requires_scan_confirmation?: boolean | null
           state?: string | null
           target_temperature_max?: number | null
           target_temperature_min?: number | null
@@ -7581,6 +7587,188 @@ export type Database = {
           },
         ]
       }
+      putaway_tasks: {
+        Row: {
+          assigned_to: string | null
+          available_at: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          deadline: string | null
+          id: string
+          putaway_quantity: number | null
+          receiving_lot_id: string
+          receiving_session_id: string | null
+          started_at: string | null
+          status: string | null
+          total_quantity: number
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          available_at?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deadline?: string | null
+          id?: string
+          putaway_quantity?: number | null
+          receiving_lot_id: string
+          receiving_session_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          total_quantity: number
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          available_at?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deadline?: string | null
+          id?: string
+          putaway_quantity?: number | null
+          receiving_lot_id?: string
+          receiving_session_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          total_quantity?: number
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "putaway_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_tasks_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "putaway_tasks_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_tasks_receiving_session_id_fkey"
+            columns: ["receiving_session_id"]
+            isOneToOne: false
+            referencedRelation: "po_receiving_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_tasks_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      putaway_transactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          location_barcode_scanned: string | null
+          location_id: string
+          lot_barcode_scanned: string | null
+          performed_at: string | null
+          performed_by: string | null
+          putaway_task_id: string
+          quantity: number
+          receiving_lot_id: string
+          unit_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location_barcode_scanned?: string | null
+          location_id: string
+          lot_barcode_scanned?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          putaway_task_id: string
+          quantity: number
+          receiving_lot_id: string
+          unit_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location_barcode_scanned?: string | null
+          location_id?: string
+          lot_barcode_scanned?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          putaway_task_id?: string
+          quantity?: number
+          receiving_lot_id?: string
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "putaway_transactions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_transactions_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_transactions_putaway_task_id_fkey"
+            columns: ["putaway_task_id"]
+            isOneToOne: false
+            referencedRelation: "putaway_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_transactions_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "putaway_transactions_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_transactions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qa_approval_settings: {
         Row: {
           created_at: string | null
@@ -8526,6 +8714,9 @@ export type Database = {
           location_id: string | null
           material_id: string
           notes: string | null
+          putaway_complete: boolean | null
+          putaway_completed_at: string | null
+          putaway_task_id: string | null
           qa_approved_at: string | null
           qa_approved_by: string | null
           qa_notes: string | null
@@ -8561,6 +8752,9 @@ export type Database = {
           location_id?: string | null
           material_id: string
           notes?: string | null
+          putaway_complete?: boolean | null
+          putaway_completed_at?: string | null
+          putaway_task_id?: string | null
           qa_approved_at?: string | null
           qa_approved_by?: string | null
           qa_notes?: string | null
@@ -8596,6 +8790,9 @@ export type Database = {
           location_id?: string | null
           material_id?: string
           notes?: string | null
+          putaway_complete?: boolean | null
+          putaway_completed_at?: string | null
+          putaway_task_id?: string | null
           qa_approved_at?: string | null
           qa_approved_by?: string | null
           qa_notes?: string | null
@@ -8639,6 +8836,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_putaway_task_id_fkey"
+            columns: ["putaway_task_id"]
+            isOneToOne: false
+            referencedRelation: "putaway_tasks"
             referencedColumns: ["id"]
           },
           {
