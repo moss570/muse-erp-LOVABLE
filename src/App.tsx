@@ -99,6 +99,7 @@ import MyDocuments from "./pages/employee/MyDocuments";
 import HRDocuments from "./pages/hr/HRDocuments";
 import TaskAnalytics from "./pages/analytics/TaskAnalytics";
 import Notifications from "./pages/Notifications";
+import NonConformities from "./pages/quality/NonConformities";
 
 const queryClient = new QueryClient();
 
@@ -218,6 +219,7 @@ const App = () => (
             <Route path="/quality/override-requests" element={<AppLayout><OverrideRequests /></AppLayout>} />
             <Route path="/quality/lot-traceability" element={<AppLayout><LotTraceability /></AppLayout>} />
             <Route path="/quality/mock-recall-drills" element={<AppLayout><MockRecallDrills /></AppLayout>} />
+            <Route path="/quality/non-conformities" element={<AppLayout><NonConformities /></AppLayout>} />
             <Route path="/qa/receiving-inspections" element={<AppLayout><ReceivingInspections /></AppLayout>} />
             <Route path="/qa/receiving-inspection/:sessionId" element={<AppLayout><ReceivingInspection /></AppLayout>} />
             <Route
