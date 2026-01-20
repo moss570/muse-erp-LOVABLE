@@ -26,6 +26,8 @@ import {
   Shield,
   ClipboardList,
   MessageSquare,
+  User,
+  GraduationCap,
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,12 +45,22 @@ const navItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    title: 'My Portal',
+    href: '/my',
+    icon: User,
+    children: [
+      { title: 'My Dashboard', href: '/my' },
+      { title: 'Work Queue', href: '/my/work-queue' },
+      { title: 'My Schedule', href: '/my/schedule' },
+      { title: 'Training', href: '/my/training' },
+    ],
+  },
+  {
     title: 'Tasks',
     href: '/tasks',
     icon: ClipboardList,
     children: [
       { title: 'All Tasks', href: '/tasks' },
-      { title: 'My Work Queue', href: '/my/work-queue' },
     ],
   },
   {
