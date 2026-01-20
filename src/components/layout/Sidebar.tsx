@@ -178,6 +178,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Settings Hub', href: '/settings' },
       { title: 'Company Settings', href: '/settings/company' },
+      { title: 'Task Templates', href: '/settings/task-templates' },
       { title: 'Users', href: '/settings/users' },
       { title: 'Permissions', href: '/settings/permissions' },
     ],
