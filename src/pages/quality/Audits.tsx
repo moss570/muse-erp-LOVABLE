@@ -45,12 +45,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAudits, useCreateAudit, AUDIT_TYPE_CONFIG, AUDIT_STATUS_CONFIG } from '@/hooks/useAudits';
 import type { AuditType } from '@/types/audits';
 import { cn } from '@/lib/utils';
+import { AuditDetailDialog } from '@/components/audits/AuditDetailDialog';
 
 export default function Audits() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
 
   const { data: audits, isLoading } = useAudits();
   const createAudit = useCreateAudit();
@@ -247,7 +249,7 @@ export default function Audits() {
                   const typeConfig = AUDIT_TYPE_CONFIG[audit.audit_type];
                   const statusConfig = AUDIT_STATUS_CONFIG[audit.status];
                   return (
-                    <TableRow key={audit.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableRow key={audit.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedAuditId(audit.id)}>
                       <TableCell className="font-mono text-sm">
                         {audit.audit_number}
                       </TableCell>
@@ -395,6 +397,15 @@ export default function Audits() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit Detail Dialog */}
+      {selectedAuditId && (
+        <AuditDetailDialog
+          open={!!selectedAuditId}
+          onOpenChange={(open) => !open && setSelectedAuditId(null)}
+          auditId={selectedAuditId}
+        />
+      )}
     </div>
   );
 }
