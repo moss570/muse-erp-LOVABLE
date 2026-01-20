@@ -99,7 +99,16 @@ const navItems: NavItem[] = [
       { title: 'Customer Complaints', href: '/quality/complaints' },
       { title: 'Audits', href: '/quality/audits' },
       { title: 'Override Requests', href: '/quality/override-requests' },
+      { title: 'Receiving Inspections', href: '/qa/receiving-inspections' },
       { title: 'Document Watchlist', href: '/quality/documents' },
+    ],
+  },
+  {
+    title: 'Warehouse',
+    href: '/warehouse',
+    icon: Package,
+    children: [
+      { title: 'Putaway', href: '/warehouse/putaway' },
     ],
   },
   {

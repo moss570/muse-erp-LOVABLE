@@ -69,6 +69,10 @@ import SupplierScoringPage from "./pages/suppliers/SupplierScoringPage";
 import SupplierScoringSettings from "./pages/settings/SupplierScoringSettings";
 import ComplaintSettings from "./pages/settings/ComplaintSettings";
 import AuditSettings from "./pages/settings/AuditSettings";
+import ReceivingInspections from "./pages/qa/ReceivingInspections";
+import ReceivingInspection from "./pages/qa/ReceivingInspection";
+import Putaway from "./pages/warehouse/Putaway";
+import PutawayTask from "./pages/warehouse/PutawayTask";
 
 const queryClient = new QueryClient();
 
@@ -177,6 +181,8 @@ const App = () => (
             <Route path="/quality/complaints" element={<AppLayout><Complaints /></AppLayout>} />
             <Route path="/quality/audits" element={<AppLayout><Audits /></AppLayout>} />
             <Route path="/quality/override-requests" element={<AppLayout><OverrideRequests /></AppLayout>} />
+            <Route path="/qa/receiving-inspections" element={<AppLayout><ReceivingInspections /></AppLayout>} />
+            <Route path="/qa/receiving-inspection/:sessionId" element={<AppLayout><ReceivingInspection /></AppLayout>} />
             <Route
               path="/quality/*"
               element={
@@ -188,6 +194,11 @@ const App = () => (
                 </AppLayout>
               }
             />
+            
+            {/* Warehouse routes */}
+            <Route path="/warehouse/putaway" element={<AppLayout><Putaway /></AppLayout>} />
+            <Route path="/warehouse/putaway/:taskId" element={<AppLayout><PutawayTask /></AppLayout>} />
+            
             {/* Operations routes */}
             <Route path="/operations/close-day" element={<CloseDay />} />
             {/* Scheduling routes */}
