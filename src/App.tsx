@@ -84,6 +84,7 @@ import CycleCounts from "./pages/warehouse/CycleCounts";
 import CycleCountEntry from "./pages/warehouse/CycleCountEntry";
 import CycleCountReview from "./pages/warehouse/CycleCountReview";
 import LotTraceability from "./pages/quality/LotTraceability";
+import Transfers from "./pages/warehouse/Transfers";
 import MockRecallDrills from "./pages/quality/MockRecallDrills";
 import RecallContacts from "./pages/settings/RecallContacts";
 import Tasks from "./pages/tasks/Tasks";
@@ -245,6 +246,7 @@ const App = () => (
             <Route path="/warehouse/cycle-counts" element={<AppLayout><CycleCounts /></AppLayout>} />
             <Route path="/warehouse/cycle-counts/:countId" element={<AppLayout><CycleCountEntry /></AppLayout>} />
             <Route path="/warehouse/cycle-counts/:countId/review" element={<AppLayout><CycleCountReview /></AppLayout>} />
+            <Route path="/warehouse/transfers" element={<AppLayout><Transfers /></AppLayout>} />
             
             {/* Operations routes */}
             <Route path="/operations/close-day" element={<CloseDay />} />
