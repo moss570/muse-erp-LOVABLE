@@ -77,6 +77,7 @@ import IssueRequests from "./pages/production/IssueRequests";
 import CreateIssueRequest from "./pages/production/CreateIssueRequest";
 import IssueToProduction from "./pages/warehouse/IssueToProduction";
 import FulfillIssueRequest from "./pages/warehouse/FulfillIssueRequest";
+import WarehouseDashboard from "./pages/warehouse/WarehouseDashboard";
 
 const queryClient = new QueryClient();
 
@@ -205,6 +206,7 @@ const App = () => (
             />
             
             {/* Warehouse routes */}
+            <Route path="/warehouse" element={<AppLayout><WarehouseDashboard /></AppLayout>} />
             <Route path="/warehouse/putaway" element={<AppLayout><Putaway /></AppLayout>} />
             <Route path="/warehouse/putaway/:taskId" element={<AppLayout><PutawayTask /></AppLayout>} />
             <Route path="/warehouse/issue-to-production" element={<AppLayout><IssueToProduction /></AppLayout>} />
