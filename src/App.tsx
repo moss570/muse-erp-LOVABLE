@@ -90,6 +90,9 @@ import Tasks from "./pages/tasks/Tasks";
 import TaskTemplates from "./pages/settings/TaskTemplates";
 import WorkQueue from "./pages/employee/WorkQueue";
 import Chat from "./pages/chat/Chat";
+import EmployeePortal from "./pages/employee/EmployeePortal";
+import MySchedule from "./pages/employee/MySchedule";
+import TrainingLog from "./pages/employee/TrainingLog";
 
 const queryClient = new QueryClient();
 
@@ -283,7 +286,12 @@ const App = () => (
             <Route path="/chat" element={<AppLayout><Chat /></AppLayout>} />
             {/* Tasks */}
             <Route path="/tasks" element={<AppLayout><Tasks /></AppLayout>} />
+            
+            {/* Employee Portal routes */}
+            <Route path="/my" element={<AppLayout><EmployeePortal /></AppLayout>} />
             <Route path="/my/work-queue" element={<AppLayout><WorkQueue /></AppLayout>} />
+            <Route path="/my/schedule" element={<AppLayout><MySchedule /></AppLayout>} />
+            <Route path="/my/training" element={<AppLayout><TrainingLog /></AppLayout>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
