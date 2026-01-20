@@ -5834,6 +5834,9 @@ export type Database = {
           location_id: string | null
           notes: string | null
           purchase_order_id: string
+          putaway_status: string | null
+          qa_inspection_id: string | null
+          qa_inspection_status: string | null
           qa_verified_at: string | null
           qa_verified_by: string | null
           received_by: string | null
@@ -5842,6 +5845,8 @@ export type Database = {
           seal_intact: boolean | null
           seal_number: string | null
           status: string
+          submitted_to_qa_at: string | null
+          submitted_to_qa_by: string | null
           trailer_number: string | null
           truck_number: string | null
           truck_temperature_setting: number | null
@@ -5862,6 +5867,9 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           purchase_order_id: string
+          putaway_status?: string | null
+          qa_inspection_id?: string | null
+          qa_inspection_status?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           received_by?: string | null
@@ -5870,6 +5878,8 @@ export type Database = {
           seal_intact?: boolean | null
           seal_number?: string | null
           status?: string
+          submitted_to_qa_at?: string | null
+          submitted_to_qa_by?: string | null
           trailer_number?: string | null
           truck_number?: string | null
           truck_temperature_setting?: number | null
@@ -5890,6 +5900,9 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           purchase_order_id?: string
+          putaway_status?: string | null
+          qa_inspection_id?: string | null
+          qa_inspection_status?: string | null
           qa_verified_at?: string | null
           qa_verified_by?: string | null
           received_by?: string | null
@@ -5898,6 +5911,8 @@ export type Database = {
           seal_intact?: boolean | null
           seal_number?: string | null
           status?: string
+          submitted_to_qa_at?: string | null
+          submitted_to_qa_by?: string | null
           trailer_number?: string | null
           truck_number?: string | null
           truck_temperature_setting?: number | null
@@ -5920,6 +5935,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "po_receiving_sessions_qa_inspection_id_fkey"
+            columns: ["qa_inspection_id"]
+            isOneToOne: false
+            referencedRelation: "qa_receiving_inspections"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "po_receiving_sessions_qa_verified_by_fkey"
             columns: ["qa_verified_by"]
             isOneToOne: false
@@ -5929,6 +5951,13 @@ export type Database = {
           {
             foreignKeyName: "po_receiving_sessions_received_by_fkey"
             columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_receiving_sessions_submitted_to_qa_by_fkey"
+            columns: ["submitted_to_qa_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -7714,6 +7743,78 @@ export type Database = {
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_receiving_inspections: {
+        Row: {
+          approved_lot_ids: string[] | null
+          created_at: string | null
+          id: string
+          inspected_at: string
+          inspection_notes: string | null
+          inspector_id: string
+          inspector_initials: string
+          lot_codes_verified: boolean | null
+          packaging_intact_verified: boolean | null
+          quantities_verified: boolean | null
+          receiving_session_id: string
+          rejected_lot_ids: string[] | null
+          rejection_reason: string | null
+          result: string
+          temperatures_verified: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_lot_ids?: string[] | null
+          created_at?: string | null
+          id?: string
+          inspected_at?: string
+          inspection_notes?: string | null
+          inspector_id: string
+          inspector_initials: string
+          lot_codes_verified?: boolean | null
+          packaging_intact_verified?: boolean | null
+          quantities_verified?: boolean | null
+          receiving_session_id: string
+          rejected_lot_ids?: string[] | null
+          rejection_reason?: string | null
+          result: string
+          temperatures_verified?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_lot_ids?: string[] | null
+          created_at?: string | null
+          id?: string
+          inspected_at?: string
+          inspection_notes?: string | null
+          inspector_id?: string
+          inspector_initials?: string
+          lot_codes_verified?: boolean | null
+          packaging_intact_verified?: boolean | null
+          quantities_verified?: boolean | null
+          receiving_session_id?: string
+          rejected_lot_ids?: string[] | null
+          rejection_reason?: string | null
+          result?: string
+          temperatures_verified?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_receiving_inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_receiving_inspections_receiving_session_id_fkey"
+            columns: ["receiving_session_id"]
+            isOneToOne: false
+            referencedRelation: "po_receiving_sessions"
             referencedColumns: ["id"]
           },
         ]
