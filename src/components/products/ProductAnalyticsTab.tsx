@@ -77,8 +77,8 @@ export function ProductAnalyticsTab({ productId, productName }: ProductAnalytics
     queryFn: async () => {
       const startDate = getStartDate();
       let query = supabase
-        .from("production_work_orders")
-        .select("id, work_order_number, scheduled_date, status, target_quantity")
+        .from("work_orders")
+        .select("id, wo_number, scheduled_date, wo_status, target_quantity")
         .eq("product_id", productId)
         .order("scheduled_date", { ascending: false })
         .limit(20);
@@ -244,7 +244,7 @@ export function ProductAnalyticsTab({ productId, productName }: ProductAnalytics
             <TableBody>
               {workOrders.map((wo) => (
                 <TableRow key={wo.id}>
-                  <TableCell className="font-mono">{wo.work_order_number}</TableCell>
+                  <TableCell className="font-mono">{wo.wo_number}</TableCell>
                   <TableCell>
                     {format(new Date(wo.scheduled_date), "MMM d, yyyy")}
                   </TableCell>
@@ -254,14 +254,14 @@ export function ProductAnalyticsTab({ productId, productName }: ProductAnalytics
                   <TableCell>
                     <Badge
                       variant={
-                        wo.status === "completed"
+                        wo.wo_status === "Completed"
                           ? "default"
-                          : wo.status === "in_progress"
+                          : wo.wo_status === "In Progress"
                           ? "secondary"
                           : "outline"
                       }
                     >
-                      {wo.status}
+                      {wo.wo_status}
                     </Badge>
                   </TableCell>
                 </TableRow>
