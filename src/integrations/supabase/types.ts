@@ -85,6 +85,39 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_settings: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          days_before_expiry: number | null
+          id: string
+          is_enabled: boolean | null
+          notification_channels: string[] | null
+          notify_roles: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          days_before_expiry?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          notification_channels?: string[] | null
+          notify_roles?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          days_before_expiry?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          notification_channels?: string[] | null
+          notify_roles?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       allergen_acknowledgments: {
         Row: {
           acknowledged_at: string
@@ -3544,6 +3577,92 @@ export type Database = {
           },
         ]
       }
+      inventory_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string | null
+          current_value: number | null
+          id: string
+          material_id: string | null
+          message: string
+          notification_sent: boolean | null
+          notification_sent_at: string | null
+          receiving_lot_id: string | null
+          resolved_at: string | null
+          severity: string
+          status: string | null
+          threshold_value: number | null
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string | null
+          current_value?: number | null
+          id?: string
+          material_id?: string | null
+          message: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
+          receiving_lot_id?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string | null
+          threshold_value?: number | null
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string | null
+          current_value?: number | null
+          id?: string
+          material_id?: string | null
+          message?: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
+          receiving_lot_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string | null
+          threshold_value?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_alerts_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_alerts_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_alerts_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_alerts_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_conversion_log: {
         Row: {
           calculated_open_expiry: string | null
@@ -5211,13 +5330,16 @@ export type Database = {
           is_active: boolean | null
           item_number: string | null
           label_copy: string | null
+          lead_time_days: number | null
           listed_material_id: string | null
           manufacturer: string | null
           material_status: string | null
+          max_stock_level: number | null
           min_stock_level: number | null
           name: string
           open_shelf_life_days: number | null
           other_hazards: string | null
+          par_level: number | null
           photo_added_at: string | null
           photo_path: string | null
           photo_url: string | null
@@ -5234,6 +5356,7 @@ export type Database = {
           qa_verified_by: string | null
           receiving_temperature_max: number | null
           receiving_temperature_min: number | null
+          reorder_point: number | null
           requires_coa: boolean | null
           storage_temperature_max: number | null
           storage_temperature_min: number | null
@@ -5291,13 +5414,16 @@ export type Database = {
           is_active?: boolean | null
           item_number?: string | null
           label_copy?: string | null
+          lead_time_days?: number | null
           listed_material_id?: string | null
           manufacturer?: string | null
           material_status?: string | null
+          max_stock_level?: number | null
           min_stock_level?: number | null
           name: string
           open_shelf_life_days?: number | null
           other_hazards?: string | null
+          par_level?: number | null
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
@@ -5314,6 +5440,7 @@ export type Database = {
           qa_verified_by?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
+          reorder_point?: number | null
           requires_coa?: boolean | null
           storage_temperature_max?: number | null
           storage_temperature_min?: number | null
@@ -5371,13 +5498,16 @@ export type Database = {
           is_active?: boolean | null
           item_number?: string | null
           label_copy?: string | null
+          lead_time_days?: number | null
           listed_material_id?: string | null
           manufacturer?: string | null
           material_status?: string | null
+          max_stock_level?: number | null
           min_stock_level?: number | null
           name?: string
           open_shelf_life_days?: number | null
           other_hazards?: string | null
+          par_level?: number | null
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
@@ -5394,6 +5524,7 @@ export type Database = {
           qa_verified_by?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
+          reorder_point?: number | null
           requires_coa?: boolean | null
           storage_temperature_max?: number | null
           storage_temperature_min?: number | null

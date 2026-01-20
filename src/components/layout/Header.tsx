@@ -10,8 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AlertBell from '@/components/layout/AlertBell';
 
 export function Header() {
   const { user, profile, role, signOut } = useAuth();
@@ -66,13 +67,8 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
-            3
-          </span>
-        </Button>
+        {/* Inventory Alerts */}
+        <AlertBell />
 
         {/* User Menu */}
         <DropdownMenu>
