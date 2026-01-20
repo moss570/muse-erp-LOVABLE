@@ -47,16 +47,15 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
   // Fetch products (finished goods)
   const { data: products = [] } = useQuery({
     queryKey: ["products-for-wo"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("materials")
+    queryFn: async (): Promise<{ id: string; name: string; code: string }[]> => {
+      const { data, error } = await (supabase.from("materials") as any)
         .select("id, name, code")
         .eq("material_type", "finished_good")
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: open,
   });
@@ -64,17 +63,16 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
   // Fetch recipes for selected product
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-for-wo", productId],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ id: string; recipe_name: string; recipe_version: number; batch_size: number }[]> => {
       if (!productId) return [];
-      const { data, error } = await supabase
-        .from("product_recipes")
-        .select("id, recipe_name, recipe_version, batch_size, batch_unit_id")
+      const { data, error } = await (supabase.from("product_recipes") as any)
+        .select("id, recipe_name, recipe_version, batch_size")
         .eq("product_id", productId)
         .eq("is_active", true)
         .order("recipe_version", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!productId && open,
   });
@@ -82,15 +80,14 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
   // Fetch production lines
   const { data: productionLines = [] } = useQuery({
     queryKey: ["production-lines-for-wo"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("production_lines")
+    queryFn: async (): Promise<{ id: string; line_name: string }[]> => {
+      const { data, error } = await (supabase.from("production_lines") as any)
         .select("id, line_name")
         .eq("is_active", true)
         .order("line_name");
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: open,
   });
@@ -121,7 +118,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
 
       const { data, error } = await supabase
         .from("work_orders")
-        .insert(insertData)
+        .insert(insertData as any)
         .select()
         .single();
 
