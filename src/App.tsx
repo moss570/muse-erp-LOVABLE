@@ -78,6 +78,9 @@ import CreateIssueRequest from "./pages/production/CreateIssueRequest";
 import IssueToProduction from "./pages/warehouse/IssueToProduction";
 import FulfillIssueRequest from "./pages/warehouse/FulfillIssueRequest";
 import WarehouseDashboard from "./pages/warehouse/WarehouseDashboard";
+import CycleCounts from "./pages/warehouse/CycleCounts";
+import CycleCountEntry from "./pages/warehouse/CycleCountEntry";
+import CycleCountReview from "./pages/warehouse/CycleCountReview";
 
 const queryClient = new QueryClient();
 
@@ -211,6 +214,9 @@ const App = () => (
             <Route path="/warehouse/putaway/:taskId" element={<AppLayout><PutawayTask /></AppLayout>} />
             <Route path="/warehouse/issue-to-production" element={<AppLayout><IssueToProduction /></AppLayout>} />
             <Route path="/warehouse/issue-to-production/:requestId" element={<AppLayout><FulfillIssueRequest /></AppLayout>} />
+            <Route path="/warehouse/cycle-counts" element={<AppLayout><CycleCounts /></AppLayout>} />
+            <Route path="/warehouse/cycle-counts/:countId" element={<AppLayout><CycleCountEntry /></AppLayout>} />
+            <Route path="/warehouse/cycle-counts/:countId/review" element={<AppLayout><CycleCountReview /></AppLayout>} />
             
             {/* Operations routes */}
             <Route path="/operations/close-day" element={<CloseDay />} />
