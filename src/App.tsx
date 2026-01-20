@@ -73,6 +73,10 @@ import ReceivingInspections from "./pages/qa/ReceivingInspections";
 import ReceivingInspection from "./pages/qa/ReceivingInspection";
 import Putaway from "./pages/warehouse/Putaway";
 import PutawayTask from "./pages/warehouse/PutawayTask";
+import IssueRequests from "./pages/production/IssueRequests";
+import CreateIssueRequest from "./pages/production/CreateIssueRequest";
+import IssueToProduction from "./pages/warehouse/IssueToProduction";
+import FulfillIssueRequest from "./pages/warehouse/FulfillIssueRequest";
 
 const queryClient = new QueryClient();
 
@@ -162,6 +166,11 @@ const App = () => (
             {/* Recipe management is now in Product Edit dialog - redirect to products */}
             <Route path="/manufacturing/recipes" element={<AppLayout><Products /></AppLayout>} />
             <Route path="/manufacturing/qa-tests" element={<BatchQATests />} />
+            
+            {/* Production Issue Requests */}
+            <Route path="/production/issue-requests" element={<AppLayout><IssueRequests /></AppLayout>} />
+            <Route path="/production/issue-requests/new" element={<AppLayout><CreateIssueRequest /></AppLayout>} />
+            
             <Route
               path="/manufacturing/*"
               element={
@@ -198,6 +207,8 @@ const App = () => (
             {/* Warehouse routes */}
             <Route path="/warehouse/putaway" element={<AppLayout><Putaway /></AppLayout>} />
             <Route path="/warehouse/putaway/:taskId" element={<AppLayout><PutawayTask /></AppLayout>} />
+            <Route path="/warehouse/issue-to-production" element={<AppLayout><IssueToProduction /></AppLayout>} />
+            <Route path="/warehouse/issue-to-production/:requestId" element={<AppLayout><FulfillIssueRequest /></AppLayout>} />
             
             {/* Operations routes */}
             <Route path="/operations/close-day" element={<CloseDay />} />

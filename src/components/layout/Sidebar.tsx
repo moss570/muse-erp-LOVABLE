@@ -64,6 +64,7 @@ const navItems: NavItem[] = [
       { title: 'Base Manufacturing', href: '/manufacturing/base-production' },
       { title: 'Finishing Production', href: '/manufacturing/finishing' },
       { title: 'QA Testing', href: '/manufacturing/qa-tests' },
+      { title: 'Issue Requests', href: '/production/issue-requests' },
       { title: 'Batch Tracking', href: '/manufacturing/batches' },
     ],
   },
@@ -109,6 +110,7 @@ const navItems: NavItem[] = [
     icon: Package,
     children: [
       { title: 'Putaway', href: '/warehouse/putaway' },
+      { title: 'Issue to Production', href: '/warehouse/issue-to-production' },
     ],
   },
   {
