@@ -183,6 +183,10 @@ interface UnitVariant {
   photo_url?: string;
   photo_added_at?: string;
   photo_file?: File;
+  // Inventory thresholds per pack size
+  par_level?: number;
+  reorder_point?: number;
+  max_stock_level?: number;
 }
 interface MaterialSupplier {
   id?: string;
@@ -720,7 +724,10 @@ export function MaterialFormDialog({
         item_number: (pu as any).item_number || undefined,
         photo_path: (pu as any).photo_path || undefined,
         photo_url: (pu as any).photo_url || undefined,
-        photo_added_at: (pu as any).photo_added_at || undefined
+        photo_added_at: (pu as any).photo_added_at || undefined,
+        par_level: (pu as any).par_level != null ? Number((pu as any).par_level) : undefined,
+        reorder_point: (pu as any).reorder_point != null ? Number((pu as any).reorder_point) : undefined,
+        max_stock_level: (pu as any).max_stock_level != null ? Number((pu as any).max_stock_level) : undefined
       })));
     }
   }, [existingPurchaseUnits]);
@@ -1050,7 +1057,10 @@ export function MaterialFormDialog({
             item_number: uv.item_number || null,
             photo_path: uv.photo_path || null,
             photo_url: uv.photo_url || null,
-            photo_added_at: uv.photo_added_at || null
+            photo_added_at: uv.photo_added_at || null,
+            par_level: uv.par_level ?? null,
+            reorder_point: uv.reorder_point ?? null,
+            max_stock_level: uv.max_stock_level ?? null
           })));
           if (puError) throw puError;
         }
@@ -1210,7 +1220,10 @@ export function MaterialFormDialog({
             item_number: uv.item_number || null,
             photo_path: uv.photo_path || null,
             photo_url: uv.photo_url || null,
-            photo_added_at: uv.photo_added_at || null
+            photo_added_at: uv.photo_added_at || null,
+            par_level: uv.par_level ?? null,
+            reorder_point: uv.reorder_point ?? null,
+            max_stock_level: uv.max_stock_level ?? null
           }).eq('id', uv.id);
         } else {
           await supabase.from('material_purchase_units').insert({
@@ -1222,7 +1235,10 @@ export function MaterialFormDialog({
             item_number: uv.item_number || null,
             photo_path: uv.photo_path || null,
             photo_url: uv.photo_url || null,
-            photo_added_at: uv.photo_added_at || null
+            photo_added_at: uv.photo_added_at || null,
+            par_level: uv.par_level ?? null,
+            reorder_point: uv.reorder_point ?? null,
+            max_stock_level: uv.max_stock_level ?? null
           });
         }
       }
@@ -3330,6 +3346,51 @@ function MaterialFormContent({
                                   {!uv.photo_url && !uv.photo_file && <div className="h-12 w-12 rounded border border-dashed flex items-center justify-center text-muted-foreground">
                                       <ImageIcon className="h-5 w-5" />
                                     </div>}
+                                </div>
+
+                                {/* Inventory Thresholds Section */}
+                                <div className="pt-2 border-t">
+                                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                                    Inventory Thresholds
+                                  </label>
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                      <label className="text-xs text-muted-foreground mb-1 block">
+                                        Par Level
+                                      </label>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={uv.par_level ?? ''} 
+                                        onChange={e => updateUnitVariant(index, 'par_level', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                                        placeholder="Target qty" 
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-muted-foreground mb-1 block">
+                                        Reorder Point
+                                      </label>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={uv.reorder_point ?? ''} 
+                                        onChange={e => updateUnitVariant(index, 'reorder_point', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                                        placeholder="Min qty" 
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-muted-foreground mb-1 block">
+                                        Max Stock
+                                      </label>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={uv.max_stock_level ?? ''} 
+                                        onChange={e => updateUnitVariant(index, 'max_stock_level', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                                        placeholder="Max qty" 
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                               <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0 mt-5" onClick={() => removeUnitVariant(index)}>

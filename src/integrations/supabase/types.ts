@@ -6280,9 +6280,12 @@ export type Database = {
           is_default: boolean | null
           item_number: string | null
           material_id: string
+          max_stock_level: number | null
+          par_level: number | null
           photo_added_at: string | null
           photo_path: string | null
           photo_url: string | null
+          reorder_point: number | null
           unit_id: string
           updated_at: string
         }
@@ -6296,9 +6299,12 @@ export type Database = {
           is_default?: boolean | null
           item_number?: string | null
           material_id: string
+          max_stock_level?: number | null
+          par_level?: number | null
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          reorder_point?: number | null
           unit_id: string
           updated_at?: string
         }
@@ -6312,9 +6318,12 @@ export type Database = {
           is_default?: boolean | null
           item_number?: string | null
           material_id?: string
+          max_stock_level?: number | null
+          par_level?: number | null
           photo_added_at?: string | null
           photo_path?: string | null
           photo_url?: string | null
+          reorder_point?: number | null
           unit_id?: string
           updated_at?: string
         }
