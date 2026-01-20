@@ -109,8 +109,11 @@ const navItems: NavItem[] = [
     href: '/warehouse',
     icon: Package,
     children: [
+      { title: 'Dashboard', href: '/warehouse' },
       { title: 'Putaway', href: '/warehouse/putaway' },
       { title: 'Issue to Production', href: '/warehouse/issue-to-production' },
+      { title: 'Transfers', href: '/warehouse/transfers' },
+      { title: 'Cycle Counts', href: '/warehouse/cycle-counts' },
     ],
   },
   {
