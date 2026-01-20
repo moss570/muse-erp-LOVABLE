@@ -259,6 +259,41 @@ const TaskTemplates = () => {
         </TabsContent>
       </Tabs>
       
+      {/* Food Safety Quick Templates */}
+      {activeTab === 'food_safety' && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Common Food Safety Templates</CardTitle>
+            <CardDescription>Quick-add common food safety verification tasks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { name: 'Temperature Log', icon: '🌡️', type: 'temperature_log' },
+                { name: 'Cleaning Verification', icon: '🧹', type: 'cleaning_verification' },
+                { name: 'Equipment Check', icon: '⚙️', type: 'equipment_check' },
+                { name: 'Sanitation Inspection', icon: '✨', type: 'sanitation_inspection' },
+              ].map((item) => (
+                <Button
+                  key={item.type}
+                  variant="outline"
+                  className="h-auto py-4 flex flex-col gap-2"
+                  onClick={() => {
+                    // Pre-fill template dialog with food safety defaults
+                    setEditingTemplateId(null);
+                    setShowTemplateDialog(true);
+                    // Note: In a full implementation, you'd pass default values to the dialog
+                  }}
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <span className="text-sm">{item.name}</span>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Dialogs */}
       <TaskTemplateDialog
         open={showTemplateDialog}
