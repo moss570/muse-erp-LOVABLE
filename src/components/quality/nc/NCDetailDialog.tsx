@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -44,15 +43,14 @@ import {
   Package,
   AlertTriangle,
   CheckCircle,
-  XCircle,
   Loader2,
-  Edit,
-  X,
   ExternalLink,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DispositionApprovalPanel } from './DispositionApprovalPanel';
+import { CAPAEscalationPanel } from './CAPAEscalationPanel';
 
 interface NCDetailDialogProps {
   ncId: string | null;
@@ -447,6 +445,37 @@ export function NCDetailDialog({ ncId, open, onOpenChange }: NCDetailDialogProps
 
             {/* Actions Tab */}
             <TabsContent value="actions" className="p-4 space-y-6">
+              {/* Disposition Approval Workflow */}
+              {nc.disposition !== 'pending' && (
+                <DispositionApprovalPanel
+                  ncId={nc.id}
+                  disposition={nc.disposition}
+                  severity={nc.severity}
+                  estimatedCost={nc.estimated_cost}
+                  currentJustification={nc.disposition_justification}
+                  isApproved={!!nc.disposition_approved_at}
+                  approvedBy={nc.disposition_approved_by}
+                  approvedAt={nc.disposition_approved_at}
+                />
+              )}
+
+              {/* CAPA Escalation */}
+              <CAPAEscalationPanel
+                ncId={nc.id}
+                ncNumber={nc.nc_number}
+                ncType={nc.nc_type}
+                materialId={nc.material_id}
+                discoveredDate={nc.discovered_date}
+                severity={nc.severity}
+                impactLevel={nc.impact_level}
+                estimatedCost={nc.estimated_cost}
+                capaId={nc.capa_id}
+                capaNumber={nc.capa?.capa_number || null}
+                requiresCAPA={nc.requires_capa}
+              />
+
+              <Separator />
+
               {/* Status Change */}
               <div>
                 <Label>Change Status</Label>
@@ -535,16 +564,16 @@ export function NCDetailDialog({ ncId, open, onOpenChange }: NCDetailDialogProps
               )}
 
               {nc.status === 'closed' && (
-                <Card className="bg-green-50 border-green-200">
+                <Card className="border-primary/30 bg-primary/5">
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-green-700">
+                    <div className="flex items-center gap-2 text-primary">
                       <CheckCircle className="h-5 w-5" />
                       <span className="font-medium">Closed</span>
                     </div>
-                    <p className="text-sm text-green-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {nc.closure_notes}
                     </p>
-                    <p className="text-xs text-green-600 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Closed on {nc.closed_at && format(new Date(nc.closed_at), 'MMM d, yyyy h:mm a')}
                     </p>
                   </CardContent>
