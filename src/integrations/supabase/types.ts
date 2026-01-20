@@ -3544,6 +3544,107 @@ export type Database = {
           },
         ]
       }
+      inventory_conversion_log: {
+        Row: {
+          calculated_open_expiry: string | null
+          conversion_type: string
+          created_at: string | null
+          id: string
+          performed_at: string | null
+          performed_by: string | null
+          reason_code: string
+          reason_notes: string | null
+          source_lot_id: string
+          source_quantity: number
+          source_unit_id: string | null
+          target_lot_id: string | null
+          target_quantity: number
+          target_unit_id: string | null
+        }
+        Insert: {
+          calculated_open_expiry?: string | null
+          conversion_type: string
+          created_at?: string | null
+          id?: string
+          performed_at?: string | null
+          performed_by?: string | null
+          reason_code: string
+          reason_notes?: string | null
+          source_lot_id: string
+          source_quantity: number
+          source_unit_id?: string | null
+          target_lot_id?: string | null
+          target_quantity: number
+          target_unit_id?: string | null
+        }
+        Update: {
+          calculated_open_expiry?: string | null
+          conversion_type?: string
+          created_at?: string | null
+          id?: string
+          performed_at?: string | null
+          performed_by?: string | null
+          reason_code?: string
+          reason_notes?: string | null
+          source_lot_id?: string
+          source_quantity?: number
+          source_unit_id?: string | null
+          target_lot_id?: string | null
+          target_quantity?: number
+          target_unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_conversion_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_conversion_log_source_lot_id_fkey"
+            columns: ["source_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_conversion_log_source_lot_id_fkey"
+            columns: ["source_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_conversion_log_source_unit_id_fkey"
+            columns: ["source_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_conversion_log_target_lot_id_fkey"
+            columns: ["target_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_conversion_log_target_lot_id_fkey"
+            columns: ["target_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_conversion_log_target_unit_id_fkey"
+            columns: ["target_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_holds: {
         Row: {
           auto_hold: boolean | null
@@ -5115,6 +5216,7 @@ export type Database = {
           material_status: string | null
           min_stock_level: number | null
           name: string
+          open_shelf_life_days: number | null
           other_hazards: string | null
           photo_added_at: string | null
           photo_path: string | null
@@ -5194,6 +5296,7 @@ export type Database = {
           material_status?: string | null
           min_stock_level?: number | null
           name: string
+          open_shelf_life_days?: number | null
           other_hazards?: string | null
           photo_added_at?: string | null
           photo_path?: string | null
@@ -5273,6 +5376,7 @@ export type Database = {
           material_status?: string | null
           min_stock_level?: number | null
           name?: string
+          open_shelf_life_days?: number | null
           other_hazards?: string | null
           photo_added_at?: string | null
           photo_path?: string | null
@@ -9181,10 +9285,14 @@ export type Database = {
           hold_status: string | null
           id: string
           internal_lot_number: string
+          is_open_portion: boolean | null
           last_transaction_at: string | null
           location_id: string | null
           material_id: string
           notes: string | null
+          open_expiry_date: string | null
+          opened_date: string | null
+          parent_lot_id: string | null
           putaway_complete: boolean | null
           putaway_completed_at: string | null
           putaway_task_id: string | null
@@ -9219,10 +9327,14 @@ export type Database = {
           hold_status?: string | null
           id?: string
           internal_lot_number: string
+          is_open_portion?: boolean | null
           last_transaction_at?: string | null
           location_id?: string | null
           material_id: string
           notes?: string | null
+          open_expiry_date?: string | null
+          opened_date?: string | null
+          parent_lot_id?: string | null
           putaway_complete?: boolean | null
           putaway_completed_at?: string | null
           putaway_task_id?: string | null
@@ -9257,10 +9369,14 @@ export type Database = {
           hold_status?: string | null
           id?: string
           internal_lot_number?: string
+          is_open_portion?: boolean | null
           last_transaction_at?: string | null
           location_id?: string | null
           material_id?: string
           notes?: string | null
+          open_expiry_date?: string | null
+          opened_date?: string | null
+          parent_lot_id?: string | null
           putaway_complete?: boolean | null
           putaway_completed_at?: string | null
           putaway_task_id?: string | null
@@ -9307,6 +9423,20 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_parent_lot_id_fkey"
+            columns: ["parent_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "receiving_lots_parent_lot_id_fkey"
+            columns: ["parent_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
             referencedColumns: ["id"]
           },
           {
@@ -10583,6 +10713,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_lot_quantity: {
+        Args: { amount: number; lot_id: string }
+        Returns: undefined
       }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
       is_material_approved: {

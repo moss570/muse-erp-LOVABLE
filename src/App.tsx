@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import Materials from "./pages/inventory/Materials";
 import Products from "./pages/inventory/Products";
 import MaterialInventory from "./pages/inventory/MaterialInventory";
+import OpenContainers from "./pages/inventory/OpenContainers";
 import HoldLog from "./pages/inventory/HoldLog";
 import DisposalLog from "./pages/inventory/DisposalLog";
 import Suppliers from "./pages/purchasing/Suppliers";
@@ -102,6 +103,7 @@ const App = () => (
             <Route path="/inventory/on-hand" element={<AppLayout><MaterialInventory /></AppLayout>} />
             <Route path="/inventory/materials" element={<AppLayout><Materials /></AppLayout>} />
             <Route path="/inventory/products" element={<AppLayout><Products /></AppLayout>} />
+            <Route path="/inventory/open-containers" element={<AppLayout><OpenContainers /></AppLayout>} />
             <Route path="/inventory/hold-log" element={<AppLayout><HoldLog /></AppLayout>} />
             <Route path="/inventory/disposal-log" element={<AppLayout><DisposalLog /></AppLayout>} />
             <Route path="/inventory/3pl" element={<AppLayout><ThreePLDashboard /></AppLayout>} />
