@@ -168,6 +168,10 @@ const materialFormSchema = z.object({
   haccp_new_allergen_name: z.string().optional().nullable(),
   haccp_heavy_metal_limits: z.boolean().optional().nullable(),
   haccp_foreign_material_controls: z.array(z.string()).default([]),
+  // Inventory Thresholds
+  par_level: z.coerce.number().min(0).optional().nullable(),
+  reorder_point: z.coerce.number().min(0).optional().nullable(),
+  max_stock_level: z.coerce.number().min(0).optional().nullable(),
   // Removed from Basic Info - now on Suppliers tab only
   min_stock_level: z.coerce.number().min(0).optional().nullable()
 });
@@ -366,7 +370,11 @@ export function MaterialFormDialog({
       box_recycled_content_verified: false,
       box_allergen_free_adhesives: false,
       box_heavy_metals_coneg: false,
-      box_foreign_material_control: false
+      box_foreign_material_control: false,
+      // Inventory thresholds
+      par_level: null,
+      reorder_point: null,
+      max_stock_level: null
     }
   });
 
@@ -3248,6 +3256,78 @@ function MaterialFormContent({
                             {!defaultPhotoUrl && !defaultPhotoFile && <div className="h-16 w-16 rounded border border-dashed flex items-center justify-center text-muted-foreground">
                                 <ImageIcon className="h-6 w-6" />
                               </div>}
+                          </div>
+                        </div>
+
+                        {/* Inventory Thresholds Section */}
+                        <div className="border-t pt-4">
+                          <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                            Inventory Thresholds
+                          </label>
+                          <div className="grid grid-cols-3 gap-3">
+                            <FormField
+                              control={form.control}
+                              name="par_level"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Par Level</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      step="0.01"
+                                      placeholder="Target qty"
+                                      disabled={isFieldsDisabled}
+                                      {...field}
+                                      value={field.value ?? ''}
+                                      onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="reorder_point"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Reorder Point</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      step="0.01"
+                                      placeholder="Min qty"
+                                      disabled={isFieldsDisabled}
+                                      {...field}
+                                      value={field.value ?? ''}
+                                      onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="max_stock_level"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Max Stock</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      step="0.01"
+                                      placeholder="Max qty"
+                                      disabled={isFieldsDisabled}
+                                      {...field}
+                                      value={field.value ?? ''}
+                                      onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </div>
                       </div>;
