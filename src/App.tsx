@@ -97,6 +97,8 @@ import MyTimeOff from "./pages/employee/MyTimeOff";
 import PTOManagement from "./pages/hr/PTOManagement";
 import MyDocuments from "./pages/employee/MyDocuments";
 import HRDocuments from "./pages/hr/HRDocuments";
+import TaskAnalytics from "./pages/analytics/TaskAnalytics";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -300,6 +302,12 @@ const App = () => (
             <Route path="/hr/documents" element={<AppLayout><HRDocuments /></AppLayout>} />
             <Route path="/my/training" element={<AppLayout><TrainingLog /></AppLayout>} />
             <Route path="/my/documents" element={<AppLayout><MyDocuments /></AppLayout>} />
+            
+            {/* Analytics */}
+            <Route path="/analytics/tasks" element={<AppLayout><TaskAnalytics /></AppLayout>} />
+            
+            {/* Notifications */}
+            <Route path="/notifications" element={<AppLayout><Notifications /></AppLayout>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
