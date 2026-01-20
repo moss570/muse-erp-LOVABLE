@@ -5872,6 +5872,109 @@ export type Database = {
           },
         ]
       }
+      material_consumption_staging: {
+        Row: {
+          ai_validation_checks: Json | null
+          ai_validation_notes: string | null
+          ai_validation_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          committed_at: string | null
+          created_at: string | null
+          id: string
+          is_committed: boolean | null
+          lot_id: string | null
+          lot_total_cost: number | null
+          lot_unit_cost: number | null
+          material_id: string | null
+          notes: string | null
+          override_reason: string | null
+          production_stage: string | null
+          quantity_to_use: number
+          quantity_uom: string
+          requires_approval: boolean | null
+          scan_method: string | null
+          scanned_at: string | null
+          scanned_by: string | null
+          scanned_lot_number: string
+          work_order_id: string | null
+        }
+        Insert: {
+          ai_validation_checks?: Json | null
+          ai_validation_notes?: string | null
+          ai_validation_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          committed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_committed?: boolean | null
+          lot_id?: string | null
+          lot_total_cost?: number | null
+          lot_unit_cost?: number | null
+          material_id?: string | null
+          notes?: string | null
+          override_reason?: string | null
+          production_stage?: string | null
+          quantity_to_use: number
+          quantity_uom: string
+          requires_approval?: boolean | null
+          scan_method?: string | null
+          scanned_at?: string | null
+          scanned_by?: string | null
+          scanned_lot_number: string
+          work_order_id?: string | null
+        }
+        Update: {
+          ai_validation_checks?: Json | null
+          ai_validation_notes?: string | null
+          ai_validation_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          committed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_committed?: boolean | null
+          lot_id?: string | null
+          lot_total_cost?: number | null
+          lot_unit_cost?: number | null
+          material_id?: string | null
+          notes?: string | null
+          override_reason?: string | null
+          production_stage?: string | null
+          quantity_to_use?: number
+          quantity_uom?: string
+          requires_approval?: boolean | null
+          scan_method?: string | null
+          scanned_at?: string | null
+          scanned_by?: string | null
+          scanned_lot_number?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_consumption_staging_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturing_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_consumption_staging_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_consumption_staging_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_documents: {
         Row: {
           archive_reason: string | null
@@ -8649,63 +8752,97 @@ export type Database = {
       }
       product_recipes: {
         Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           batch_size: number
           batch_unit_id: string | null
+          cost_per_unit: number | null
           created_at: string
           created_by: string | null
           id: string
           instructions: string | null
           is_active: boolean | null
           is_default: boolean | null
+          labor_cost_per_batch: number | null
+          material_cost_per_batch: number | null
+          overhead_cost_per_batch: number | null
           parent_recipe_id: string | null
           product_id: string
+          recipe_code: string | null
           recipe_name: string
           recipe_type: string
           recipe_version: string | null
           standard_labor_hours: number | null
           standard_machine_hours: number | null
           sub_recipe_number: number | null
+          total_cost_per_batch: number | null
           updated_at: string
         }
         Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           batch_size?: number
           batch_unit_id?: string | null
+          cost_per_unit?: number | null
           created_at?: string
           created_by?: string | null
           id?: string
           instructions?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          labor_cost_per_batch?: number | null
+          material_cost_per_batch?: number | null
+          overhead_cost_per_batch?: number | null
           parent_recipe_id?: string | null
           product_id: string
+          recipe_code?: string | null
           recipe_name: string
           recipe_type?: string
           recipe_version?: string | null
           standard_labor_hours?: number | null
           standard_machine_hours?: number | null
           sub_recipe_number?: number | null
+          total_cost_per_batch?: number | null
           updated_at?: string
         }
         Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           batch_size?: number
           batch_unit_id?: string | null
+          cost_per_unit?: number | null
           created_at?: string
           created_by?: string | null
           id?: string
           instructions?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          labor_cost_per_batch?: number | null
+          material_cost_per_batch?: number | null
+          overhead_cost_per_batch?: number | null
           parent_recipe_id?: string | null
           product_id?: string
+          recipe_code?: string | null
           recipe_name?: string
           recipe_type?: string
           recipe_version?: string | null
           standard_labor_hours?: number | null
           standard_machine_hours?: number | null
           sub_recipe_number?: number | null
+          total_cost_per_batch?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "product_recipes_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_recipes_batch_unit_id_fkey"
             columns: ["batch_unit_id"]
@@ -9540,6 +9677,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      production_stages_master: {
+        Row: {
+          captures_labor_cost: boolean | null
+          captures_material_cost: boolean | null
+          captures_overhead: boolean | null
+          created_at: string | null
+          created_by: string | null
+          creates_intermediate_lot: boolean | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          requires_qc_approval: boolean | null
+          sequence_order: number
+          stage_code: string
+          stage_name: string
+          stage_type: string | null
+          standard_labor_hours_per_unit: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          captures_labor_cost?: boolean | null
+          captures_material_cost?: boolean | null
+          captures_overhead?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          creates_intermediate_lot?: boolean | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          requires_qc_approval?: boolean | null
+          sequence_order: number
+          stage_code: string
+          stage_name: string
+          stage_type?: string | null
+          standard_labor_hours_per_unit?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          captures_labor_cost?: boolean | null
+          captures_material_cost?: boolean | null
+          captures_overhead?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          creates_intermediate_lot?: boolean | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          requires_qc_approval?: boolean | null
+          sequence_order?: number
+          stage_code?: string
+          stage_name?: string
+          stage_type?: string | null
+          standard_labor_hours_per_unit?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       production_work_orders: {
         Row: {
@@ -11800,6 +11994,233 @@ export type Database = {
           },
         ]
       }
+      recipe_bom_items: {
+        Row: {
+          created_at: string | null
+          extended_cost: number | null
+          id: string
+          is_optional: boolean | null
+          material_id: string | null
+          notes: string | null
+          quantity_required: number
+          quantity_uom: string
+          recipe_id: string | null
+          sequence_order: number | null
+          stage: string | null
+          unit_cost: number | null
+          updated_at: string | null
+          waste_percentage: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          extended_cost?: number | null
+          id?: string
+          is_optional?: boolean | null
+          material_id?: string | null
+          notes?: string | null
+          quantity_required: number
+          quantity_uom: string
+          recipe_id?: string | null
+          sequence_order?: number | null
+          stage?: string | null
+          unit_cost?: number | null
+          updated_at?: string | null
+          waste_percentage?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          extended_cost?: number | null
+          id?: string
+          is_optional?: boolean | null
+          material_id?: string | null
+          notes?: string | null
+          quantity_required?: number
+          quantity_uom?: string
+          recipe_id?: string | null
+          sequence_order?: number | null
+          stage?: string | null
+          unit_cost?: number | null
+          updated_at?: string | null
+          waste_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_bom_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_bom_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_cost_history: {
+        Row: {
+          calculated_at: string | null
+          calculated_by: string | null
+          calculation_reason: string | null
+          cost_per_unit: number | null
+          id: string
+          labor_cost: number | null
+          material_cost: number | null
+          overhead_cost: number | null
+          recipe_id: string | null
+          total_cost: number | null
+        }
+        Insert: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          calculation_reason?: string | null
+          cost_per_unit?: number | null
+          id?: string
+          labor_cost?: number | null
+          material_cost?: number | null
+          overhead_cost?: number | null
+          recipe_id?: string | null
+          total_cost?: number | null
+        }
+        Update: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          calculation_reason?: string | null
+          cost_per_unit?: number | null
+          id?: string
+          labor_cost?: number | null
+          material_cost?: number | null
+          overhead_cost?: number | null
+          recipe_id?: string | null
+          total_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_cost_history_calculated_by_fkey"
+            columns: ["calculated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_cost_history_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          batch_size: number
+          batch_uom: string | null
+          cost_per_unit: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          labor_cost_per_batch: number | null
+          material_cost_per_batch: number | null
+          notes: string | null
+          overhead_cost_per_batch: number | null
+          product_id: string | null
+          recipe_code: string
+          recipe_name: string
+          recipe_version: string | null
+          standard_labor_hours: number | null
+          standard_machine_hours: number | null
+          total_cost_per_batch: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_size?: number
+          batch_uom?: string | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          labor_cost_per_batch?: number | null
+          material_cost_per_batch?: number | null
+          notes?: string | null
+          overhead_cost_per_batch?: number | null
+          product_id?: string | null
+          recipe_code: string
+          recipe_name: string
+          recipe_version?: string | null
+          standard_labor_hours?: number | null
+          standard_machine_hours?: number | null
+          total_cost_per_batch?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_size?: number
+          batch_uom?: string | null
+          cost_per_unit?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          labor_cost_per_batch?: number | null
+          material_cost_per_batch?: number | null
+          notes?: string | null
+          overhead_cost_per_batch?: number | null
+          product_id?: string | null
+          recipe_code?: string
+          recipe_name?: string
+          recipe_version?: string | null
+          standard_labor_hours?: number | null
+          standard_machine_hours?: number | null
+          total_cost_per_batch?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           access_level: string
@@ -13239,6 +13660,51 @@ export type Database = {
           },
         ]
       }
+      wip_valuation_snapshots: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          gl_entry_id: string | null
+          gl_entry_posted: boolean | null
+          id: string
+          snapshot_date: string
+          total_labor_cost: number | null
+          total_material_cost: number | null
+          total_overhead_cost: number | null
+          total_wip_value: number
+          wip_by_stage: Json | null
+          work_order_count: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          gl_entry_id?: string | null
+          gl_entry_posted?: boolean | null
+          id?: string
+          snapshot_date: string
+          total_labor_cost?: number | null
+          total_material_cost?: number | null
+          total_overhead_cost?: number | null
+          total_wip_value: number
+          wip_by_stage?: Json | null
+          work_order_count: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          gl_entry_id?: string | null
+          gl_entry_posted?: boolean | null
+          id?: string
+          snapshot_date?: string
+          total_labor_cost?: number | null
+          total_material_cost?: number | null
+          total_overhead_cost?: number | null
+          total_wip_value?: number
+          wip_by_stage?: Json | null
+          work_order_count?: number
+        }
+        Relationships: []
+      }
       work_order_assignments: {
         Row: {
           assigned_at: string
@@ -13361,6 +13827,8 @@ export type Database = {
           actual_uom: string | null
           consumed_at: string | null
           consumed_from_lot_id: string | null
+          consumed_lot_ids: string[] | null
+          consumption_complete: boolean | null
           cost_variance: number | null
           created_at: string | null
           id: string
@@ -13380,6 +13848,8 @@ export type Database = {
           actual_uom?: string | null
           consumed_at?: string | null
           consumed_from_lot_id?: string | null
+          consumed_lot_ids?: string[] | null
+          consumption_complete?: boolean | null
           cost_variance?: number | null
           created_at?: string | null
           id?: string
@@ -13399,6 +13869,8 @@ export type Database = {
           actual_uom?: string | null
           consumed_at?: string | null
           consumed_from_lot_id?: string | null
+          consumed_lot_ids?: string[] | null
+          consumption_complete?: boolean | null
           cost_variance?: number | null
           created_at?: string | null
           id?: string
@@ -13471,6 +13943,121 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "work_order_overhead_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_stage_progress: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          cumulative_labor_cost: number | null
+          cumulative_material_cost: number | null
+          cumulative_overhead_cost: number | null
+          cumulative_total_cost: number | null
+          id: string
+          input_quantity: number | null
+          labor_cost_this_stage: number | null
+          material_cost_this_stage: number | null
+          notes: string | null
+          output_quantity: number | null
+          overhead_cost_this_stage: number | null
+          qc_approved: boolean | null
+          qc_approved_at: string | null
+          qc_approved_by: string | null
+          qc_notes: string | null
+          stage_id: string | null
+          stage_status: string | null
+          started_at: string | null
+          started_by: string | null
+          total_cost_this_stage: number | null
+          updated_at: string | null
+          waste_quantity: number | null
+          wip_lot_id: string | null
+          work_order_id: string | null
+          yield_percentage: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          cumulative_labor_cost?: number | null
+          cumulative_material_cost?: number | null
+          cumulative_overhead_cost?: number | null
+          cumulative_total_cost?: number | null
+          id?: string
+          input_quantity?: number | null
+          labor_cost_this_stage?: number | null
+          material_cost_this_stage?: number | null
+          notes?: string | null
+          output_quantity?: number | null
+          overhead_cost_this_stage?: number | null
+          qc_approved?: boolean | null
+          qc_approved_at?: string | null
+          qc_approved_by?: string | null
+          qc_notes?: string | null
+          stage_id?: string | null
+          stage_status?: string | null
+          started_at?: string | null
+          started_by?: string | null
+          total_cost_this_stage?: number | null
+          updated_at?: string | null
+          waste_quantity?: number | null
+          wip_lot_id?: string | null
+          work_order_id?: string | null
+          yield_percentage?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          cumulative_labor_cost?: number | null
+          cumulative_material_cost?: number | null
+          cumulative_overhead_cost?: number | null
+          cumulative_total_cost?: number | null
+          id?: string
+          input_quantity?: number | null
+          labor_cost_this_stage?: number | null
+          material_cost_this_stage?: number | null
+          notes?: string | null
+          output_quantity?: number | null
+          overhead_cost_this_stage?: number | null
+          qc_approved?: boolean | null
+          qc_approved_at?: string | null
+          qc_approved_by?: string | null
+          qc_notes?: string | null
+          stage_id?: string | null
+          stage_status?: string | null
+          started_at?: string | null
+          started_by?: string | null
+          total_cost_this_stage?: number | null
+          updated_at?: string | null
+          waste_quantity?: number | null
+          wip_lot_id?: string | null
+          work_order_id?: string | null
+          yield_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_stage_progress_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "production_stages_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_stage_progress_wip_lot_id_fkey"
+            columns: ["wip_lot_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturing_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_stage_progress_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
@@ -13999,6 +14586,7 @@ export type Database = {
         Args: { p_work_order_id: string }
         Returns: Json
       }
+      calculate_recipe_cost: { Args: { p_recipe_id: string }; Returns: Json }
       calculate_score_grade: { Args: { score: number }; Returns: string }
       can_ship_production_lot: { Args: { p_lot_id: string }; Returns: boolean }
       check_nc_disposition_approval_required: {
@@ -14018,6 +14606,19 @@ export type Database = {
         Returns: boolean
       }
       cleanup_stale_editors: { Args: never; Returns: undefined }
+      commit_staged_materials: {
+        Args: { p_work_order_id: string }
+        Returns: Json
+      }
+      complete_production_stage: {
+        Args: {
+          p_output_quantity: number
+          p_stage_code: string
+          p_waste_quantity?: number
+          p_work_order_id: string
+        }
+        Returns: Json
+      }
       create_capa_from_nc: { Args: { p_nc_id: string }; Returns: string }
       evaluate_nc_capa_trigger: { Args: { p_nc_id: string }; Returns: Json }
       generate_capa_number: { Args: never; Returns: string }
@@ -14123,6 +14724,10 @@ export type Database = {
         Args: { amount: number; lot_id: string }
         Returns: undefined
       }
+      initialize_wo_stages: {
+        Args: { p_work_order_id: string }
+        Returns: undefined
+      }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
       is_material_approved: {
         Args: { p_material_id: string }
@@ -14130,6 +14735,21 @@ export type Database = {
       }
       mark_overdue_tasks: { Args: never; Returns: number }
       refresh_nc_analytics: { Args: never; Returns: undefined }
+      stage_material_for_consumption: {
+        Args: {
+          p_lot_number: string
+          p_material_id: string
+          p_production_stage?: string
+          p_quantity: number
+          p_scan_method?: string
+          p_work_order_id: string
+        }
+        Returns: Json
+      }
+      start_production_stage: {
+        Args: { p_stage_code: string; p_work_order_id: string }
+        Returns: Json
+      }
       supplier_has_valid_documents: {
         Args: { p_supplier_id: string }
         Returns: boolean
