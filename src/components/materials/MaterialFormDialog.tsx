@@ -989,6 +989,10 @@ export function MaterialFormDialog({
           cost_per_base_unit: null,
           // Cost is now on suppliers
           min_stock_level: data.min_stock_level || null,
+          // Inventory thresholds for default item
+          par_level: data.par_level ?? null,
+          reorder_point: data.reorder_point ?? null,
+          max_stock_level: data.max_stock_level ?? null,
           approval_status: data.approval_status || 'Draft',
           // HACCP fields
           haccp_kill_step_applied: data.haccp_kill_step_applied ?? null,
@@ -1159,6 +1163,10 @@ export function MaterialFormDialog({
         cost_per_base_unit: null,
         // Cost is now on suppliers
         min_stock_level: data.min_stock_level || null,
+        // Inventory thresholds for default item
+        par_level: data.par_level ?? null,
+        reorder_point: data.reorder_point ?? null,
+        max_stock_level: data.max_stock_level ?? null,
         approval_status: data.approval_status || 'Draft',
         // HACCP fields
         haccp_kill_step_applied: data.haccp_kill_step_applied ?? null,
@@ -3262,7 +3270,7 @@ function MaterialFormContent({
                         {/* Inventory Thresholds Section */}
                         <div className="border-t pt-4">
                           <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                            Inventory Thresholds
+                            Inventory Thresholds <span className="text-muted-foreground font-normal">({baseUnit?.code || 'Purchase UOM'})</span>
                           </label>
                           <div className="grid grid-cols-3 gap-3">
                             <FormField
@@ -3270,7 +3278,7 @@ function MaterialFormContent({
                               name="par_level"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs">Par Level</FormLabel>
+                                  <FormLabel className="text-xs">Par Level ({baseUnit?.code})</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -3291,7 +3299,7 @@ function MaterialFormContent({
                               name="reorder_point"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs">Reorder Point</FormLabel>
+                                  <FormLabel className="text-xs">Reorder Point ({baseUnit?.code})</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -3312,7 +3320,7 @@ function MaterialFormContent({
                               name="max_stock_level"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs">Max Stock</FormLabel>
+                                  <FormLabel className="text-xs">Max Stock ({baseUnit?.code})</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -3431,12 +3439,12 @@ function MaterialFormContent({
                                 {/* Inventory Thresholds Section */}
                                 <div className="pt-2 border-t">
                                   <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                                    Inventory Thresholds
+                                    Inventory Thresholds <span className="text-muted-foreground font-normal">({selectedUnit?.code || 'Unit'})</span>
                                   </label>
                                   <div className="grid grid-cols-3 gap-3">
                                     <div>
                                       <label className="text-xs text-muted-foreground mb-1 block">
-                                        Par Level
+                                        Par Level ({selectedUnit?.code})
                                       </label>
                                       <Input 
                                         type="number" 
@@ -3448,7 +3456,7 @@ function MaterialFormContent({
                                     </div>
                                     <div>
                                       <label className="text-xs text-muted-foreground mb-1 block">
-                                        Reorder Point
+                                        Reorder Point ({selectedUnit?.code})
                                       </label>
                                       <Input 
                                         type="number" 
@@ -3460,7 +3468,7 @@ function MaterialFormContent({
                                     </div>
                                     <div>
                                       <label className="text-xs text-muted-foreground mb-1 block">
-                                        Max Stock
+                                        Max Stock ({selectedUnit?.code})
                                       </label>
                                       <Input 
                                         type="number" 
