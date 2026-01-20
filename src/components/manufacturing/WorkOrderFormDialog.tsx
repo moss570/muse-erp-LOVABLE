@@ -102,6 +102,8 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
 
       const insertData = {
         wo_number: woNumber as string,
+        // Required by DB (NOT NULL). Keep in sync with generate_wo_number() default.
+        wo_type: "Make-to-Stock",
         product_id: productId,
         recipe_id: recipeId || null,
         production_line_id: productionLineId || null,
