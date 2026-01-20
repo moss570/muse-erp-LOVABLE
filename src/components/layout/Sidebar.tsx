@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
@@ -216,12 +216,43 @@ export function Sidebar() {
   const location = useLocation();
   const { role, isAdmin, isManager } = useAuth();
 
+  // Update expanded items when route changes to keep active parent menu open
+  useEffect(() => {
+    const activeParents: string[] = [];
+    navItems.forEach((item) => {
+      if (item.children) {
+        const isChildActive = item.children.some(
+          (child) => location.pathname === child.href || location.pathname.startsWith(child.href + '/')
+        );
+        if (isChildActive) {
+          activeParents.push(item.title);
+        }
+      }
+    });
+    
+    setExpandedItems((prev) => {
+      // Add any new active parents, keep existing expansions
+      const merged = [...new Set([...prev, ...activeParents])];
+      return merged;
+    });
+  }, [location.pathname]);
+
   const toggleExpanded = (title: string) => {
-    setExpandedItems((prev) =>
-      prev.includes(title)
-        ? prev.filter((item) => item !== title)
-        : [...prev, title]
-    );
+    setExpandedItems((prev) => {
+      if (prev.includes(title)) {
+        // Check if we're currently on a child route of this menu
+        const item = navItems.find((n) => n.title === title);
+        const isChildActive = item?.children?.some(
+          (child) => location.pathname === child.href || location.pathname.startsWith(child.href + '/')
+        );
+        // Don't collapse if we're on an active child route
+        if (isChildActive) {
+          return prev;
+        }
+        return prev.filter((i) => i !== title);
+      }
+      return [...prev, title];
+    });
   };
 
   const canAccess = (item: NavItem) => {
