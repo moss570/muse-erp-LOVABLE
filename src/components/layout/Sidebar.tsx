@@ -51,8 +51,8 @@ const navItems: NavItem[] = [
       { title: 'Open Containers', href: '/inventory/open-containers' },
       { title: 'Hold Log', href: '/inventory/hold-log' },
       { title: 'Disposal Log', href: '/inventory/disposal-log' },
+      { title: 'Alerts', href: '/inventory/alerts' },
       { title: '3PL Dashboard', href: '/inventory/3pl' },
-      { title: 'Stock Levels', href: '/inventory/stock' },
     ],
   },
   {

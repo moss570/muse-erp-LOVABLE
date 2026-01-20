@@ -12,6 +12,7 @@ import Materials from "./pages/inventory/Materials";
 import Products from "./pages/inventory/Products";
 import MaterialInventory from "./pages/inventory/MaterialInventory";
 import OpenContainers from "./pages/inventory/OpenContainers";
+import InventoryAlerts from "./pages/inventory/InventoryAlerts";
 import HoldLog from "./pages/inventory/HoldLog";
 import DisposalLog from "./pages/inventory/DisposalLog";
 import Suppliers from "./pages/purchasing/Suppliers";
@@ -106,6 +107,7 @@ const App = () => (
             <Route path="/inventory/open-containers" element={<AppLayout><OpenContainers /></AppLayout>} />
             <Route path="/inventory/hold-log" element={<AppLayout><HoldLog /></AppLayout>} />
             <Route path="/inventory/disposal-log" element={<AppLayout><DisposalLog /></AppLayout>} />
+            <Route path="/inventory/alerts" element={<AppLayout><InventoryAlerts /></AppLayout>} />
             <Route path="/inventory/3pl" element={<AppLayout><ThreePLDashboard /></AppLayout>} />
             <Route path="/inventory/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Inventory Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
