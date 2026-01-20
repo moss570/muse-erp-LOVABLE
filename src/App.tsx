@@ -93,6 +93,8 @@ import Chat from "./pages/chat/Chat";
 import EmployeePortal from "./pages/employee/EmployeePortal";
 import MySchedule from "./pages/employee/MySchedule";
 import TrainingLog from "./pages/employee/TrainingLog";
+import MyTimeOff from "./pages/employee/MyTimeOff";
+import PTOManagement from "./pages/hr/PTOManagement";
 
 const queryClient = new QueryClient();
 
@@ -291,6 +293,8 @@ const App = () => (
             <Route path="/my" element={<AppLayout><EmployeePortal /></AppLayout>} />
             <Route path="/my/work-queue" element={<AppLayout><WorkQueue /></AppLayout>} />
             <Route path="/my/schedule" element={<AppLayout><MySchedule /></AppLayout>} />
+            <Route path="/my/time-off" element={<AppLayout><MyTimeOff /></AppLayout>} />
+            <Route path="/hr/pto" element={<AppLayout><PTOManagement /></AppLayout>} />
             <Route path="/my/training" element={<AppLayout><TrainingLog /></AppLayout>} />
             
             {/* Catch-all route */}
