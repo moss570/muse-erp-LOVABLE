@@ -6432,6 +6432,328 @@ export type Database = {
           },
         ]
       }
+      nc_activity_log: {
+        Row: {
+          action: string
+          comment: string | null
+          field_changed: string | null
+          id: string
+          nc_id: string
+          new_value: string | null
+          old_value: string | null
+          performed_at: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          comment?: string | null
+          field_changed?: string | null
+          id?: string
+          nc_id: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          comment?: string | null
+          field_changed?: string | null
+          id?: string
+          nc_id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nc_activity_log_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "non_conformities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nc_activity_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nc_attachments: {
+        Row: {
+          attachment_type: string | null
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          nc_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          attachment_type?: string | null
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          nc_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          attachment_type?: string | null
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          nc_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nc_attachments_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "non_conformities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nc_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      non_conformities: {
+        Row: {
+          actual_cost: number | null
+          capa_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_notes: string | null
+          corrective_action_implemented: boolean | null
+          created_at: string
+          customer_notified_at: string | null
+          description: string
+          discovered_by: string | null
+          discovered_date: string
+          discovery_location_id: string | null
+          disposition: string
+          disposition_approved_at: string | null
+          disposition_approved_by: string | null
+          disposition_justification: string | null
+          entity_id: string | null
+          entity_type: string | null
+          equipment_id: string | null
+          estimated_cost: number | null
+          id: string
+          impact_level: string
+          material_id: string | null
+          nc_number: string
+          nc_type: string
+          preventive_action_implemented: boolean | null
+          product_id: string | null
+          production_lot_id: string | null
+          quantity_affected: number | null
+          quantity_affected_unit: string | null
+          receiving_lot_id: string | null
+          requires_capa: boolean | null
+          requires_customer_notification: boolean | null
+          root_cause_identified: boolean | null
+          severity: string
+          shift: string | null
+          specification_reference: string | null
+          status: string
+          supplier_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          capa_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          corrective_action_implemented?: boolean | null
+          created_at?: string
+          customer_notified_at?: string | null
+          description: string
+          discovered_by?: string | null
+          discovered_date?: string
+          discovery_location_id?: string | null
+          disposition?: string
+          disposition_approved_at?: string | null
+          disposition_approved_by?: string | null
+          disposition_justification?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          equipment_id?: string | null
+          estimated_cost?: number | null
+          id?: string
+          impact_level: string
+          material_id?: string | null
+          nc_number: string
+          nc_type: string
+          preventive_action_implemented?: boolean | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity_affected?: number | null
+          quantity_affected_unit?: string | null
+          receiving_lot_id?: string | null
+          requires_capa?: boolean | null
+          requires_customer_notification?: boolean | null
+          root_cause_identified?: boolean | null
+          severity: string
+          shift?: string | null
+          specification_reference?: string | null
+          status?: string
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          capa_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          corrective_action_implemented?: boolean | null
+          created_at?: string
+          customer_notified_at?: string | null
+          description?: string
+          discovered_by?: string | null
+          discovered_date?: string
+          discovery_location_id?: string | null
+          disposition?: string
+          disposition_approved_at?: string | null
+          disposition_approved_by?: string | null
+          disposition_justification?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          equipment_id?: string | null
+          estimated_cost?: number | null
+          id?: string
+          impact_level?: string
+          material_id?: string | null
+          nc_number?: string
+          nc_type?: string
+          preventive_action_implemented?: boolean | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity_affected?: number | null
+          quantity_affected_unit?: string | null
+          receiving_lot_id?: string | null
+          requires_capa?: boolean | null
+          requires_customer_notification?: boolean | null
+          root_cause_identified?: boolean | null
+          severity?: string
+          shift?: string | null
+          specification_reference?: string | null
+          status?: string
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "non_conformities_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_discovered_by_fkey"
+            columns: ["discovered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_discovery_location_id_fkey"
+            columns: ["discovery_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_disposition_approved_by_fkey"
+            columns: ["disposition_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "non_conformities_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           email: boolean | null
@@ -12533,6 +12855,7 @@ export type Database = {
       generate_employee_number: { Args: never; Returns: string }
       generate_listed_material_code: { Args: never; Returns: string }
       generate_material_code: { Args: { p_category: string }; Returns: string }
+      generate_nc_number: { Args: never; Returns: string }
       generate_pallet_number: {
         Args: { p_build_date?: string }
         Returns: string
