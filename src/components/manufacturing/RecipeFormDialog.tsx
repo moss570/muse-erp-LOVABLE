@@ -114,9 +114,20 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      const insertData = {
+        recipe_code: values.recipe_code,
+        recipe_name: values.recipe_name,
+        recipe_version: values.recipe_version,
+        product_id: values.product_id || null,
+        batch_size: values.batch_size,
+        batch_uom: values.batch_uom,
+        standard_labor_hours: values.standard_labor_hours,
+        approval_status: values.approval_status,
+        notes: values.notes || null,
+      };
       const { data, error } = await supabase
         .from("recipes")
-        .insert(values)
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
