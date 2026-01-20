@@ -2932,6 +2932,51 @@ export type Database = {
         }
         Relationships: []
       }
+      hold_reason_codes: {
+        Row: {
+          auto_trigger: boolean | null
+          code: string
+          created_at: string | null
+          default_priority: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requires_capa: boolean | null
+          sort_order: number | null
+          supplier_points: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_trigger?: boolean | null
+          code: string
+          created_at?: string | null
+          default_priority?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requires_capa?: boolean | null
+          sort_order?: number | null
+          supplier_points?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_trigger?: boolean | null
+          code?: string
+          created_at?: string | null
+          default_priority?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requires_capa?: boolean | null
+          sort_order?: number | null
+          supplier_points?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory_adjustments: {
         Row: {
           adjusted_by: string | null
@@ -3048,6 +3093,115 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_holds: {
+        Row: {
+          auto_hold: boolean | null
+          capa_id: string | null
+          created_at: string | null
+          hold_placed_at: string
+          hold_placed_by: string | null
+          hold_reason_code_id: string
+          hold_reason_description: string | null
+          id: string
+          priority: string | null
+          qa_inspection_id: string | null
+          receiving_lot_id: string
+          resolution_notes: string | null
+          resolution_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          supplier_point_assessed: boolean | null
+          supplier_point_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_hold?: boolean | null
+          capa_id?: string | null
+          created_at?: string | null
+          hold_placed_at?: string
+          hold_placed_by?: string | null
+          hold_reason_code_id: string
+          hold_reason_description?: string | null
+          id?: string
+          priority?: string | null
+          qa_inspection_id?: string | null
+          receiving_lot_id: string
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          supplier_point_assessed?: boolean | null
+          supplier_point_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_hold?: boolean | null
+          capa_id?: string | null
+          created_at?: string | null
+          hold_placed_at?: string
+          hold_placed_by?: string | null
+          hold_reason_code_id?: string
+          hold_reason_description?: string | null
+          id?: string
+          priority?: string | null
+          qa_inspection_id?: string | null
+          receiving_lot_id?: string
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          supplier_point_assessed?: boolean | null
+          supplier_point_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_holds_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_holds_hold_placed_by_fkey"
+            columns: ["hold_placed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_holds_hold_reason_code_id_fkey"
+            columns: ["hold_reason_code_id"]
+            isOneToOne: false
+            referencedRelation: "hold_reason_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_holds_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "inventory_holds_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_holds_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -7982,6 +8136,7 @@ export type Database = {
       }
       receiving_lots: {
         Row: {
+          active_hold_id: string | null
           capa_id: string | null
           capa_required: boolean | null
           container_status: string | null
@@ -7992,6 +8147,7 @@ export type Database = {
           current_location_id: string | null
           current_quantity: number | null
           expiry_date: string | null
+          hold_status: string | null
           id: string
           internal_lot_number: string
           last_transaction_at: string | null
@@ -8015,6 +8171,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_hold_id?: string | null
           capa_id?: string | null
           capa_required?: boolean | null
           container_status?: string | null
@@ -8025,6 +8182,7 @@ export type Database = {
           current_location_id?: string | null
           current_quantity?: number | null
           expiry_date?: string | null
+          hold_status?: string | null
           id?: string
           internal_lot_number: string
           last_transaction_at?: string | null
@@ -8048,6 +8206,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_hold_id?: string | null
           capa_id?: string | null
           capa_required?: boolean | null
           container_status?: string | null
@@ -8058,6 +8217,7 @@ export type Database = {
           current_location_id?: string | null
           current_quantity?: number | null
           expiry_date?: string | null
+          hold_status?: string | null
           id?: string
           internal_lot_number?: string
           last_transaction_at?: string | null
