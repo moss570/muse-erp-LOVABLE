@@ -78,7 +78,7 @@ const CreateIssueRequest = () => {
       const { data } = await supabase
         .from('locations')
         .select('*')
-        .eq('location_type', 'production')
+        .in('location_type', ['production', 'production_floor'])
         .eq('is_active', true);
       return data;
     }
