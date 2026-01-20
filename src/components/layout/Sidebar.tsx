@@ -89,8 +89,10 @@ const navItems: NavItem[] = [
     icon: Factory,
     children: [
       { title: 'Production Dashboard', href: '/manufacturing/dashboard' },
+      { title: 'Shop Floor', href: '/manufacturing/shop-floor' },
       { title: 'Work Orders', href: '/manufacturing/work-orders' },
       { title: 'Manufacturing Lots', href: '/manufacturing/lots' },
+      { title: 'Recipes', href: '/manufacturing/recipes' },
       { title: 'Base Manufacturing', href: '/manufacturing/base-production' },
       { title: 'Finishing Production', href: '/manufacturing/finishing' },
       { title: 'QA Testing', href: '/manufacturing/qa-tests' },
@@ -203,6 +205,7 @@ const navItems: NavItem[] = [
       { title: 'Settings Hub', href: '/settings' },
       { title: 'Company Settings', href: '/settings/company' },
       { title: 'Production Lines', href: '/settings/production-lines' },
+      { title: 'Production Stages', href: '/settings/production-stages' },
       { title: 'Task Templates', href: '/settings/task-templates' },
       { title: 'Users', href: '/settings/users' },
       { title: 'Permissions', href: '/settings/permissions' },

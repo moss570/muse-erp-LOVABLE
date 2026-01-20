@@ -52,7 +52,12 @@ import FinishingProduction from "./pages/manufacturing/FinishingProduction";
 import ManufacturingLots from "./pages/manufacturing/ManufacturingLots";
 import CreateManufacturingLot from "./pages/manufacturing/CreateManufacturingLot";
 import LotDetail from "./pages/manufacturing/LotDetail";
+import Recipes from "./pages/manufacturing/Recipes";
+import RecipeDetail from "./pages/manufacturing/RecipeDetail";
+import ShopFloor from "./pages/manufacturing/ShopFloor";
+import ShopFloorWorkOrder from "./pages/manufacturing/ShopFloorWorkOrder";
 import ProductionLinesSettings from "./pages/settings/ProductionLinesSettings";
+import ProductionStagesSettings from "./pages/settings/ProductionStagesSettings";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
 import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
@@ -175,6 +180,7 @@ const App = () => (
             <Route path="/settings/recall-contacts" element={<AppLayout><RecallContacts /></AppLayout>} />
             <Route path="/settings/task-templates" element={<AppLayout><TaskTemplates /></AppLayout>} />
             <Route path="/settings/production-lines" element={<AppLayout><ProductionLinesSettings /></AppLayout>} />
+            <Route path="/settings/production-stages" element={<AppLayout><ProductionStagesSettings /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
@@ -200,8 +206,10 @@ const App = () => (
             <Route path="/manufacturing/lots/:id" element={<AppLayout><LotDetail /></AppLayout>} />
             <Route path="/manufacturing/base-production" element={<BaseProduction />} />
             <Route path="/manufacturing/finishing" element={<FinishingProduction />} />
-            {/* Recipe management is now in Product Edit dialog - redirect to products */}
-            <Route path="/manufacturing/recipes" element={<AppLayout><Products /></AppLayout>} />
+            <Route path="/manufacturing/recipes" element={<AppLayout><Recipes /></AppLayout>} />
+            <Route path="/manufacturing/recipes/:id" element={<AppLayout><RecipeDetail /></AppLayout>} />
+            <Route path="/manufacturing/shop-floor" element={<AppLayout><ShopFloor /></AppLayout>} />
+            <Route path="/manufacturing/shop-floor/:workOrderId" element={<AppLayout><ShopFloorWorkOrder /></AppLayout>} />
             <Route path="/manufacturing/qa-tests" element={<BatchQATests />} />
             
             {/* Production Issue Requests */}
