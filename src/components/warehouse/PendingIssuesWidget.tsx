@@ -18,7 +18,7 @@ const PendingIssuesWidget = () => {
         .select(`
           *,
           requested_by:profiles!production_issue_requests_requested_by_fkey(first_name, last_name),
-          work_order:production_work_orders(work_order_number),
+          work_order:work_orders(wo_number),
           items:production_issue_request_items(
             id,
             material:materials(name)

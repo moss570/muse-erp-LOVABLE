@@ -46,9 +46,6 @@ import XeroConfiguration from "./pages/settings/XeroConfiguration";
 import CategoryGLDefaults from "./pages/settings/CategoryGLDefaults";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
 import ProductionExecution from "./pages/manufacturing/ProductionExecution";
-import WorkOrders from "./pages/manufacturing/WorkOrders";
-import BaseProduction from "./pages/manufacturing/BaseProduction";
-import FinishingProduction from "./pages/manufacturing/FinishingProduction";
 import ManufacturingLots from "./pages/manufacturing/ManufacturingLots";
 import CreateManufacturingLot from "./pages/manufacturing/CreateManufacturingLot";
 import LotDetail from "./pages/manufacturing/LotDetail";
@@ -200,12 +197,9 @@ const App = () => (
             {/* Manufacturing routes */}
             <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
             <Route path="/manufacturing/production" element={<ProductionExecution />} />
-            <Route path="/manufacturing/work-orders" element={<WorkOrders />} />
             <Route path="/manufacturing/lots" element={<AppLayout><ManufacturingLots /></AppLayout>} />
             <Route path="/manufacturing/lots/new" element={<AppLayout><CreateManufacturingLot /></AppLayout>} />
             <Route path="/manufacturing/lots/:id" element={<AppLayout><LotDetail /></AppLayout>} />
-            <Route path="/manufacturing/base-production" element={<BaseProduction />} />
-            <Route path="/manufacturing/finishing" element={<FinishingProduction />} />
             <Route path="/manufacturing/recipes" element={<AppLayout><Recipes /></AppLayout>} />
             <Route path="/manufacturing/recipes/:id" element={<AppLayout><RecipeDetail /></AppLayout>} />
             <Route path="/manufacturing/shop-floor" element={<AppLayout><ShopFloor /></AppLayout>} />

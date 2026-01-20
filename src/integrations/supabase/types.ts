@@ -9185,7 +9185,7 @@ export type Database = {
             foreignKeyName: "production_issue_requests_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
-            referencedRelation: "production_work_orders"
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -9678,13 +9678,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "production_lots_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "production_work_orders"
-            referencedColumns: ["id"]
-          },
         ]
       }
       production_stages_master: {
@@ -9743,140 +9736,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      production_work_orders: {
-        Row: {
-          actual_end_at: string | null
-          actual_quantity: number | null
-          actual_start_at: string | null
-          created_at: string
-          created_by: string | null
-          customer_id: string | null
-          deadline: string | null
-          estimated_duration_hours: number | null
-          id: string
-          machine_id: string | null
-          notes: string | null
-          parent_work_order_id: string | null
-          priority: number | null
-          product_id: string | null
-          quantity_to_consume: number | null
-          sales_order_reference: string | null
-          scheduled_date: string
-          scheduled_start_time: string | null
-          source_production_lot_id: string | null
-          status: Database["public"]["Enums"]["work_order_status"]
-          target_quantity: number
-          unit_id: string | null
-          updated_at: string
-          work_order_number: string
-          work_order_type: Database["public"]["Enums"]["work_order_type"]
-        }
-        Insert: {
-          actual_end_at?: string | null
-          actual_quantity?: number | null
-          actual_start_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string | null
-          deadline?: string | null
-          estimated_duration_hours?: number | null
-          id?: string
-          machine_id?: string | null
-          notes?: string | null
-          parent_work_order_id?: string | null
-          priority?: number | null
-          product_id?: string | null
-          quantity_to_consume?: number | null
-          sales_order_reference?: string | null
-          scheduled_date: string
-          scheduled_start_time?: string | null
-          source_production_lot_id?: string | null
-          status?: Database["public"]["Enums"]["work_order_status"]
-          target_quantity: number
-          unit_id?: string | null
-          updated_at?: string
-          work_order_number: string
-          work_order_type: Database["public"]["Enums"]["work_order_type"]
-        }
-        Update: {
-          actual_end_at?: string | null
-          actual_quantity?: number | null
-          actual_start_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string | null
-          deadline?: string | null
-          estimated_duration_hours?: number | null
-          id?: string
-          machine_id?: string | null
-          notes?: string | null
-          parent_work_order_id?: string | null
-          priority?: number | null
-          product_id?: string | null
-          quantity_to_consume?: number | null
-          sales_order_reference?: string | null
-          scheduled_date?: string
-          scheduled_start_time?: string | null
-          source_production_lot_id?: string | null
-          status?: Database["public"]["Enums"]["work_order_status"]
-          target_quantity?: number
-          unit_id?: string | null
-          updated_at?: string
-          work_order_number?: string
-          work_order_type?: Database["public"]["Enums"]["work_order_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "production_work_orders_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_work_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_work_orders_machine_id_fkey"
-            columns: ["machine_id"]
-            isOneToOne: false
-            referencedRelation: "machines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_work_orders_parent_work_order_id_fkey"
-            columns: ["parent_work_order_id"]
-            isOneToOne: false
-            referencedRelation: "production_work_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_work_orders_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_work_orders_source_production_lot_id_fkey"
-            columns: ["source_production_lot_id"]
-            isOneToOne: false
-            referencedRelation: "production_lots"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_work_orders_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "units_of_measure"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       products: {
         Row: {
@@ -13713,55 +13572,6 @@ export type Database = {
           work_order_count?: number
         }
         Relationships: []
-      }
-      work_order_assignments: {
-        Row: {
-          assigned_at: string
-          assigned_by: string | null
-          employee_id: string
-          id: string
-          role: string | null
-          work_order_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by?: string | null
-          employee_id: string
-          id?: string
-          role?: string | null
-          work_order_id: string
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string | null
-          employee_id?: string
-          id?: string
-          role?: string | null
-          work_order_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_order_assignments_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_order_assignments_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_order_assignments_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "production_work_orders"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       work_order_labor: {
         Row: {
