@@ -24,6 +24,7 @@ import {
   FileText,
   CalendarCheck,
   Shield,
+  ClipboardList,
 } from 'lucide-react';
 
 interface NavItem {
@@ -39,6 +40,11 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'Tasks',
+    href: '/tasks',
+    icon: ClipboardList,
   },
   {
     title: 'Inventory',
