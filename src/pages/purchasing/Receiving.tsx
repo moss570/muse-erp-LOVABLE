@@ -300,6 +300,9 @@ export default function Receiving() {
         }}
         pendingPOs={pendingPOs || []}
         preSelectedPOId={preSelectedPOId}
+        onSessionCreated={(sessionId) => {
+          setSelectedSessionId(sessionId);
+        }}
       />
 
       {/* Session Detail Dialog */}

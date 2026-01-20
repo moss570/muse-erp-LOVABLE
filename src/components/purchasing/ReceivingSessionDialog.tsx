@@ -60,9 +60,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   pendingPOs: PendingPO[];
   preSelectedPOId?: string | null;
+  onSessionCreated?: (sessionId: string) => void;
 }
 
-export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs, preSelectedPOId }: Props) {
+export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs, preSelectedPOId, onSessionCreated }: Props) {
   const navigate = useNavigate();
   const { createSession } = useReceiving();
   const [selectedPO, setSelectedPO] = useState<string>('');
@@ -147,6 +148,11 @@ export function ReceivingSessionDialog({ open, onOpenChange, pendingPOs, preSele
       
       onOpenChange(false);
       resetForm();
+      
+      // Notify parent of the created session so it can open the detail dialog
+      if (result?.id && onSessionCreated) {
+        onSessionCreated(result.id);
+      }
     } finally {
       setIsSubmitting(false);
     }
