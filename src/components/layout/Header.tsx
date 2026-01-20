@@ -13,6 +13,7 @@ import {
 import { LogOut, Settings, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AlertBell from '@/components/layout/AlertBell';
+import NotificationBell from '@/components/shared/NotificationBell';
 
 export function Header() {
   const { user, profile, role, signOut } = useAuth();
@@ -66,9 +67,12 @@ export function Header() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         {/* Inventory Alerts */}
         <AlertBell />
+        
+        {/* Task/System Notifications */}
+        <NotificationBell />
 
         {/* User Menu */}
         <DropdownMenu>
