@@ -4788,6 +4788,7 @@ export type Database = {
           category: string | null
           coa_critical_limits: Json | null
           coa_required: boolean | null
+          coa_spec_template: Json | null
           code: string
           conditional_approval_at: string | null
           conditional_approval_by: string | null
@@ -4833,6 +4834,7 @@ export type Database = {
           qa_verified_by: string | null
           receiving_temperature_max: number | null
           receiving_temperature_min: number | null
+          requires_coa: boolean | null
           storage_temperature_max: number | null
           storage_temperature_min: number | null
           sub_category: string | null
@@ -4865,6 +4867,7 @@ export type Database = {
           category?: string | null
           coa_critical_limits?: Json | null
           coa_required?: boolean | null
+          coa_spec_template?: Json | null
           code: string
           conditional_approval_at?: string | null
           conditional_approval_by?: string | null
@@ -4910,6 +4913,7 @@ export type Database = {
           qa_verified_by?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
+          requires_coa?: boolean | null
           storage_temperature_max?: number | null
           storage_temperature_min?: number | null
           sub_category?: string | null
@@ -4942,6 +4946,7 @@ export type Database = {
           category?: string | null
           coa_critical_limits?: Json | null
           coa_required?: boolean | null
+          coa_spec_template?: Json | null
           code?: string
           conditional_approval_at?: string | null
           conditional_approval_by?: string | null
@@ -4987,6 +4992,7 @@ export type Database = {
           qa_verified_by?: string | null
           receiving_temperature_max?: number | null
           receiving_temperature_min?: number | null
+          requires_coa?: boolean | null
           storage_temperature_max?: number | null
           storage_temperature_min?: number | null
           sub_category?: string | null
@@ -8170,6 +8176,116 @@ export type Database = {
             columns: ["source_supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receiving_coa_documents: {
+        Row: {
+          ai_confidence_score: number | null
+          ai_extracted_data: Json | null
+          ai_processed: boolean | null
+          ai_processed_at: string | null
+          ai_validation_result: Json | null
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          lot_number_match: boolean | null
+          mime_type: string | null
+          page_count: number | null
+          receiving_lot_id: string
+          review_notes: string | null
+          review_override: boolean | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          specs_match: boolean | null
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+          validation_notes: string | null
+          validation_status: string | null
+        }
+        Insert: {
+          ai_confidence_score?: number | null
+          ai_extracted_data?: Json | null
+          ai_processed?: boolean | null
+          ai_processed_at?: string | null
+          ai_validation_result?: Json | null
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          lot_number_match?: boolean | null
+          mime_type?: string | null
+          page_count?: number | null
+          receiving_lot_id: string
+          review_notes?: string | null
+          review_override?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specs_match?: boolean | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          validation_notes?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          ai_confidence_score?: number | null
+          ai_extracted_data?: Json | null
+          ai_processed?: boolean | null
+          ai_processed_at?: string | null
+          ai_validation_result?: Json | null
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          lot_number_match?: boolean | null
+          mime_type?: string | null
+          page_count?: number | null
+          receiving_lot_id?: string
+          review_notes?: string | null
+          review_override?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specs_match?: boolean | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          validation_notes?: string | null
+          validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receiving_coa_documents_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "receiving_coa_documents_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_coa_documents_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receiving_coa_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
