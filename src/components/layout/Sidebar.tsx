@@ -102,7 +102,8 @@ const navItems: NavItem[] = [
       { title: 'Audits', href: '/quality/audits' },
       { title: 'Override Requests', href: '/quality/override-requests' },
       { title: 'Receiving Inspections', href: '/qa/receiving-inspections' },
-      { title: 'Document Watchlist', href: '/quality/documents' },
+      { title: 'Lot Traceability', href: '/quality/lot-traceability' },
+      { title: 'Mock Recall Drills', href: '/quality/mock-recall-drills' },
     ],
   },
   {

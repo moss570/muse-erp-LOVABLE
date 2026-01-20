@@ -83,6 +83,9 @@ import WarehouseDashboard from "./pages/warehouse/WarehouseDashboard";
 import CycleCounts from "./pages/warehouse/CycleCounts";
 import CycleCountEntry from "./pages/warehouse/CycleCountEntry";
 import CycleCountReview from "./pages/warehouse/CycleCountReview";
+import LotTraceability from "./pages/quality/LotTraceability";
+import MockRecallDrills from "./pages/quality/MockRecallDrills";
+import RecallContacts from "./pages/settings/RecallContacts";
 
 const queryClient = new QueryClient();
 
@@ -149,6 +152,7 @@ const App = () => (
             <Route path="/settings/supplier-scoring" element={<AppLayout><SupplierScoringSettings /></AppLayout>} />
             <Route path="/settings/complaints" element={<AppLayout><ComplaintSettings /></AppLayout>} />
             <Route path="/settings/audits" element={<AppLayout><AuditSettings /></AppLayout>} />
+            <Route path="/settings/recall-contacts" element={<AppLayout><RecallContacts /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
@@ -198,6 +202,8 @@ const App = () => (
             <Route path="/quality/complaints" element={<AppLayout><Complaints /></AppLayout>} />
             <Route path="/quality/audits" element={<AppLayout><Audits /></AppLayout>} />
             <Route path="/quality/override-requests" element={<AppLayout><OverrideRequests /></AppLayout>} />
+            <Route path="/quality/lot-traceability" element={<AppLayout><LotTraceability /></AppLayout>} />
+            <Route path="/quality/mock-recall-drills" element={<AppLayout><MockRecallDrills /></AppLayout>} />
             <Route path="/qa/receiving-inspections" element={<AppLayout><ReceivingInspections /></AppLayout>} />
             <Route path="/qa/receiving-inspection/:sessionId" element={<AppLayout><ReceivingInspection /></AppLayout>} />
             <Route
