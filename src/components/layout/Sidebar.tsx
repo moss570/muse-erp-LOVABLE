@@ -238,21 +238,11 @@ export function Sidebar() {
   }, [location.pathname]);
 
   const toggleExpanded = (title: string) => {
-    setExpandedItems((prev) => {
-      if (prev.includes(title)) {
-        // Check if we're currently on a child route of this menu
-        const item = navItems.find((n) => n.title === title);
-        const isChildActive = item?.children?.some(
-          (child) => location.pathname === child.href || location.pathname.startsWith(child.href + '/')
-        );
-        // Don't collapse if we're on an active child route
-        if (isChildActive) {
-          return prev;
-        }
-        return prev.filter((i) => i !== title);
-      }
-      return [...prev, title];
-    });
+    setExpandedItems((prev) =>
+      prev.includes(title)
+        ? prev.filter((i) => i !== title)
+        : [...prev, title]
+    );
   };
 
   const canAccess = (item: NavItem) => {
