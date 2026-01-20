@@ -174,12 +174,12 @@ export default function BatchQATests() {
               </Popover>
 
               {/* Stage Filter */}
-              <Select value={stageFilter} onValueChange={setStageFilter}>
+              <Select value={stageFilter || "all"} onValueChange={(val) => setStageFilter(val === "all" ? "" : val)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All Stages" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Stages</SelectItem>
+                  <SelectItem value="all">All Stages</SelectItem>
                   {APPLICABLE_STAGES.map((stage) => (
                     <SelectItem key={stage.value} value={stage.value}>
                       {stage.label}
@@ -189,12 +189,12 @@ export default function BatchQATests() {
               </Select>
 
               {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter || "all"} onValueChange={(val) => setStatusFilter(val === "all" ? "" : val)}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="Draft">Draft</SelectItem>
                   <SelectItem value="Pending_QA">Pending QA</SelectItem>
                   <SelectItem value="Approved">Approved</SelectItem>
