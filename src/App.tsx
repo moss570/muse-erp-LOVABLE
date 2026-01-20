@@ -87,6 +87,7 @@ import LotTraceability from "./pages/quality/LotTraceability";
 import MockRecallDrills from "./pages/quality/MockRecallDrills";
 import RecallContacts from "./pages/settings/RecallContacts";
 import Tasks from "./pages/tasks/Tasks";
+import TaskTemplates from "./pages/settings/TaskTemplates";
 
 const queryClient = new QueryClient();
 
@@ -154,6 +155,7 @@ const App = () => (
             <Route path="/settings/complaints" element={<AppLayout><ComplaintSettings /></AppLayout>} />
             <Route path="/settings/audits" element={<AppLayout><AuditSettings /></AppLayout>} />
             <Route path="/settings/recall-contacts" element={<AppLayout><RecallContacts /></AppLayout>} />
+            <Route path="/settings/task-templates" element={<AppLayout><TaskTemplates /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
