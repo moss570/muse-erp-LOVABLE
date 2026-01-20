@@ -6537,6 +6537,112 @@ export type Database = {
           },
         ]
       }
+      nc_disposition_actions: {
+        Row: {
+          action_type: string
+          cost: number | null
+          executed_at: string
+          executed_by: string | null
+          hold_log_id: string | null
+          id: string
+          inventory_adjustment_id: string | null
+          nc_id: string
+          notes: string | null
+          quantity_affected: number | null
+          unit: string | null
+        }
+        Insert: {
+          action_type: string
+          cost?: number | null
+          executed_at?: string
+          executed_by?: string | null
+          hold_log_id?: string | null
+          id?: string
+          inventory_adjustment_id?: string | null
+          nc_id: string
+          notes?: string | null
+          quantity_affected?: number | null
+          unit?: string | null
+        }
+        Update: {
+          action_type?: string
+          cost?: number | null
+          executed_at?: string
+          executed_by?: string | null
+          hold_log_id?: string | null
+          id?: string
+          inventory_adjustment_id?: string | null
+          nc_id?: string
+          notes?: string | null
+          quantity_affected?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nc_disposition_actions_executed_by_fkey"
+            columns: ["executed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nc_disposition_actions_hold_log_id_fkey"
+            columns: ["hold_log_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_hold_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nc_disposition_actions_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "non_conformities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nc_disposition_rules: {
+        Row: {
+          approval_threshold_amount: number | null
+          approver_role: string | null
+          auto_create_hold_log: boolean | null
+          auto_create_inventory_adjustment: boolean | null
+          created_at: string
+          disposition: string
+          id: string
+          requires_approval: boolean | null
+          requires_justification: boolean | null
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          approval_threshold_amount?: number | null
+          approver_role?: string | null
+          auto_create_hold_log?: boolean | null
+          auto_create_inventory_adjustment?: boolean | null
+          created_at?: string
+          disposition: string
+          id?: string
+          requires_approval?: boolean | null
+          requires_justification?: boolean | null
+          severity: string
+          updated_at?: string
+        }
+        Update: {
+          approval_threshold_amount?: number | null
+          approver_role?: string | null
+          auto_create_hold_log?: boolean | null
+          auto_create_inventory_adjustment?: boolean | null
+          created_at?: string
+          disposition?: string
+          id?: string
+          requires_approval?: boolean | null
+          requires_justification?: boolean | null
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       non_conformities: {
         Row: {
           actual_cost: number | null
@@ -12835,12 +12941,29 @@ export type Database = {
       }
     }
     Functions: {
+      apply_nc_disposition: {
+        Args: {
+          p_approved_by?: string
+          p_disposition: string
+          p_justification?: string
+          p_nc_id: string
+        }
+        Returns: Json
+      }
       calculate_landed_costs: {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
       calculate_score_grade: { Args: { score: number }; Returns: string }
       can_ship_production_lot: { Args: { p_lot_id: string }; Returns: boolean }
+      check_nc_disposition_approval_required: {
+        Args: {
+          p_disposition: string
+          p_estimated_cost?: number
+          p_severity: string
+        }
+        Returns: Json
+      }
       check_permission: {
         Args: {
           _required_level?: string
@@ -12850,6 +12973,8 @@ export type Database = {
         Returns: boolean
       }
       cleanup_stale_editors: { Args: never; Returns: undefined }
+      create_capa_from_nc: { Args: { p_nc_id: string }; Returns: string }
+      evaluate_nc_capa_trigger: { Args: { p_nc_id: string }; Returns: Json }
       generate_capa_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_employee_number: { Args: never; Returns: string }
