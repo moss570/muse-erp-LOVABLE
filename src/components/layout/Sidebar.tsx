@@ -45,6 +45,10 @@ const navItems: NavItem[] = [
     title: 'Tasks',
     href: '/tasks',
     icon: ClipboardList,
+    children: [
+      { title: 'All Tasks', href: '/tasks' },
+      { title: 'My Work Queue', href: '/my/work-queue' },
+    ],
   },
   {
     title: 'Inventory',

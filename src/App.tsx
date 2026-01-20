@@ -88,6 +88,7 @@ import MockRecallDrills from "./pages/quality/MockRecallDrills";
 import RecallContacts from "./pages/settings/RecallContacts";
 import Tasks from "./pages/tasks/Tasks";
 import TaskTemplates from "./pages/settings/TaskTemplates";
+import WorkQueue from "./pages/employee/WorkQueue";
 
 const queryClient = new QueryClient();
 
@@ -279,6 +280,7 @@ const App = () => (
             
             {/* Tasks */}
             <Route path="/tasks" element={<AppLayout><Tasks /></AppLayout>} />
+            <Route path="/my/work-queue" element={<AppLayout><WorkQueue /></AppLayout>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
