@@ -1797,6 +1797,298 @@ export type Database = {
         }
         Relationships: []
       }
+      cycle_count_items: {
+        Row: {
+          adjustment_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          count_notes: string | null
+          counted_at: string | null
+          counted_by: string | null
+          created_at: string | null
+          cycle_count_id: string
+          found_different_location_id: string | null
+          id: string
+          item_not_found: boolean | null
+          location_id: string
+          material_id: string
+          physical_quantity: number | null
+          physical_unit_id: string | null
+          receiving_lot_id: string | null
+          requires_review: boolean | null
+          status: string | null
+          system_quantity: number
+          system_unit_id: string | null
+          system_value: number | null
+          variance_percentage: number | null
+          variance_quantity: number | null
+          variance_value: number | null
+        }
+        Insert: {
+          adjustment_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          count_notes?: string | null
+          counted_at?: string | null
+          counted_by?: string | null
+          created_at?: string | null
+          cycle_count_id: string
+          found_different_location_id?: string | null
+          id?: string
+          item_not_found?: boolean | null
+          location_id: string
+          material_id: string
+          physical_quantity?: number | null
+          physical_unit_id?: string | null
+          receiving_lot_id?: string | null
+          requires_review?: boolean | null
+          status?: string | null
+          system_quantity: number
+          system_unit_id?: string | null
+          system_value?: number | null
+          variance_percentage?: number | null
+          variance_quantity?: number | null
+          variance_value?: number | null
+        }
+        Update: {
+          adjustment_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          count_notes?: string | null
+          counted_at?: string | null
+          counted_by?: string | null
+          created_at?: string | null
+          cycle_count_id?: string
+          found_different_location_id?: string | null
+          id?: string
+          item_not_found?: boolean | null
+          location_id?: string
+          material_id?: string
+          physical_quantity?: number | null
+          physical_unit_id?: string | null
+          receiving_lot_id?: string | null
+          requires_review?: boolean | null
+          status?: string | null
+          system_quantity?: number
+          system_unit_id?: string | null
+          system_value?: number | null
+          variance_percentage?: number | null
+          variance_quantity?: number | null
+          variance_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_count_items_adjustment_id_fkey"
+            columns: ["adjustment_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_adjustments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_counted_by_fkey"
+            columns: ["counted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_cycle_count_id_fkey"
+            columns: ["cycle_count_id"]
+            isOneToOne: false
+            referencedRelation: "cycle_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_found_different_location_id_fkey"
+            columns: ["found_different_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_physical_unit_id_fkey"
+            columns: ["physical_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_count_items_system_unit_id_fkey"
+            columns: ["system_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cycle_count_settings: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          frequency_days: number
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          value_manager_approval_threshold: number | null
+          variance_auto_approve_percent: number | null
+          variance_manager_approval_percent: number | null
+          variance_supervisor_review_percent: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          value_manager_approval_threshold?: number | null
+          variance_auto_approve_percent?: number | null
+          variance_manager_approval_percent?: number | null
+          variance_supervisor_review_percent?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          value_manager_approval_threshold?: number | null
+          variance_auto_approve_percent?: number | null
+          variance_manager_approval_percent?: number | null
+          variance_supervisor_review_percent?: number | null
+        }
+        Relationships: []
+      }
+      cycle_counts: {
+        Row: {
+          assigned_to: string | null
+          category_filter: string | null
+          completed_at: string | null
+          count_number: string
+          count_type: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          include_open_containers: boolean | null
+          items_counted: number | null
+          items_with_variance: number | null
+          location_ids: string[] | null
+          material_ids: string[] | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_date: string
+          started_at: string | null
+          status: string | null
+          total_items: number | null
+          total_variance_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category_filter?: string | null
+          completed_at?: string | null
+          count_number: string
+          count_type: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          include_open_containers?: boolean | null
+          items_counted?: number | null
+          items_with_variance?: number | null
+          location_ids?: string[] | null
+          material_ids?: string[] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_date: string
+          started_at?: string | null
+          status?: string | null
+          total_items?: number | null
+          total_variance_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category_filter?: string | null
+          completed_at?: string | null
+          count_number?: string
+          count_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          include_open_containers?: boolean | null
+          items_counted?: number | null
+          items_with_variance?: number | null
+          location_ids?: string[] | null
+          material_ids?: string[] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_date?: string
+          started_at?: string | null
+          status?: string | null
+          total_items?: number | null
+          total_variance_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_counts_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_counts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_counts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
