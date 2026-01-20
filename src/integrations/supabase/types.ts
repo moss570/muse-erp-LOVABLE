@@ -6537,6 +6537,88 @@ export type Database = {
           },
         ]
       }
+      nc_cost_breakdown: {
+        Row: {
+          amount: number
+          cost_category_id: string | null
+          description: string | null
+          id: string
+          nc_id: string
+          recorded_at: string
+          recorded_by: string | null
+        }
+        Insert: {
+          amount: number
+          cost_category_id?: string | null
+          description?: string | null
+          id?: string
+          nc_id: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Update: {
+          amount?: number
+          cost_category_id?: string | null
+          description?: string | null
+          id?: string
+          nc_id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nc_cost_breakdown_cost_category_id_fkey"
+            columns: ["cost_category_id"]
+            isOneToOne: false
+            referencedRelation: "nc_cost_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nc_cost_breakdown_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "non_conformities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nc_cost_breakdown_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nc_cost_categories: {
+        Row: {
+          category_name: string
+          cost_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          sort_order: number | null
+        }
+        Insert: {
+          category_name: string
+          cost_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+        }
+        Update: {
+          category_name?: string
+          cost_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       nc_disposition_actions: {
         Row: {
           action_type: string
@@ -12913,6 +12995,69 @@ export type Database = {
           },
         ]
       }
+      nc_analytics_summary: {
+        Row: {
+          avg_days_to_close: number | null
+          avg_estimated_cost: number | null
+          capa_created_count: number | null
+          capa_required_count: number | null
+          closed_count: number | null
+          discovery_location_id: string | null
+          disposition: string | null
+          equipment_id: string | null
+          impact_level: string | null
+          material_id: string | null
+          month: string | null
+          nc_count: number | null
+          nc_type: string | null
+          open_count: number | null
+          product_id: string | null
+          severity: string | null
+          status: string | null
+          supplier_id: string | null
+          total_actual_cost: number | null
+          total_estimated_cost: number | null
+          week: string | null
+          year: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "non_conformities_discovery_location_id_fkey"
+            columns: ["discovery_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_conformities_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qa_pending_items: {
         Row: {
           approval_status: string | null
@@ -13003,6 +13148,10 @@ export type Database = {
         Args: { p_received_date?: string }
         Returns: string
       }
+      generate_sqf_nc_report: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
       generate_supplier_code: { Args: never; Returns: string }
       generate_work_order_number: {
         Args: {
@@ -13010,6 +13159,26 @@ export type Database = {
           p_type: Database["public"]["Enums"]["work_order_type"]
         }
         Returns: string
+      }
+      get_nc_metrics: {
+        Args: {
+          p_end_date: string
+          p_location_id?: string
+          p_nc_type?: string
+          p_severity?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      get_nc_pareto_analysis: {
+        Args: { p_end_date: string; p_group_by?: string; p_start_date: string }
+        Returns: {
+          category: string
+          cumulative_percentage: number
+          nc_count: number
+          percentage: number
+          total_cost: number
+        }[]
       }
       get_unapproved_recipe_materials: {
         Args: { p_recipe_id: string }
@@ -13040,6 +13209,7 @@ export type Database = {
         Returns: boolean
       }
       mark_overdue_tasks: { Args: never; Returns: number }
+      refresh_nc_analytics: { Args: never; Returns: undefined }
       supplier_has_valid_documents: {
         Args: { p_supplier_id: string }
         Returns: boolean

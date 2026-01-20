@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Filter, FileText, TrendingUp, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Filter, FileText, TrendingUp, AlertTriangle, Search, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -34,11 +34,15 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NCFormDialog } from '@/components/quality/nc/NCFormDialog';
 import { NCDetailDialog } from '@/components/quality/nc/NCDetailDialog';
+import { SQFAuditReportDialog } from '@/components/quality/nc/SQFAuditReportDialog';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function NonConformities() {
+  const navigate = useNavigate();
   const [selectedNCId, setSelectedNCId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
@@ -82,10 +86,20 @@ export default function NonConformities() {
             SQF quality event tracking and disposition management
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Report Non-Conformity
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate('/quality/nc-analytics')}>
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analytics
+          </Button>
+          <Button variant="outline" onClick={() => setShowReportDialog(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            SQF Audit Report
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Report Non-Conformity
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -314,6 +328,11 @@ export default function NonConformities() {
         ncId={selectedNCId}
         open={!!selectedNCId}
         onOpenChange={(open) => !open && setSelectedNCId(null)}
+      />
+
+      <SQFAuditReportDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
       />
     </div>
   );
