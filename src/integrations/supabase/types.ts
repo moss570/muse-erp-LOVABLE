@@ -6532,6 +6532,185 @@ export type Database = {
           },
         ]
       }
+      production_issue_request_items: {
+        Row: {
+          created_at: string | null
+          disassemble_quantity: number | null
+          disassemble_required: boolean | null
+          fulfilled_at: string | null
+          id: string
+          issue_request_id: string
+          material_id: string
+          notes: string | null
+          purchase_unit_id: string | null
+          quantity_fulfilled: number | null
+          quantity_purchase_uom: number | null
+          quantity_requested: number
+          remaining_after_use: number | null
+          selected_lots: Json | null
+          sort_order: number | null
+          status: string | null
+          usage_unit_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          disassemble_quantity?: number | null
+          disassemble_required?: boolean | null
+          fulfilled_at?: string | null
+          id?: string
+          issue_request_id: string
+          material_id: string
+          notes?: string | null
+          purchase_unit_id?: string | null
+          quantity_fulfilled?: number | null
+          quantity_purchase_uom?: number | null
+          quantity_requested: number
+          remaining_after_use?: number | null
+          selected_lots?: Json | null
+          sort_order?: number | null
+          status?: string | null
+          usage_unit_id: string
+        }
+        Update: {
+          created_at?: string | null
+          disassemble_quantity?: number | null
+          disassemble_required?: boolean | null
+          fulfilled_at?: string | null
+          id?: string
+          issue_request_id?: string
+          material_id?: string
+          notes?: string | null
+          purchase_unit_id?: string | null
+          quantity_fulfilled?: number | null
+          quantity_purchase_uom?: number | null
+          quantity_requested?: number
+          remaining_after_use?: number | null
+          selected_lots?: Json | null
+          sort_order?: number | null
+          status?: string | null
+          usage_unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_issue_request_items_issue_request_id_fkey"
+            columns: ["issue_request_id"]
+            isOneToOne: false
+            referencedRelation: "production_issue_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_request_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_request_items_purchase_unit_id_fkey"
+            columns: ["purchase_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_request_items_usage_unit_id_fkey"
+            columns: ["usage_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_issue_requests: {
+        Row: {
+          created_at: string | null
+          delivery_location_id: string | null
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          needed_by: string
+          notes: string | null
+          priority: string | null
+          production_batch_id: string | null
+          request_number: string
+          requested_at: string | null
+          requested_by: string | null
+          status: string | null
+          updated_at: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_location_id?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          needed_by: string
+          notes?: string | null
+          priority?: string | null
+          production_batch_id?: string | null
+          request_number: string
+          requested_at?: string | null
+          requested_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_location_id?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          needed_by?: string
+          notes?: string | null
+          priority?: string | null
+          production_batch_id?: string | null
+          request_number?: string
+          requested_at?: string | null
+          requested_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_issue_requests_delivery_location_id_fkey"
+            columns: ["delivery_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_requests_fulfilled_by_fkey"
+            columns: ["fulfilled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_requests_production_batch_id_fkey"
+            columns: ["production_batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_issue_requests_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "production_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_lot_materials: {
         Row: {
           created_at: string
