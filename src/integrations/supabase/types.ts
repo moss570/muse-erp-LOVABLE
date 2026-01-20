@@ -932,6 +932,291 @@ export type Database = {
           },
         ]
       }
+      chat_channel_members: {
+        Row: {
+          channel_id: string
+          id: string
+          joined_at: string | null
+          last_read_at: string | null
+          muted_until: string | null
+          notifications_enabled: boolean | null
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          joined_at?: string | null
+          last_read_at?: string | null
+          muted_until?: string | null
+          notifications_enabled?: boolean | null
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          joined_at?: string | null
+          last_read_at?: string | null
+          muted_until?: string | null
+          notifications_enabled?: boolean | null
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_channel_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_channels: {
+        Row: {
+          allow_file_sharing: boolean | null
+          channel_type: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          name: string
+          participant_ids: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          allow_file_sharing?: boolean | null
+          channel_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name: string
+          participant_ids?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          allow_file_sharing?: boolean | null
+          channel_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name?: string
+          participant_ids?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_channels_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_message_reactions: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_message_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          channel_id: string
+          content: string
+          content_type: string | null
+          created_at: string | null
+          deleted_at: string | null
+          edited_at: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          is_deleted: boolean | null
+          is_edited: boolean | null
+          is_pinned: boolean | null
+          mentions: string[] | null
+          pinned_at: string | null
+          pinned_by: string | null
+          reply_to_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          channel_id: string
+          content: string
+          content_type?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          is_edited?: boolean | null
+          is_pinned?: boolean | null
+          mentions?: string[] | null
+          pinned_at?: string | null
+          pinned_by?: string | null
+          reply_to_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string
+          content_type?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          is_edited?: boolean | null
+          is_pinned?: boolean | null
+          mentions?: string[] | null
+          pinned_at?: string | null
+          pinned_by?: string | null
+          reply_to_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_pinned_by_fkey"
+            columns: ["pinned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_read_receipts: {
+        Row: {
+          channel_id: string
+          id: string
+          last_read_at: string | null
+          last_read_message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_read_receipts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_read_receipts_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_read_receipts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           address_line1: string | null
@@ -2777,6 +3062,192 @@ export type Database = {
           },
         ]
       }
+      employee_hr_documents: {
+        Row: {
+          created_at: string | null
+          due_date: string | null
+          employee_id: string
+          id: string
+          reminder_count: number | null
+          reminder_sent_at: string | null
+          signature_data: string | null
+          signature_ip: string | null
+          signed_at: string | null
+          status: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          due_date?: string | null
+          employee_id: string
+          id?: string
+          reminder_count?: number | null
+          reminder_sent_at?: string | null
+          signature_data?: string | null
+          signature_ip?: string | null
+          signed_at?: string | null
+          status?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string | null
+          due_date?: string | null
+          employee_id?: string
+          id?: string
+          reminder_count?: number | null
+          reminder_sent_at?: string | null
+          signature_data?: string | null
+          signature_ip?: string | null
+          signed_at?: string | null
+          status?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_hr_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hr_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "hr_document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_personal_documents: {
+        Row: {
+          description: string | null
+          document_type: string
+          employee_id: string
+          expiry_date: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          issue_date: string | null
+          name: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          document_type: string
+          employee_id: string
+          expiry_date?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          issue_date?: string | null
+          name: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          document_type?: string
+          employee_id?: string
+          expiry_date?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          issue_date?: string | null
+          name?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_personal_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_personal_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_pto_settings: {
+        Row: {
+          accrual_rate: number | null
+          accrual_type: string | null
+          annual_grant: number | null
+          current_balance: number | null
+          eligible_date: string | null
+          employee_id: string
+          id: string
+          max_balance: number | null
+          max_carryover: number | null
+          pto_type_id: string
+          updated_at: string | null
+          year_accrued: number | null
+          year_start_balance: number | null
+          year_used: number | null
+        }
+        Insert: {
+          accrual_rate?: number | null
+          accrual_type?: string | null
+          annual_grant?: number | null
+          current_balance?: number | null
+          eligible_date?: string | null
+          employee_id: string
+          id?: string
+          max_balance?: number | null
+          max_carryover?: number | null
+          pto_type_id: string
+          updated_at?: string | null
+          year_accrued?: number | null
+          year_start_balance?: number | null
+          year_used?: number | null
+        }
+        Update: {
+          accrual_rate?: number | null
+          accrual_type?: string | null
+          annual_grant?: number | null
+          current_balance?: number | null
+          eligible_date?: string | null
+          employee_id?: string
+          id?: string
+          max_balance?: number | null
+          max_carryover?: number | null
+          pto_type_id?: string
+          updated_at?: string | null
+          year_accrued?: number | null
+          year_start_balance?: number | null
+          year_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_pto_settings_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_pto_settings_pto_type_id_fkey"
+            columns: ["pto_type_id"]
+            isOneToOne: false
+            referencedRelation: "pto_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_shifts: {
         Row: {
           break_minutes: number | null
@@ -2863,6 +3334,69 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_skills: {
+        Row: {
+          certification_expiry: string | null
+          certification_number: string | null
+          certified_date: string | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          is_certified: boolean | null
+          notes: string | null
+          proficiency_level: string | null
+          skill_category: string | null
+          skill_name: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          certification_expiry?: string | null
+          certification_number?: string | null
+          certified_date?: string | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          is_certified?: boolean | null
+          notes?: string | null
+          proficiency_level?: string | null
+          skill_category?: string | null
+          skill_name: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          certification_expiry?: string | null
+          certification_number?: string | null
+          certified_date?: string | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          is_certified?: boolean | null
+          notes?: string | null
+          proficiency_level?: string | null
+          skill_category?: string | null
+          skill_name?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skills_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3110,6 +3644,81 @@ export type Database = {
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_training_records: {
+        Row: {
+          certificate_file_path: string | null
+          certificate_number: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          employee_id: string
+          id: string
+          score: number | null
+          sop_id: string | null
+          status: string | null
+          trainer_id: string | null
+          trainer_name: string | null
+          training_name: string
+          training_type: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          certificate_file_path?: string | null
+          certificate_number?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          employee_id: string
+          id?: string
+          score?: number | null
+          sop_id?: string | null
+          status?: string | null
+          trainer_id?: string | null
+          trainer_name?: string | null
+          training_name: string
+          training_type?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          certificate_file_path?: string | null
+          certificate_number?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          employee_id?: string
+          id?: string
+          score?: number | null
+          sop_id?: string | null
+          status?: string | null
+          trainer_id?: string | null
+          trainer_name?: string | null
+          training_name?: string
+          training_type?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_training_records_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3456,6 +4065,71 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      hr_document_templates: {
+        Row: {
+          assign_to_all: boolean | null
+          assign_to_new_hires: boolean | null
+          category: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          effective_date: string | null
+          file_path: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requires_signature: boolean | null
+          signature_text: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          assign_to_all?: boolean | null
+          assign_to_new_hires?: boolean | null
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_date?: string | null
+          file_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requires_signature?: boolean | null
+          signature_text?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          assign_to_all?: boolean | null
+          assign_to_new_hires?: boolean | null
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_date?: string | null
+          file_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requires_signature?: boolean | null
+          signature_text?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_adjustments: {
         Row: {
@@ -5752,6 +6426,103 @@ export type Database = {
           {
             foreignKeyName: "mock_recall_drills_signed_off_by_fkey"
             columns: ["signed_off_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          email: boolean | null
+          id: string
+          in_app: boolean | null
+          notification_type: string
+          push: boolean | null
+          quiet_end: string | null
+          quiet_start: string | null
+          user_id: string
+        }
+        Insert: {
+          email?: boolean | null
+          id?: string
+          in_app?: boolean | null
+          notification_type: string
+          push?: boolean | null
+          quiet_end?: string | null
+          quiet_start?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: boolean | null
+          id?: string
+          in_app?: boolean | null
+          notification_type?: string
+          push?: boolean | null
+          quiet_end?: string | null
+          quiet_start?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          delivered_via: string[] | null
+          email_sent_at: string | null
+          id: string
+          is_read: boolean | null
+          link_id: string | null
+          link_type: string | null
+          link_url: string | null
+          message: string | null
+          notification_type: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_via?: string[] | null
+          email_sent_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link_id?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          message?: string | null
+          notification_type?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delivered_via?: string[] | null
+          email_sent_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link_id?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          message?: string | null
+          notification_type?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -8114,6 +8885,201 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pto_accrual_log: {
+        Row: {
+          balance_after: number
+          employee_id: string
+          hours: number
+          id: string
+          notes: string | null
+          performed_at: string | null
+          performed_by: string | null
+          pto_request_id: string | null
+          pto_type_id: string
+          transaction_type: string
+        }
+        Insert: {
+          balance_after: number
+          employee_id: string
+          hours: number
+          id?: string
+          notes?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          pto_request_id?: string | null
+          pto_type_id: string
+          transaction_type: string
+        }
+        Update: {
+          balance_after?: number
+          employee_id?: string
+          hours?: number
+          id?: string
+          notes?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          pto_request_id?: string | null
+          pto_type_id?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pto_accrual_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_accrual_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_accrual_log_pto_request_id_fkey"
+            columns: ["pto_request_id"]
+            isOneToOne: false
+            referencedRelation: "pto_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_accrual_log_pto_type_id_fkey"
+            columns: ["pto_type_id"]
+            isOneToOne: false
+            referencedRelation: "pto_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pto_requests: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          notes: string | null
+          pto_type_id: string
+          request_number: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: string | null
+          total_hours: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          notes?: string | null
+          pto_type_id: string
+          request_number?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: string | null
+          total_hours: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          notes?: string | null
+          pto_type_id?: string
+          request_number?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: string | null
+          total_hours?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pto_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_requests_pto_type_id_fkey"
+            columns: ["pto_type_id"]
+            isOneToOne: false
+            referencedRelation: "pto_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pto_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pto_types: {
+        Row: {
+          accrual_type: string | null
+          advance_notice_days: number | null
+          code: string
+          color: string | null
+          created_at: string | null
+          default_accrual_rate: number | null
+          default_annual_grant: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_balance: number | null
+          max_carryover: number | null
+          name: string
+          requires_approval: boolean | null
+          waiting_period_days: number | null
+        }
+        Insert: {
+          accrual_type?: string | null
+          advance_notice_days?: number | null
+          code: string
+          color?: string | null
+          created_at?: string | null
+          default_accrual_rate?: number | null
+          default_annual_grant?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_balance?: number | null
+          max_carryover?: number | null
+          name: string
+          requires_approval?: boolean | null
+          waiting_period_days?: number | null
+        }
+        Update: {
+          accrual_type?: string | null
+          advance_notice_days?: number | null
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          default_accrual_rate?: number | null
+          default_annual_grant?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_balance?: number | null
+          max_carryover?: number | null
+          name?: string
+          requires_approval?: boolean | null
+          waiting_period_days?: number | null
+        }
+        Relationships: []
       }
       purchase_order_invoices: {
         Row: {
@@ -10548,6 +11514,546 @@ export type Database = {
         }
         Relationships: []
       }
+      task_activity_log: {
+        Row: {
+          action: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          performed_at: string | null
+          performed_by: string | null
+          task_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          task_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_activity_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_activity_log_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_attachments: {
+        Row: {
+          attachment_type: string | null
+          caption: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          task_id: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          attachment_type?: string | null
+          caption?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          task_id: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          attachment_type?: string | null
+          caption?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          task_id?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_auto_assignment_rules: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          escalate_to_id: string | null
+          escalate_to_role: string | null
+          escalate_to_type: string | null
+          id: string
+          is_active: boolean | null
+          notify_manager: boolean | null
+          template_id: string | null
+          unclaimed_hours_threshold: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          escalate_to_id?: string | null
+          escalate_to_role?: string | null
+          escalate_to_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          notify_manager?: boolean | null
+          template_id?: string | null
+          unclaimed_hours_threshold?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          escalate_to_id?: string | null
+          escalate_to_role?: string | null
+          escalate_to_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          notify_manager?: boolean | null
+          template_id?: string | null
+          unclaimed_hours_threshold?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_auto_assignment_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "task_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_auto_assignment_rules_escalate_to_id_fkey"
+            columns: ["escalate_to_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_auto_assignment_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_food_safety: boolean | null
+          name: string
+          requires_photo: boolean | null
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_food_safety?: boolean | null
+          name: string
+          requires_photo?: boolean | null
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_food_safety?: boolean | null
+          name?: string
+          requires_photo?: boolean | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      task_comments: {
+        Row: {
+          comment: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          task_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          task_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_templates: {
+        Row: {
+          category_id: string | null
+          checklist_items: Json | null
+          created_at: string | null
+          created_by: string | null
+          default_assignee_id: string | null
+          default_assignee_type: string | null
+          default_department_id: string | null
+          default_priority: string | null
+          default_role: string | null
+          description: string | null
+          estimated_duration_minutes: number | null
+          food_safety_type: string | null
+          id: string
+          is_active: boolean | null
+          is_food_safety: boolean | null
+          is_recurring: boolean | null
+          name: string
+          photo_min_count: number | null
+          recurrence_day_of_month: number | null
+          recurrence_days_of_week: number[] | null
+          recurrence_pattern: string | null
+          recurrence_time: string | null
+          requires_notes: boolean | null
+          requires_photo: boolean | null
+          requires_signature: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          checklist_items?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          default_assignee_id?: string | null
+          default_assignee_type?: string | null
+          default_department_id?: string | null
+          default_priority?: string | null
+          default_role?: string | null
+          description?: string | null
+          estimated_duration_minutes?: number | null
+          food_safety_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_food_safety?: boolean | null
+          is_recurring?: boolean | null
+          name: string
+          photo_min_count?: number | null
+          recurrence_day_of_month?: number | null
+          recurrence_days_of_week?: number[] | null
+          recurrence_pattern?: string | null
+          recurrence_time?: string | null
+          requires_notes?: boolean | null
+          requires_photo?: boolean | null
+          requires_signature?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          checklist_items?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          default_assignee_id?: string | null
+          default_assignee_type?: string | null
+          default_department_id?: string | null
+          default_priority?: string | null
+          default_role?: string | null
+          description?: string | null
+          estimated_duration_minutes?: number | null
+          food_safety_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_food_safety?: boolean | null
+          is_recurring?: boolean | null
+          name?: string
+          photo_min_count?: number | null
+          recurrence_day_of_month?: number | null
+          recurrence_days_of_week?: number[] | null
+          recurrence_pattern?: string | null
+          recurrence_time?: string | null
+          requires_notes?: boolean | null
+          requires_photo?: boolean | null
+          requires_signature?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "task_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_templates_default_department_id_fkey"
+            columns: ["default_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_department_id: string | null
+          assigned_role: string | null
+          assigned_to: string | null
+          assignment_type: string | null
+          category_id: string | null
+          checklist_completed: Json | null
+          checklist_items: Json | null
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
+          completed_by: string | null
+          completion_notes: string | null
+          completion_signature: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          estimated_duration_minutes: number | null
+          food_safety_data: Json | null
+          id: string
+          is_food_safety: boolean | null
+          location_id: string | null
+          photo_min_count: number | null
+          priority: string | null
+          requires_notes: boolean | null
+          requires_photo: boolean | null
+          requires_signature: boolean | null
+          source_module: string | null
+          source_record_id: string | null
+          source_type: string | null
+          started_at: string | null
+          status: string | null
+          task_number: string | null
+          template_id: string | null
+          title: string
+          updated_at: string | null
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          assigned_department_id?: string | null
+          assigned_role?: string | null
+          assigned_to?: string | null
+          assignment_type?: string | null
+          category_id?: string | null
+          checklist_completed?: Json | null
+          checklist_items?: Json | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          completion_signature?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          estimated_duration_minutes?: number | null
+          food_safety_data?: Json | null
+          id?: string
+          is_food_safety?: boolean | null
+          location_id?: string | null
+          photo_min_count?: number | null
+          priority?: string | null
+          requires_notes?: boolean | null
+          requires_photo?: boolean | null
+          requires_signature?: boolean | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          started_at?: string | null
+          status?: string | null
+          task_number?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          assigned_department_id?: string | null
+          assigned_role?: string | null
+          assigned_to?: string | null
+          assignment_type?: string | null
+          category_id?: string | null
+          checklist_completed?: Json | null
+          checklist_items?: Json | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          completion_signature?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          estimated_duration_minutes?: number | null
+          food_safety_data?: Json | null
+          id?: string
+          is_food_safety?: boolean | null
+          location_id?: string | null
+          photo_min_count?: number | null
+          priority?: string | null
+          requires_notes?: boolean | null
+          requires_photo?: boolean | null
+          requires_signature?: boolean | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          started_at?: string | null
+          status?: string | null
+          task_number?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_department_id_fkey"
+            columns: ["assigned_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "task_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_merge_fields: {
         Row: {
           category: Database["public"]["Enums"]["template_category"]
@@ -11085,6 +12591,7 @@ export type Database = {
         Args: { p_material_id: string }
         Returns: boolean
       }
+      mark_overdue_tasks: { Args: never; Returns: number }
       supplier_has_valid_documents: {
         Args: { p_supplier_id: string }
         Returns: boolean
