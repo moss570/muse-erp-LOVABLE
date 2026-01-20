@@ -5675,6 +5675,51 @@ export type Database = {
         }
         Relationships: []
       }
+      manufacturing_cost_settings: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          effective_date: string | null
+          expires_date: string | null
+          id: string
+          is_active: boolean | null
+          setting_key: string
+          setting_uom: string | null
+          setting_value: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_date?: string | null
+          expires_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key: string
+          setting_uom?: string | null
+          setting_value: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_date?: string | null
+          expires_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key?: string
+          setting_uom?: string | null
+          setting_value?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       manufacturing_lots: {
         Row: {
           approved_by: string | null
@@ -13243,6 +13288,412 @@ export type Database = {
           },
         ]
       }
+      work_order_labor: {
+        Row: {
+          clock_in: string | null
+          clock_out: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_id: string | null
+          hourly_rate: number
+          hours_worked: number
+          id: string
+          is_overtime: boolean | null
+          labor_cost: number
+          labor_date: string
+          notes: string | null
+          overtime_multiplier: number | null
+          stage: string | null
+          updated_at: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          hourly_rate: number
+          hours_worked: number
+          id?: string
+          is_overtime?: boolean | null
+          labor_cost: number
+          labor_date: string
+          notes?: string | null
+          overtime_multiplier?: number | null
+          stage?: string | null
+          updated_at?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          hourly_rate?: number
+          hours_worked?: number
+          id?: string
+          is_overtime?: boolean | null
+          labor_cost?: number
+          labor_date?: string
+          notes?: string | null
+          overtime_multiplier?: number | null
+          stage?: string | null
+          updated_at?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_labor_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_materials: {
+        Row: {
+          actual_quantity: number | null
+          actual_total_cost: number | null
+          actual_unit_cost: number | null
+          actual_uom: string | null
+          consumed_at: string | null
+          consumed_from_lot_id: string | null
+          cost_variance: number | null
+          created_at: string | null
+          id: string
+          is_consumed: boolean | null
+          material_id: string | null
+          planned_quantity: number
+          planned_total_cost: number | null
+          planned_unit_cost: number | null
+          planned_uom: string
+          quantity_variance: number | null
+          work_order_id: string | null
+        }
+        Insert: {
+          actual_quantity?: number | null
+          actual_total_cost?: number | null
+          actual_unit_cost?: number | null
+          actual_uom?: string | null
+          consumed_at?: string | null
+          consumed_from_lot_id?: string | null
+          cost_variance?: number | null
+          created_at?: string | null
+          id?: string
+          is_consumed?: boolean | null
+          material_id?: string | null
+          planned_quantity: number
+          planned_total_cost?: number | null
+          planned_unit_cost?: number | null
+          planned_uom: string
+          quantity_variance?: number | null
+          work_order_id?: string | null
+        }
+        Update: {
+          actual_quantity?: number | null
+          actual_total_cost?: number | null
+          actual_unit_cost?: number | null
+          actual_uom?: string | null
+          consumed_at?: string | null
+          consumed_from_lot_id?: string | null
+          cost_variance?: number | null
+          created_at?: string | null
+          id?: string
+          is_consumed?: boolean | null
+          material_id?: string | null
+          planned_quantity?: number
+          planned_total_cost?: number | null
+          planned_unit_cost?: number | null
+          planned_uom?: string
+          quantity_variance?: number | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_materials_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_overhead: {
+        Row: {
+          allocated_amount: number | null
+          allocation_basis: number | null
+          allocation_date: string | null
+          allocation_method: string | null
+          allocation_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          fixed_cost_allocation: number | null
+          id: string
+          notes: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          allocated_amount?: number | null
+          allocation_basis?: number | null
+          allocation_date?: string | null
+          allocation_method?: string | null
+          allocation_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          fixed_cost_allocation?: number | null
+          id?: string
+          notes?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          allocated_amount?: number | null
+          allocation_basis?: number | null
+          allocation_date?: string | null
+          allocation_method?: string | null
+          allocation_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          fixed_cost_allocation?: number | null
+          id?: string
+          notes?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_overhead_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_status_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_status: string
+          notes: string | null
+          old_status: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_status_history_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_orders: {
+        Row: {
+          actual_cost_per_unit: number | null
+          actual_labor_cost: number | null
+          actual_labor_hours: number | null
+          actual_material_cost: number | null
+          actual_overhead_cost: number | null
+          actual_quantity: number | null
+          actual_total_cost: number | null
+          actual_uom: string | null
+          allergen_warnings: string[] | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_po: string | null
+          customer_reference: string | null
+          due_date: string | null
+          estimated_labor_hours: number | null
+          id: string
+          is_rework: boolean | null
+          labor_rate_per_hour: number | null
+          labor_variance: number | null
+          material_variance: number | null
+          original_wo_id: string | null
+          overhead_allocation_method: string | null
+          overhead_rate: number | null
+          overhead_variance: number | null
+          planned_cost_per_unit: number | null
+          planned_labor_cost: number | null
+          planned_material_cost: number | null
+          planned_overhead_cost: number | null
+          planned_total_cost: number | null
+          priority: string | null
+          product_id: string | null
+          production_line_id: string | null
+          recipe_id: string | null
+          released_at: string | null
+          released_by: string | null
+          scheduled_date: string | null
+          special_instructions: string | null
+          started_at: string | null
+          target_quantity: number
+          target_uom: string
+          total_variance: number | null
+          updated_at: string | null
+          updated_by: string | null
+          wo_number: string
+          wo_status: string
+          wo_type: string
+          yield_percentage: number | null
+        }
+        Insert: {
+          actual_cost_per_unit?: number | null
+          actual_labor_cost?: number | null
+          actual_labor_hours?: number | null
+          actual_material_cost?: number | null
+          actual_overhead_cost?: number | null
+          actual_quantity?: number | null
+          actual_total_cost?: number | null
+          actual_uom?: string | null
+          allergen_warnings?: string[] | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_po?: string | null
+          customer_reference?: string | null
+          due_date?: string | null
+          estimated_labor_hours?: number | null
+          id?: string
+          is_rework?: boolean | null
+          labor_rate_per_hour?: number | null
+          labor_variance?: number | null
+          material_variance?: number | null
+          original_wo_id?: string | null
+          overhead_allocation_method?: string | null
+          overhead_rate?: number | null
+          overhead_variance?: number | null
+          planned_cost_per_unit?: number | null
+          planned_labor_cost?: number | null
+          planned_material_cost?: number | null
+          planned_overhead_cost?: number | null
+          planned_total_cost?: number | null
+          priority?: string | null
+          product_id?: string | null
+          production_line_id?: string | null
+          recipe_id?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          scheduled_date?: string | null
+          special_instructions?: string | null
+          started_at?: string | null
+          target_quantity: number
+          target_uom: string
+          total_variance?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          wo_number: string
+          wo_status?: string
+          wo_type: string
+          yield_percentage?: number | null
+        }
+        Update: {
+          actual_cost_per_unit?: number | null
+          actual_labor_cost?: number | null
+          actual_labor_hours?: number | null
+          actual_material_cost?: number | null
+          actual_overhead_cost?: number | null
+          actual_quantity?: number | null
+          actual_total_cost?: number | null
+          actual_uom?: string | null
+          allergen_warnings?: string[] | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_po?: string | null
+          customer_reference?: string | null
+          due_date?: string | null
+          estimated_labor_hours?: number | null
+          id?: string
+          is_rework?: boolean | null
+          labor_rate_per_hour?: number | null
+          labor_variance?: number | null
+          material_variance?: number | null
+          original_wo_id?: string | null
+          overhead_allocation_method?: string | null
+          overhead_rate?: number | null
+          overhead_variance?: number | null
+          planned_cost_per_unit?: number | null
+          planned_labor_cost?: number | null
+          planned_material_cost?: number | null
+          planned_overhead_cost?: number | null
+          planned_total_cost?: number | null
+          priority?: string | null
+          product_id?: string | null
+          production_line_id?: string | null
+          recipe_id?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          scheduled_date?: string | null
+          special_instructions?: string | null
+          started_at?: string | null
+          target_quantity?: number
+          target_uom?: string
+          total_variance?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          wo_number?: string
+          wo_status?: string
+          wo_type?: string
+          yield_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_original_wo_id_fkey"
+            columns: ["original_wo_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_production_line_id_fkey"
+            columns: ["production_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       xero_connections: {
         Row: {
           access_token: string
@@ -13536,9 +13987,17 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_actual_wo_costs: {
+        Args: { p_work_order_id: string }
+        Returns: Json
+      }
       calculate_landed_costs: {
         Args: { p_invoice_id: string }
         Returns: undefined
+      }
+      calculate_planned_wo_costs: {
+        Args: { p_work_order_id: string }
+        Returns: Json
       }
       calculate_score_grade: { Args: { score: number }; Returns: string }
       can_ship_production_lot: { Args: { p_lot_id: string }; Returns: boolean }
@@ -13598,6 +14057,7 @@ export type Database = {
         Returns: Json
       }
       generate_supplier_code: { Args: never; Returns: string }
+      generate_wo_number: { Args: { p_wo_type?: string }; Returns: string }
       generate_work_order_number: {
         Args: {
           p_date?: string

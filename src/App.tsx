@@ -49,6 +49,10 @@ import ProductionExecution from "./pages/manufacturing/ProductionExecution";
 import WorkOrders from "./pages/manufacturing/WorkOrders";
 import BaseProduction from "./pages/manufacturing/BaseProduction";
 import FinishingProduction from "./pages/manufacturing/FinishingProduction";
+import ManufacturingLots from "./pages/manufacturing/ManufacturingLots";
+import CreateManufacturingLot from "./pages/manufacturing/CreateManufacturingLot";
+import LotDetail from "./pages/manufacturing/LotDetail";
+import ProductionLinesSettings from "./pages/settings/ProductionLinesSettings";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
 import ThreePLDashboard from "./pages/inventory/ThreePLDashboard";
@@ -170,6 +174,7 @@ const App = () => (
             <Route path="/settings/audits" element={<AppLayout><AuditSettings /></AppLayout>} />
             <Route path="/settings/recall-contacts" element={<AppLayout><RecallContacts /></AppLayout>} />
             <Route path="/settings/task-templates" element={<AppLayout><TaskTemplates /></AppLayout>} />
+            <Route path="/settings/production-lines" element={<AppLayout><ProductionLinesSettings /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
@@ -190,6 +195,9 @@ const App = () => (
             <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
             <Route path="/manufacturing/production" element={<ProductionExecution />} />
             <Route path="/manufacturing/work-orders" element={<WorkOrders />} />
+            <Route path="/manufacturing/lots" element={<AppLayout><ManufacturingLots /></AppLayout>} />
+            <Route path="/manufacturing/lots/new" element={<AppLayout><CreateManufacturingLot /></AppLayout>} />
+            <Route path="/manufacturing/lots/:id" element={<AppLayout><LotDetail /></AppLayout>} />
             <Route path="/manufacturing/base-production" element={<BaseProduction />} />
             <Route path="/manufacturing/finishing" element={<FinishingProduction />} />
             {/* Recipe management is now in Product Edit dialog - redirect to products */}

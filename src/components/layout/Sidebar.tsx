@@ -90,11 +90,11 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Production Dashboard', href: '/manufacturing/dashboard' },
       { title: 'Work Orders', href: '/manufacturing/work-orders' },
+      { title: 'Manufacturing Lots', href: '/manufacturing/lots' },
       { title: 'Base Manufacturing', href: '/manufacturing/base-production' },
       { title: 'Finishing Production', href: '/manufacturing/finishing' },
       { title: 'QA Testing', href: '/manufacturing/qa-tests' },
       { title: 'Issue Requests', href: '/production/issue-requests' },
-      { title: 'Batch Tracking', href: '/manufacturing/batches' },
     ],
   },
   {
@@ -202,6 +202,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Settings Hub', href: '/settings' },
       { title: 'Company Settings', href: '/settings/company' },
+      { title: 'Production Lines', href: '/settings/production-lines' },
       { title: 'Task Templates', href: '/settings/task-templates' },
       { title: 'Users', href: '/settings/users' },
       { title: 'Permissions', href: '/settings/permissions' },
