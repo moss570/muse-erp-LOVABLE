@@ -86,6 +86,7 @@ import CycleCountReview from "./pages/warehouse/CycleCountReview";
 import LotTraceability from "./pages/quality/LotTraceability";
 import MockRecallDrills from "./pages/quality/MockRecallDrills";
 import RecallContacts from "./pages/settings/RecallContacts";
+import Tasks from "./pages/tasks/Tasks";
 
 const queryClient = new QueryClient();
 
@@ -273,6 +274,9 @@ const App = () => (
             />
             <Route path="/kiosk/timeclock" element={<TimeClockKiosk />} />
             <Route path="/hr/payroll" element={<AppLayout><PayrollExport /></AppLayout>} />
+            
+            {/* Tasks */}
+            <Route path="/tasks" element={<AppLayout><Tasks /></AppLayout>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
