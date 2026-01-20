@@ -39,7 +39,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
   const [productionLineId, setProductionLineId] = useState("");
   const [targetQuantity, setTargetQuantity] = useState("");
   const [targetUom, setTargetUom] = useState("kg");
-  const [priority, setPriority] = useState("5");
+  const [priority, setPriority] = useState("Standard");
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [specialInstructions, setSpecialInstructions] = useState("");
@@ -109,7 +109,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
         production_line_id: productionLineId || null,
         target_quantity: parseFloat(targetQuantity),
         target_uom: targetUom,
-        priority: parseInt(priority),
+        priority: priority,
         scheduled_date: scheduledDate ? format(scheduledDate, "yyyy-MM-dd") : null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         special_instructions: specialInstructions || null,
@@ -145,7 +145,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
     setProductionLineId("");
     setTargetQuantity("");
     setTargetUom("kg");
-    setPriority("5");
+    setPriority("Standard");
     setScheduledDate(new Date());
     setDueDate(undefined);
     setSpecialInstructions("");
@@ -269,10 +269,10 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Low (1)</SelectItem>
-                  <SelectItem value="5">Normal (5)</SelectItem>
-                  <SelectItem value="8">High (8)</SelectItem>
-                  <SelectItem value="10">Rush (10)</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Rush">Rush</SelectItem>
                 </SelectContent>
               </Select>
             </div>
