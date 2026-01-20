@@ -5593,6 +5593,141 @@ export type Database = {
           },
         ]
       }
+      mock_recall_drills: {
+        Row: {
+          affected_lot_number: string | null
+          affected_material_id: string | null
+          affected_product_id: string | null
+          corrective_actions: string | null
+          created_at: string | null
+          created_by: string | null
+          customers_identified_count: number | null
+          documentation_path: string | null
+          drill_date: string
+          drill_end_time: string | null
+          drill_number: string
+          drill_start_time: string | null
+          drill_type: string
+          findings: string | null
+          id: string
+          lead_by: string | null
+          lots_traced_count: number | null
+          participants: Json | null
+          pass_fail: string | null
+          product_recovered_percentage: number | null
+          scenario_description: string
+          signed_off_at: string | null
+          signed_off_by: string | null
+          simulated_recall_class: string | null
+          status: string | null
+          time_to_identify_customers_minutes: number | null
+          time_to_identify_lots_minutes: number | null
+          time_to_notify_contacts_minutes: number | null
+          total_drill_time_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          affected_lot_number?: string | null
+          affected_material_id?: string | null
+          affected_product_id?: string | null
+          corrective_actions?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customers_identified_count?: number | null
+          documentation_path?: string | null
+          drill_date: string
+          drill_end_time?: string | null
+          drill_number: string
+          drill_start_time?: string | null
+          drill_type: string
+          findings?: string | null
+          id?: string
+          lead_by?: string | null
+          lots_traced_count?: number | null
+          participants?: Json | null
+          pass_fail?: string | null
+          product_recovered_percentage?: number | null
+          scenario_description: string
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          simulated_recall_class?: string | null
+          status?: string | null
+          time_to_identify_customers_minutes?: number | null
+          time_to_identify_lots_minutes?: number | null
+          time_to_notify_contacts_minutes?: number | null
+          total_drill_time_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          affected_lot_number?: string | null
+          affected_material_id?: string | null
+          affected_product_id?: string | null
+          corrective_actions?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customers_identified_count?: number | null
+          documentation_path?: string | null
+          drill_date?: string
+          drill_end_time?: string | null
+          drill_number?: string
+          drill_start_time?: string | null
+          drill_type?: string
+          findings?: string | null
+          id?: string
+          lead_by?: string | null
+          lots_traced_count?: number | null
+          participants?: Json | null
+          pass_fail?: string | null
+          product_recovered_percentage?: number | null
+          scenario_description?: string
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          simulated_recall_class?: string | null
+          status?: string | null
+          time_to_identify_customers_minutes?: number | null
+          time_to_identify_lots_minutes?: number | null
+          time_to_notify_contacts_minutes?: number | null
+          total_drill_time_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_recall_drills_affected_material_id_fkey"
+            columns: ["affected_material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_recall_drills_affected_product_id_fkey"
+            columns: ["affected_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_recall_drills_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_recall_drills_lead_by_fkey"
+            columns: ["lead_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_recall_drills_signed_off_by_fkey"
+            columns: ["signed_off_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nutrition_daily_values: {
         Row: {
           created_at: string
@@ -9084,6 +9219,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recall_contacts: {
+        Row: {
+          contact_name: string | null
+          contact_type: string
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          notification_order: number | null
+          notify_by_email: boolean | null
+          notify_by_phone: boolean | null
+          notify_by_sms: boolean | null
+          notify_class_1: boolean | null
+          notify_class_2: boolean | null
+          notify_class_3: boolean | null
+          notify_mock_drill: boolean | null
+          organization: string | null
+          phone: string | null
+          phone_secondary: string | null
+          role_title: string
+          updated_at: string | null
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_type: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_order?: number | null
+          notify_by_email?: boolean | null
+          notify_by_phone?: boolean | null
+          notify_by_sms?: boolean | null
+          notify_class_1?: boolean | null
+          notify_class_2?: boolean | null
+          notify_class_3?: boolean | null
+          notify_mock_drill?: boolean | null
+          organization?: string | null
+          phone?: string | null
+          phone_secondary?: string | null
+          role_title: string
+          updated_at?: string | null
+        }
+        Update: {
+          contact_name?: string | null
+          contact_type?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_order?: number | null
+          notify_by_email?: boolean | null
+          notify_by_phone?: boolean | null
+          notify_by_sms?: boolean | null
+          notify_class_1?: boolean | null
+          notify_class_2?: boolean | null
+          notify_class_3?: boolean | null
+          notify_mock_drill?: boolean | null
+          organization?: string | null
+          phone?: string | null
+          phone_secondary?: string | null
+          role_title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       recall_events: {
         Row: {
