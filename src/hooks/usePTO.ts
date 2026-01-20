@@ -194,7 +194,7 @@ export function useCreatePTORequest() {
       const { data: managers } = await supabase
         .from('profiles')
         .select('id')
-        .in('role', ['admin', 'manager'] as any);
+        .or('role.eq.admin,role.eq.manager');
       
       if (managers?.length) {
         await supabase.from('notifications').insert(
