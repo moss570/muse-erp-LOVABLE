@@ -4052,6 +4052,36 @@ export type Database = {
           },
         ]
       }
+      inventory_preferences: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          preference_key: string
+          preference_type: string | null
+          preference_value: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          preference_key: string
+          preference_type?: string | null
+          preference_value: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          preference_key?: string
+          preference_type?: string | null
+          preference_value?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory_transactions: {
         Row: {
           approved_at: string | null
