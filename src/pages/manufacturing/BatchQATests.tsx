@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -124,8 +123,7 @@ export default function BatchQATests() {
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -282,8 +280,6 @@ export default function BatchQATests() {
             </div>
           </CardContent>
         </Card>
-      </div>
-
       {/* QA Test Recording Dialog */}
       {selectedLot && (
         <QATestRecordingDialog
@@ -292,6 +288,6 @@ export default function BatchQATests() {
           lot={selectedLot}
         />
       )}
-    </AppLayout>
+    </div>
   );
 }

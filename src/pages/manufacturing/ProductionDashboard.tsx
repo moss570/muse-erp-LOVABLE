@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,7 +139,7 @@ export default function ProductionDashboard() {
   );
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -777,6 +776,6 @@ export default function ProductionDashboard() {
           )}
         </DialogContent>
       </Dialog>
-    </AppLayout>
+    </>
   );
 }
