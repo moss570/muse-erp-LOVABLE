@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileDown, Printer, Search, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, FileDown, Printer, Search, AlertCircle, Clock, CheckCircle2, Plus } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { HoldDetailDialog } from "@/components/inventory/HoldDetailDialog";
 import { HoldResolutionDialog } from "@/components/inventory/HoldResolutionDialog";
+import { ManualHoldDialog } from "@/components/inventory/ManualHoldDialog";
 import { cn } from "@/lib/utils";
 
 type HoldStatus = 'pending' | 'under_review' | 'released' | 'rejected' | 'disposed' | 'returned';
@@ -53,6 +54,7 @@ const HoldLog = () => {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showResolutionDialog, setShowResolutionDialog] = useState(false);
   const [resolutionType, setResolutionType] = useState<'release' | 'reject'>('release');
+  const [showManualHoldDialog, setShowManualHoldDialog] = useState(false);
 
   // Fetch hold log entries with related data
   const { data: holdEntries, isLoading, refetch } = useQuery({
@@ -235,6 +237,10 @@ const HoldLog = () => {
           <h1 className="text-3xl font-bold">Hold Log</h1>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setShowManualHoldDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Hold
+          </Button>
           <Button variant="outline" onClick={handleExport}>
             <FileDown className="h-4 w-4 mr-2" />
             Export
@@ -453,6 +459,17 @@ const HoldLog = () => {
           onOpenChange={setShowResolutionDialog}
           onSuccess={() => {
             setShowResolutionDialog(false);
+            refetch();
+          }}
+        />
+      )}
+
+      {showManualHoldDialog && (
+        <ManualHoldDialog
+          open={showManualHoldDialog}
+          onOpenChange={setShowManualHoldDialog}
+          onSuccess={() => {
+            setShowManualHoldDialog(false);
             refetch();
           }}
         />
