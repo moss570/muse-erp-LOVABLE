@@ -49,6 +49,7 @@ const navItems: NavItem[] = [
       { title: 'Materials', href: '/inventory/materials' },
       { title: 'Products', href: '/inventory/products' },
       { title: 'Hold Log', href: '/inventory/hold-log' },
+      { title: 'Disposal Log', href: '/inventory/disposal-log' },
       { title: '3PL Dashboard', href: '/inventory/3pl' },
       { title: 'Stock Levels', href: '/inventory/stock' },
     ],

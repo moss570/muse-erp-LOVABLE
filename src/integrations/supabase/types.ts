@@ -1953,6 +1953,161 @@ export type Database = {
           },
         ]
       }
+      disposal_log: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          disposal_reason_code: string
+          disposal_reason_notes: string | null
+          disposed_at: string
+          disposed_by: string | null
+          gl_account_id: string | null
+          id: string
+          journal_entry_id: string | null
+          material_id: string | null
+          product_id: string | null
+          production_lot_id: string | null
+          quantity_disposed: number
+          receiving_lot_id: string | null
+          requires_approval: boolean | null
+          source_reference_id: string | null
+          source_type: string
+          supplier_id: string | null
+          supplier_points_assessed: number | null
+          total_value: number
+          unit_cost: number | null
+          unit_id: string | null
+          xero_synced_at: string | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          disposal_reason_code: string
+          disposal_reason_notes?: string | null
+          disposed_at?: string
+          disposed_by?: string | null
+          gl_account_id?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          material_id?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity_disposed: number
+          receiving_lot_id?: string | null
+          requires_approval?: boolean | null
+          source_reference_id?: string | null
+          source_type: string
+          supplier_id?: string | null
+          supplier_points_assessed?: number | null
+          total_value?: number
+          unit_cost?: number | null
+          unit_id?: string | null
+          xero_synced_at?: string | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          disposal_reason_code?: string
+          disposal_reason_notes?: string | null
+          disposed_at?: string
+          disposed_by?: string | null
+          gl_account_id?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          material_id?: string | null
+          product_id?: string | null
+          production_lot_id?: string | null
+          quantity_disposed?: number
+          receiving_lot_id?: string | null
+          requires_approval?: boolean | null
+          source_reference_id?: string | null
+          source_type?: string
+          supplier_id?: string | null
+          supplier_points_assessed?: number | null
+          total_value?: number
+          unit_cost?: number | null
+          unit_id?: string | null
+          xero_synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disposal_log_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_disposed_by_fkey"
+            columns: ["disposed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_by_lot_location"
+            referencedColumns: ["receiving_lot_id"]
+          },
+          {
+            foreignKeyName: "disposal_log_receiving_lot_id_fkey"
+            columns: ["receiving_lot_id"]
+            isOneToOne: false
+            referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_of_measure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_requirements: {
         Row: {
           areas: string[]
