@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -212,24 +211,20 @@ export default function ShopFloorWorkOrder() {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
   if (!workOrder) {
     return (
-      <AppLayout>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Work order not found</p>
-          <Button onClick={() => navigate("/shop-floor")} className="mt-4">
-            Back to Shop Floor
-          </Button>
-        </div>
-      </AppLayout>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Work order not found</p>
+        <Button onClick={() => navigate("/manufacturing/shop-floor")} className="mt-4">
+          Back to Shop Floor
+        </Button>
+      </div>
     );
   }
 
@@ -242,11 +237,10 @@ export default function ShopFloorWorkOrder() {
   const approvedUncommitted = uncommittedMaterials.filter((m) => m.ai_validation_status === "Approved");
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/shop-floor")}>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/manufacturing/shop-floor")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
@@ -543,6 +537,5 @@ export default function ShopFloorWorkOrder() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
   );
 }

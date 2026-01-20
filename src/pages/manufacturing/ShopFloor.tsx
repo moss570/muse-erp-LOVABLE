@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, PlayCircle, StopCircle, Package, Factory, Loader2 } from "lucide-react";
+import { Clock, PlayCircle, StopCircle, Package, Factory, Loader2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
-
+import { WorkOrderFormDialog } from "@/components/manufacturing/WorkOrderFormDialog";
 interface WorkOrder {
   id: string;
   wo_number: string;
@@ -37,7 +37,7 @@ export default function ShopFloor() {
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeClock, setActiveClock] = useState<ClockEntry | null>(null);
-
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -194,8 +194,11 @@ export default function ShopFloor() {
             </h1>
             <p className="text-muted-foreground">Mobile production interface</p>
           </div>
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Work Order
+          </Button>
         </div>
-
         {/* Clock Status Card */}
         <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
           <CardHeader className="pb-2">
@@ -294,7 +297,7 @@ export default function ShopFloor() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(`/shop-floor/work-order/${wo.id}`)}
+                          onClick={() => navigate(`/manufacturing/shop-floor/${wo.id}`)}
                           className="gap-1"
                         >
                           <Package className="h-4 w-4" />
@@ -308,6 +311,12 @@ export default function ShopFloor() {
             )}
           </CardContent>
         </Card>
+
+        {/* Create Work Order Dialog */}
+        <WorkOrderFormDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+        />
     </div>
   );
 }

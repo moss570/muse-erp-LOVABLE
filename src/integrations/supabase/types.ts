@@ -14477,7 +14477,9 @@ export type Database = {
         Returns: Json
       }
       generate_supplier_code: { Args: never; Returns: string }
-      generate_wo_number: { Args: { p_wo_type?: string }; Returns: string }
+      generate_wo_number:
+        | { Args: never; Returns: string }
+        | { Args: { p_wo_type?: string }; Returns: string }
       generate_work_order_number: {
         Args: {
           p_date?: string
