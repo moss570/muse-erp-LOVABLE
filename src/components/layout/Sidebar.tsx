@@ -25,6 +25,7 @@ import {
   CalendarCheck,
   Shield,
   ClipboardList,
+  MessageSquare,
 } from 'lucide-react';
 
 interface NavItem {
@@ -49,6 +50,11 @@ const navItems: NavItem[] = [
       { title: 'All Tasks', href: '/tasks' },
       { title: 'My Work Queue', href: '/my/work-queue' },
     ],
+  },
+  {
+    title: 'Chat',
+    href: '/chat',
+    icon: MessageSquare,
   },
   {
     title: 'Inventory',

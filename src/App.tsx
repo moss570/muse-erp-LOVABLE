@@ -89,6 +89,7 @@ import RecallContacts from "./pages/settings/RecallContacts";
 import Tasks from "./pages/tasks/Tasks";
 import TaskTemplates from "./pages/settings/TaskTemplates";
 import WorkQueue from "./pages/employee/WorkQueue";
+import Chat from "./pages/chat/Chat";
 
 const queryClient = new QueryClient();
 
@@ -278,6 +279,8 @@ const App = () => (
             <Route path="/kiosk/timeclock" element={<TimeClockKiosk />} />
             <Route path="/hr/payroll" element={<AppLayout><PayrollExport /></AppLayout>} />
             
+            {/* Chat route */}
+            <Route path="/chat" element={<AppLayout><Chat /></AppLayout>} />
             {/* Tasks */}
             <Route path="/tasks" element={<AppLayout><Tasks /></AppLayout>} />
             <Route path="/my/work-queue" element={<AppLayout><WorkQueue /></AppLayout>} />
