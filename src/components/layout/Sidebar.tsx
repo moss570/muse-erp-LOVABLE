@@ -90,6 +90,8 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Production Dashboard', href: '/manufacturing/dashboard' },
       { title: 'Shop Floor', href: '/manufacturing/shop-floor' },
+      { title: 'Production Scheduler', href: '/manufacturing/scheduler' },
+      { title: 'Employee Scheduler', href: '/manufacturing/employee-scheduler' },
       { title: 'Manufacturing Lots', href: '/manufacturing/lots' },
       { title: 'Recipes', href: '/manufacturing/recipes' },
       { title: 'QA Testing', href: '/manufacturing/qa-tests' },
