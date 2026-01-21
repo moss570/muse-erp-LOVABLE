@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useEmployees, useEmployeeShifts } from '@/hooks/useEmployees';
 import { useEmployeeTimeOff } from '@/hooks/useScheduleFeatures';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +25,9 @@ import {
   FileText,
   Printer,
   LayoutTemplate,
-  Target
+  Target,
+  AlertTriangle,
+  Factory
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
@@ -194,6 +198,86 @@ export default function Schedule() {
     format(dateRange[dateRange.length - 1] || new Date(), 'yyyy-MM-dd')
   );
   const { toast } = useToast();
+
+  // Fetch scheduled production for the date range
+  const { data: scheduledProduction = [] } = useQuery({
+    queryKey: ['scheduled-production-for-labor', format(dateRange[0], 'yyyy-MM-dd'), format(dateRange[dateRange.length - 1], 'yyyy-MM-dd')],
+    queryFn: async () => {
+      const startDate = format(dateRange[0], 'yyyy-MM-dd');
+      const endDate = format(dateRange[dateRange.length - 1], 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('production_schedule')
+        .select(`
+          id,
+          scheduled_date,
+          planned_quantity,
+          work_order:work_orders(
+            id,
+            product:products(id, name, volume_yield, volume_unit)
+          )
+        `)
+        .gte('scheduled_date', startDate)
+        .lte('scheduled_date', endDate);
+        
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: dateRange.length > 0,
+  });
+
+  // Fetch labor balance requirements for each day
+  const { data: laborRequirements = {} } = useQuery({
+    queryKey: ['labor-requirements', format(dateRange[0], 'yyyy-MM-dd'), format(dateRange[dateRange.length - 1], 'yyyy-MM-dd')],
+    queryFn: async () => {
+      const requirements: Record<string, { status: string; scheduled_hours: number; required_hours: number; variance: number }> = {};
+      
+      for (const date of dateRange) {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        try {
+          const { data } = await supabase.rpc('check_labor_balance', { p_date: dateStr });
+          if (data && typeof data === 'object' && !Array.isArray(data)) {
+            requirements[dateStr] = data as { status: string; scheduled_hours: number; required_hours: number; variance: number };
+          }
+        } catch (e) {
+          // Function may not exist, that's ok
+        }
+      }
+      
+      return requirements;
+    },
+    enabled: dateRange.length > 0,
+  });
+
+  // Calculate scheduled production volume for date range
+  const scheduledProductionData = useMemo(() => {
+    let totalGallons = 0;
+    const byDate: Record<string, number> = {};
+
+    scheduledProduction.forEach((schedule: any) => {
+      const wo = schedule.work_order;
+      const product = wo?.product;
+      if (!product) return;
+      
+      // Calculate gallons from planned quantity using product's volume yield
+      const volumeYield = product.volume_yield || 1;
+      const quantityKg = schedule.planned_quantity || 0;
+      const gallons = quantityKg * volumeYield;
+      
+      totalGallons += gallons;
+      
+      const dateStr = schedule.scheduled_date;
+      byDate[dateStr] = (byDate[dateStr] || 0) + gallons;
+    });
+
+    return { totalGallons, byDate };
+  }, [scheduledProduction]);
+
+  // Get labor status for a specific date
+  const getLaborStatus = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return laborRequirements[dateStr];
+  };
 
   // Navigation
   const navigate = (direction: 'prev' | 'next') => {
@@ -492,6 +576,19 @@ export default function Schedule() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Scheduled Production</CardTitle>
+            <Factory className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{scheduledProductionData.totalGallons.toFixed(0)} gal</div>
+            <p className="text-xs text-muted-foreground">
+              {scheduledProduction.length} work orders
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Scheduled Staff</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -547,25 +644,45 @@ export default function Schedule() {
                   view === 'day' ? "grid-cols-1" : "grid-cols-7"
                 )} style={{ minWidth: view === 'week' ? '700px' : 'auto' }}>
                   {/* Header Row */}
-                  {dateRange.map(date => (
-                    <div 
-                      key={date.toISOString()} 
-                      className={cn(
-                        "p-3 text-center border-r border-b bg-muted/50",
-                        isSameDay(date, new Date()) && "bg-primary/10"
-                      )}
-                    >
-                      <div className="text-xs text-muted-foreground uppercase">
-                        {format(date, 'EEE')}
+                  {dateRange.map(date => {
+                    const laborStatus = getLaborStatus(date);
+                    const isUnderStaffed = laborStatus?.status === 'UNDERSTAFFED';
+                    const isOverStaffed = laborStatus?.status === 'OVERSTAFFED';
+                    
+                    return (
+                      <div 
+                        key={date.toISOString()} 
+                        className={cn(
+                          "p-3 text-center border-r border-b bg-muted/50",
+                          isSameDay(date, new Date()) && "bg-primary/10",
+                          isUnderStaffed && "bg-destructive/10 border-destructive/30",
+                          isOverStaffed && "bg-orange-500/10 border-orange-500/30"
+                        )}
+                      >
+                        <div className="text-xs text-muted-foreground uppercase">
+                          {format(date, 'EEE')}
+                        </div>
+                        <div className={cn(
+                          "text-lg font-semibold",
+                          isSameDay(date, new Date()) && "text-primary"
+                        )}>
+                          {format(date, 'd')}
+                        </div>
+                        {(isUnderStaffed || isOverStaffed) && (
+                          <Badge 
+                            variant={isUnderStaffed ? "destructive" : "outline"}
+                            className={cn(
+                              "text-[10px] px-1 py-0 mt-1",
+                              isOverStaffed && "border-orange-500 text-orange-600 bg-orange-50"
+                            )}
+                          >
+                            <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                            {laborStatus?.status}
+                          </Badge>
+                        )}
                       </div>
-                      <div className={cn(
-                        "text-lg font-semibold",
-                        isSameDay(date, new Date()) && "text-primary"
-                      )}>
-                        {format(date, 'd')}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Shift Cells */}
                   {dateRange.map(date => {
