@@ -9070,6 +9070,57 @@ export type Database = {
           },
         ]
       }
+      product_size_par_levels: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_type: string
+          location_id: string
+          max_stock: number | null
+          par_level: number
+          product_size_id: string
+          reorder_point: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_type: string
+          location_id: string
+          max_stock?: number | null
+          par_level?: number
+          product_size_id: string
+          reorder_point?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_type?: string
+          location_id?: string
+          max_stock?: number | null
+          par_level?: number
+          product_size_id?: string
+          reorder_point?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_size_par_levels_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_size_par_levels_product_size_id_fkey"
+            columns: ["product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_sizes: {
         Row: {
           box_material_id: string | null
