@@ -38,6 +38,7 @@ interface RecipeVolumeData {
 interface ScheduleItem {
   id: string;
   work_order_id: string | null;
+  product_id: string | null;
   schedule_date: string;
   production_line_id: string;
   planned_quantity: number;
@@ -47,10 +48,10 @@ interface ScheduleItem {
   allergens: string[] | null;
   exceeds_line_capacity: boolean;
   insufficient_labor: boolean;
-  product_recipe?: RecipeVolumeData | null;
+  recipeData?: RecipeVolumeData | null;
   work_order?: {
     wo_number: string;
-    recipe_id?: string | null;
+    target_quantity?: number;
     product?: { name: string; sku: string } | null;
   } | null;
 }
@@ -61,8 +62,10 @@ interface WorkOrder {
   target_quantity: number;
   target_uom: string;
   priority: string;
-  recipe_id?: string | null;
+  product_id?: string | null;
   product?: { name: string; sku: string } | null;
+  scheduledQuantity?: number; // Total already scheduled across all days
+  recipeData?: RecipeVolumeData | null;
 }
 
 // Draggable Work Order Card
@@ -133,17 +136,26 @@ function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "
             {(() => {
               const qty = isScheduled ? scheduleItem.planned_quantity : woItem.target_quantity;
               const uom = isScheduled ? scheduleItem.planned_uom : woItem.target_uom;
-              // For scheduled items, use product_recipe from production_schedule
-              const recipeData = isScheduled ? scheduleItem.product_recipe : null;
+              const recipe = isScheduled ? scheduleItem.recipeData : woItem.recipeData;
               
-              if (recipeData?.batch_volume && recipeData?.batch_volume_unit) {
-                const volume = qty * recipeData.batch_volume;
-                return `${qty} ${uom} / ${volume.toFixed(1)} ${recipeData.batch_volume_unit}`;
+              if (recipe?.batch_volume && recipe?.batch_volume_unit) {
+                const volume = qty * recipe.batch_volume;
+                return `${qty} ${uom} / ${volume.toFixed(1)} ${recipe.batch_volume_unit}`;
               }
               return `${qty} ${uom}`;
             })()}
           </span>
         </div>
+
+        {/* Show partial scheduling indicator for unscheduled WOs */}
+        {!isScheduled && woItem.scheduledQuantity && woItem.scheduledQuantity > 0 && (
+          <div className="flex items-center gap-1 text-primary mt-1">
+            <Calendar className="h-3 w-3" />
+            <span className="text-xs">
+              {woItem.scheduledQuantity} of {woItem.target_quantity} {woItem.target_uom} scheduled
+            </span>
+          </div>
+        )}
 
         {isScheduled && scheduleItem.allergens && scheduleItem.allergens.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap mt-2">
@@ -156,14 +168,14 @@ function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "
         )}
 
         {isScheduled && scheduleItem.exceeds_line_capacity && (
-          <div className="flex items-center gap-1 text-orange-600 mt-1">
+          <div className="flex items-center gap-1 text-destructive mt-1">
             <AlertCircle className="h-3 w-3" />
             <span className="text-xs">Capacity warning</span>
           </div>
         )}
 
         {isScheduled && scheduleItem.insufficient_labor && (
-          <div className="flex items-center gap-1 text-orange-600">
+          <div className="flex items-center gap-1 text-destructive">
             <Users className="h-3 w-3" />
             <span className="text-xs">Labor warning</span>
           </div>
@@ -198,11 +210,11 @@ function DroppableColumn({
   // Calculate total volume by summing each item's converted volume
   const { totalVolume, volumeUnit } = scheduleItems.reduce(
     (acc, item) => {
-      const recipeData = item.product_recipe;
-      if (recipeData?.batch_volume && recipeData?.batch_volume_unit && item.planned_quantity) {
+      const recipe = item.recipeData;
+      if (recipe?.batch_volume && recipe?.batch_volume_unit && item.planned_quantity) {
         return {
-          totalVolume: acc.totalVolume + (item.planned_quantity * recipeData.batch_volume),
-          volumeUnit: recipeData.batch_volume_unit, // Use the unit from product_recipes
+          totalVolume: acc.totalVolume + (item.planned_quantity * recipe.batch_volume),
+          volumeUnit: recipe.batch_volume_unit,
         };
       }
       return acc;
@@ -287,13 +299,13 @@ export default function ProductionScheduler() {
   const { data: scheduledItems = [] } = useQuery({
     queryKey: ["production-schedule", weekDates[0], weekDates[6]],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("production_schedule") as any)
+      // Fetch schedule data
+      const { data: scheduleData, error } = await (supabase.from("production_schedule") as any)
         .select(`
           *,
-          product_recipe:product_recipes(batch_volume, batch_volume_unit),
           work_order:work_orders(
             wo_number,
-            recipe_id,
+            target_quantity,
             product:products(name, sku)
           )
         `)
@@ -303,16 +315,37 @@ export default function ProductionScheduler() {
         .order("sort_order");
 
       if (error) throw error;
-      return (data || []) as ScheduleItem[];
+      if (!scheduleData || scheduleData.length === 0) return [];
+
+      // Get unique product_ids to fetch their default recipes
+      const productIds = [...new Set(scheduleData.map((s: any) => s.product_id).filter(Boolean))];
+      
+      // Fetch default recipes for all products
+      const { data: recipes } = await (supabase.from("product_recipes") as any)
+        .select("product_id, batch_volume, batch_volume_unit")
+        .in("product_id", productIds)
+        .eq("is_default", true);
+      
+      // Create a map of product_id -> recipe data
+      const recipeMap = new Map<string, RecipeVolumeData>();
+      (recipes || []).forEach((r: any) => {
+        recipeMap.set(r.product_id, { batch_volume: r.batch_volume, batch_volume_unit: r.batch_volume_unit });
+      });
+
+      // Attach recipe data to each schedule item
+      return scheduleData.map((item: any) => ({
+        ...item,
+        recipeData: item.product_id ? recipeMap.get(item.product_id) : null,
+      })) as ScheduleItem[];
     },
     enabled: weekDates.length > 0,
   });
 
-  // Get unscheduled work orders
+  // Get unscheduled work orders with partial scheduling info
   const { data: unscheduledWorkOrders = [] } = useQuery({
-    queryKey: ["unscheduled-work-orders"],
+    queryKey: ["unscheduled-work-orders", scheduledItems.length],
     queryFn: async () => {
-      // Get work orders that don't have a schedule entry
+      // Get work orders that are still active
       const { data: allWOs, error } = await (supabase.from("work_orders") as any)
         .select(`
           id,
@@ -320,7 +353,7 @@ export default function ProductionScheduler() {
           target_quantity,
           target_uom,
           priority,
-          recipe_id,
+          product_id,
           product:products(name, sku)
         `)
         .in("wo_status", ["Created", "Released"])
@@ -328,13 +361,39 @@ export default function ProductionScheduler() {
         .limit(30);
 
       if (error) throw error;
+      if (!allWOs) return [];
 
-      // Filter out work orders that already have schedules
-      const scheduledWoIds = scheduledItems
-        .filter(s => s.work_order_id)
-        .map(s => s.work_order_id);
+      // Calculate how much of each WO is already scheduled
+      const scheduledByWo = new Map<string, number>();
+      scheduledItems.forEach(s => {
+        if (s.work_order_id) {
+          scheduledByWo.set(s.work_order_id, (scheduledByWo.get(s.work_order_id) || 0) + s.planned_quantity);
+        }
+      });
 
-      return ((allWOs || []) as WorkOrder[]).filter(wo => !scheduledWoIds.includes(wo.id));
+      // Get unique product_ids to fetch their default recipes
+      const productIds = [...new Set(allWOs.map((wo: any) => wo.product_id).filter(Boolean))];
+      
+      // Fetch default recipes for all products
+      const { data: recipes } = productIds.length > 0 
+        ? await (supabase.from("product_recipes") as any)
+            .select("product_id, batch_volume, batch_volume_unit")
+            .in("product_id", productIds)
+            .eq("is_default", true)
+        : { data: [] };
+      
+      // Create a map of product_id -> recipe data
+      const recipeMap = new Map<string, RecipeVolumeData>();
+      (recipes || []).forEach((r: any) => {
+        recipeMap.set(r.product_id, { batch_volume: r.batch_volume, batch_volume_unit: r.batch_volume_unit });
+      });
+
+      // Attach scheduled quantity and recipe data to each WO
+      return allWOs.map((wo: any) => ({
+        ...wo,
+        scheduledQuantity: scheduledByWo.get(wo.id) || 0,
+        recipeData: wo.product_id ? recipeMap.get(wo.product_id) : null,
+      })) as WorkOrder[];
     },
     enabled: scheduledItems !== undefined,
   });
