@@ -170,6 +170,45 @@ export type Database = {
           },
         ]
       }
+      allergen_sequence_rules: {
+        Row: {
+          allergen: string
+          cleaning_time_minutes: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          requires_deep_clean_after: boolean | null
+          sequence_priority: number
+          updated_at: string | null
+          warning_if_after: string[] | null
+        }
+        Insert: {
+          allergen: string
+          cleaning_time_minutes?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          requires_deep_clean_after?: boolean | null
+          sequence_priority: number
+          updated_at?: string | null
+          warning_if_after?: string[] | null
+        }
+        Update: {
+          allergen?: string
+          cleaning_time_minutes?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          requires_deep_clean_after?: boolean | null
+          sequence_priority?: number
+          updated_at?: string | null
+          warning_if_after?: string[] | null
+        }
+        Relationships: []
+      }
       approval_logs: {
         Row: {
           action: string
@@ -2407,6 +2446,74 @@ export type Database = {
           },
         ]
       }
+      daily_production_targets: {
+        Row: {
+          achievement_percentage: number | null
+          actual_efficiency: number | null
+          actual_labor_cost: number | null
+          actual_labor_hours: number | null
+          actual_quantity: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          production_line_id: string | null
+          target_date: string
+          target_efficiency: number | null
+          target_labor_cost: number | null
+          target_labor_hours: number | null
+          target_quantity: number
+          target_uom: string
+          updated_at: string | null
+        }
+        Insert: {
+          achievement_percentage?: number | null
+          actual_efficiency?: number | null
+          actual_labor_cost?: number | null
+          actual_labor_hours?: number | null
+          actual_quantity?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          production_line_id?: string | null
+          target_date: string
+          target_efficiency?: number | null
+          target_labor_cost?: number | null
+          target_labor_hours?: number | null
+          target_quantity: number
+          target_uom?: string
+          updated_at?: string | null
+        }
+        Update: {
+          achievement_percentage?: number | null
+          actual_efficiency?: number | null
+          actual_labor_cost?: number | null
+          actual_labor_hours?: number | null
+          actual_quantity?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          production_line_id?: string | null
+          target_date?: string
+          target_efficiency?: number | null
+          target_labor_cost?: number | null
+          target_labor_hours?: number | null
+          target_quantity?: number
+          target_uom?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_production_targets_production_line_id_fkey"
+            columns: ["production_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -3244,6 +3351,78 @@ export type Database = {
             columns: ["pto_type_id"]
             isOneToOne: false
             referencedRelation: "pto_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_schedules: {
+        Row: {
+          absence_reason: string | null
+          assigned_production_line_id: string | null
+          assigned_task: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_id: string
+          hourly_rate: number
+          id: string
+          is_absent: boolean | null
+          notes: string | null
+          schedule_date: string
+          schedule_status: string | null
+          scheduled_hours: number
+          shift_end_time: string
+          shift_start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          absence_reason?: string | null
+          assigned_production_line_id?: string | null
+          assigned_task?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id: string
+          hourly_rate?: number
+          id?: string
+          is_absent?: boolean | null
+          notes?: string | null
+          schedule_date: string
+          schedule_status?: string | null
+          scheduled_hours: number
+          shift_end_time: string
+          shift_start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          absence_reason?: string | null
+          assigned_production_line_id?: string | null
+          assigned_task?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string
+          hourly_rate?: number
+          id?: string
+          is_absent?: boolean | null
+          notes?: string | null
+          schedule_date?: string
+          schedule_status?: string | null
+          scheduled_hours?: number
+          shift_end_time?: string
+          shift_start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_schedules_assigned_production_line_id_fkey"
+            columns: ["assigned_production_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -9680,6 +9859,155 @@ export type Database = {
           },
         ]
       }
+      production_schedule: {
+        Row: {
+          actual_quantity: number | null
+          allergen_sequence_score: number | null
+          allergens: string[] | null
+          capacity_utilization_pct: number | null
+          created_at: string | null
+          created_by: string | null
+          end_time: string | null
+          estimated_cost_per_unit: number | null
+          estimated_duration_hours: number | null
+          estimated_labor_cost: number | null
+          estimated_material_cost: number | null
+          estimated_overhead_cost: number | null
+          estimated_total_cost: number | null
+          exceeds_line_capacity: boolean | null
+          excess_labor: boolean | null
+          id: string
+          insufficient_labor: boolean | null
+          labor_efficiency_target: number | null
+          notes: string | null
+          package_type: string | null
+          planned_quantity: number
+          planned_uom: string
+          priority: string | null
+          product_id: string | null
+          production_line_id: string
+          recipe_id: string | null
+          required_employees: number | null
+          required_labor_hours: number | null
+          schedule_date: string
+          schedule_status: string | null
+          sort_order: number | null
+          special_instructions: string | null
+          start_time: string | null
+          updated_at: string | null
+          updated_by: string | null
+          visual_column: number | null
+          work_order_id: string | null
+        }
+        Insert: {
+          actual_quantity?: number | null
+          allergen_sequence_score?: number | null
+          allergens?: string[] | null
+          capacity_utilization_pct?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string | null
+          estimated_cost_per_unit?: number | null
+          estimated_duration_hours?: number | null
+          estimated_labor_cost?: number | null
+          estimated_material_cost?: number | null
+          estimated_overhead_cost?: number | null
+          estimated_total_cost?: number | null
+          exceeds_line_capacity?: boolean | null
+          excess_labor?: boolean | null
+          id?: string
+          insufficient_labor?: boolean | null
+          labor_efficiency_target?: number | null
+          notes?: string | null
+          package_type?: string | null
+          planned_quantity: number
+          planned_uom?: string
+          priority?: string | null
+          product_id?: string | null
+          production_line_id: string
+          recipe_id?: string | null
+          required_employees?: number | null
+          required_labor_hours?: number | null
+          schedule_date: string
+          schedule_status?: string | null
+          sort_order?: number | null
+          special_instructions?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          visual_column?: number | null
+          work_order_id?: string | null
+        }
+        Update: {
+          actual_quantity?: number | null
+          allergen_sequence_score?: number | null
+          allergens?: string[] | null
+          capacity_utilization_pct?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string | null
+          estimated_cost_per_unit?: number | null
+          estimated_duration_hours?: number | null
+          estimated_labor_cost?: number | null
+          estimated_material_cost?: number | null
+          estimated_overhead_cost?: number | null
+          estimated_total_cost?: number | null
+          exceeds_line_capacity?: boolean | null
+          excess_labor?: boolean | null
+          id?: string
+          insufficient_labor?: boolean | null
+          labor_efficiency_target?: number | null
+          notes?: string | null
+          package_type?: string | null
+          planned_quantity?: number
+          planned_uom?: string
+          priority?: string | null
+          product_id?: string | null
+          production_line_id?: string
+          recipe_id?: string | null
+          required_employees?: number | null
+          required_labor_hours?: number | null
+          schedule_date?: string
+          schedule_status?: string | null
+          sort_order?: number | null
+          special_instructions?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          visual_column?: number | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_schedule_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_schedule_production_line_id_fkey"
+            columns: ["production_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_schedule_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "product_recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_schedule_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_stages_master: {
         Row: {
           captures_labor_cost: boolean | null
@@ -12124,6 +12452,62 @@ export type Database = {
           },
         ]
       }
+      schedule_optimization_suggestions: {
+        Row: {
+          created_at: string | null
+          current_situation: string
+          dismissed_at: string | null
+          dismissed_by: string | null
+          expected_benefit: string | null
+          id: string
+          is_applied: boolean | null
+          is_dismissed: boolean | null
+          production_schedule_id: string | null
+          schedule_date: string
+          severity: string | null
+          suggestion: string
+          suggestion_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_situation: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          expected_benefit?: string | null
+          id?: string
+          is_applied?: boolean | null
+          is_dismissed?: boolean | null
+          production_schedule_id?: string | null
+          schedule_date: string
+          severity?: string | null
+          suggestion: string
+          suggestion_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_situation?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          expected_benefit?: string | null
+          id?: string
+          is_applied?: boolean | null
+          is_dismissed?: boolean | null
+          production_schedule_id?: string | null
+          schedule_date?: string
+          severity?: string | null
+          suggestion?: string
+          suggestion_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_optimization_suggestions_production_schedule_id_fkey"
+            columns: ["production_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "production_schedule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_templates: {
         Row: {
           break_minutes: number | null
@@ -14408,6 +14792,14 @@ export type Database = {
       calculate_recipe_cost: { Args: { p_recipe_id: string }; Returns: Json }
       calculate_score_grade: { Args: { score: number }; Returns: string }
       can_ship_production_lot: { Args: { p_lot_id: string }; Returns: boolean }
+      check_capacity_warnings: {
+        Args: { p_production_line_id: string; p_schedule_date: string }
+        Returns: Json
+      }
+      check_labor_balance: {
+        Args: { p_date: string; p_production_line_id?: string }
+        Returns: Json
+      }
       check_nc_disposition_approval_required: {
         Args: {
           p_disposition: string
