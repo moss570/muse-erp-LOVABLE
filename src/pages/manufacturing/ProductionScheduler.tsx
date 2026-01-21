@@ -460,23 +460,23 @@ export default function ProductionScheduler() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Unscheduled Work Orders Sidebar */}
-        <div className="col-span-3">
-          <Card className="sticky top-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Factory className="h-5 w-5" />
-                Unscheduled ({unscheduledWorkOrders.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid grid-cols-12 gap-6">
+          {/* Unscheduled Work Orders Sidebar */}
+          <div className="col-span-3">
+            <Card className="sticky top-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Factory className="h-5 w-5" />
+                  Unscheduled ({unscheduledWorkOrders.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
                 {unscheduledWorkOrders.length === 0 ? (
                   <p className="text-center text-muted-foreground text-sm py-8">
                     All work orders are scheduled
@@ -486,19 +486,12 @@ export default function ProductionScheduler() {
                     <DraggableCard key={wo.id} item={wo} type="unscheduled" />
                   ))
                 )}
-              </DndContext>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Scheduler Grid */}
-        <div className="col-span-9">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
+          {/* Scheduler Grid */}
+          <div className="col-span-9">
             {productionLines.map((line: any) => (
               <Card key={line.id} className="mb-4">
                 <CardHeader className="py-3">
@@ -525,17 +518,17 @@ export default function ProductionScheduler() {
                 </CardContent>
               </Card>
             ))}
-
-            <DragOverlay>
-              {activeId ? (
-                <div className="p-3 rounded-lg border bg-card shadow-lg opacity-90">
-                  <p className="text-sm font-medium">Moving...</p>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+          </div>
         </div>
-      </div>
+
+        <DragOverlay>
+          {activeId ? (
+            <div className="p-3 rounded-lg border bg-card shadow-lg opacity-90">
+              <p className="text-sm font-medium">Moving...</p>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
