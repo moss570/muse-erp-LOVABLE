@@ -137,6 +137,9 @@ interface Recipe {
   recipe_type: string;
   parent_recipe_id: string | null;
   sub_recipe_number: number | null;
+  batch_weight_kg: number;
+  batch_volume: number | null;
+  batch_volume_unit: string | null;
   batch_unit: {
     id: string;
     code: string;
@@ -176,6 +179,9 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
           recipe_type,
           parent_recipe_id,
           sub_recipe_number,
+          batch_weight_kg,
+          batch_volume,
+          batch_volume_unit,
           created_at,
           updated_at,
           batch_unit:units_of_measure!product_recipes_batch_unit_id_fkey (
@@ -295,6 +301,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
       batch_size: number;
       batch_unit_id: string | null;
       instructions: string | null;
+      batch_volume: number | null;
+      batch_volume_unit: string | null;
     }) => {
       const { error } = await supabase
         .from("product_recipes")
@@ -305,6 +313,9 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
           batch_size: data.batch_size,
           batch_unit_id: data.batch_unit_id,
           instructions: data.instructions,
+          batch_weight_kg: 1,
+          batch_volume: data.batch_volume,
+          batch_volume_unit: data.batch_volume_unit,
           is_active: true,
           is_default: true,
           recipe_type: "primary",
@@ -330,6 +341,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
       batch_size: number;
       batch_unit_id: string | null;
       instructions: string | null;
+      batch_volume: number | null;
+      batch_volume_unit: string | null;
     }) => {
       if (!activePrimaryRecipe) throw new Error("No primary recipe found");
       
@@ -345,6 +358,9 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
           batch_size: data.batch_size,
           batch_unit_id: data.batch_unit_id,
           instructions: data.instructions,
+          batch_weight_kg: 1,
+          batch_volume: data.batch_volume,
+          batch_volume_unit: data.batch_volume_unit,
           is_active: true,
           is_default: false,
           recipe_type: "sub",
@@ -374,6 +390,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
       batch_unit_id: string | null;
       instructions: string | null;
       is_active: boolean;
+      batch_volume: number | null;
+      batch_volume_unit: string | null;
     }) => {
       const { error } = await supabase
         .from("product_recipes")
@@ -384,6 +402,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
           batch_unit_id: data.batch_unit_id,
           instructions: data.instructions,
           is_active: data.is_active,
+          batch_volume: data.batch_volume,
+          batch_volume_unit: data.batch_volume_unit,
         })
         .eq("id", data.id);
 
@@ -572,6 +592,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
                 batch_size: 1,
                 batch_unit_id: units.find(u => u.code === 'KG')?.id || null,
                 instructions: null,
+                batch_volume: null,
+                batch_volume_unit: "GAL",
               }}
               units={units}
               onSave={(data) => createRecipeMutation.mutate(data)}
@@ -704,6 +726,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
                 batch_unit_id: selectedRecipe.batch_unit_id,
                 instructions: selectedRecipe.instructions,
                 is_active: selectedRecipe.is_active ?? true,
+                batch_volume: selectedRecipe.batch_volume,
+                batch_volume_unit: selectedRecipe.batch_volume_unit || "GAL",
               }}
               units={units}
               onSave={(data) => updateRecipeMutation.mutate({ id: selectedRecipe.id, ...data, is_active: data.is_active ?? true })}
@@ -740,6 +764,8 @@ export function ProductBOMTab({ productId, productName, isFieldsDisabled = false
               batch_size: activePrimaryRecipe?.batch_size || 1,
               batch_unit_id: activePrimaryRecipe?.batch_unit_id || units.find(u => u.code === 'KG')?.id || null,
               instructions: null,
+              batch_volume: activePrimaryRecipe?.batch_volume || null,
+              batch_volume_unit: activePrimaryRecipe?.batch_volume_unit || "GAL",
             }}
             units={units}
             onSave={(data) => createSubRecipeMutation.mutate(data)}
@@ -1155,6 +1181,8 @@ function RecipeForm({
     batch_unit_id: string | null;
     instructions: string | null;
     is_active?: boolean;
+    batch_volume?: number | null;
+    batch_volume_unit?: string | null;
   };
   units: { id: string; code: string; name: string }[];
   onSave: (data: {
@@ -1164,6 +1192,8 @@ function RecipeForm({
     batch_unit_id: string | null;
     instructions: string | null;
     is_active?: boolean;
+    batch_volume: number | null;
+    batch_volume_unit: string | null;
   }) => void;
   onCancel: () => void;
   isLoading: boolean;
@@ -1178,6 +1208,8 @@ function RecipeForm({
   const [batchUnitId, setBatchUnitId] = useState(defaultValues.batch_unit_id || "");
   const [instructions, setInstructions] = useState(defaultValues.instructions || "");
   const [isActive, setIsActive] = useState(defaultValues.is_active ?? true);
+  const [batchVolume, setBatchVolume] = useState(defaultValues.batch_volume?.toString() || "");
+  const [batchVolumeUnit, setBatchVolumeUnit] = useState(defaultValues.batch_volume_unit || "GAL");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1189,6 +1221,8 @@ function RecipeForm({
       batch_unit_id: batchUnitId || null,
       instructions: instructions || null,
       is_active: isActive,
+      batch_volume: batchVolume ? parseFloat(batchVolume) : null,
+      batch_volume_unit: batchVolumeUnit || null,
     });
   };
 
@@ -1242,6 +1276,51 @@ function RecipeForm({
           </SelectContent>
         </Select>
       </div>
+
+      {/* Volume Yield Section */}
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-semibold">Batch Yield</Label>
+          <Badge variant="secondary" className="text-xs">1 KG (fixed)</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Each batch yields 1 KG weight. Specify volume yield for UOM conversions.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="batch-volume">Volume Yield</Label>
+            <Input
+              id="batch-volume"
+              type="number"
+              step="0.01"
+              min="0"
+              value={batchVolume}
+              onChange={(e) => setBatchVolume(e.target.value)}
+              placeholder="e.g. 2.75"
+              disabled={isFieldsDisabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="volume-unit">Volume Unit</Label>
+            <Select value={batchVolumeUnit} onValueChange={setBatchVolumeUnit} disabled={isFieldsDisabled}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GAL">Gallons (GAL)</SelectItem>
+                <SelectItem value="L">Liters (L)</SelectItem>
+                <SelectItem value="FL_OZ">Fluid Ounces (FL OZ)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {batchVolume && (
+          <p className="text-xs text-muted-foreground">
+            1 KG = {batchVolume} {batchVolumeUnit}
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="instructions">Instructions</Label>
         <Textarea
@@ -1260,7 +1339,7 @@ function RecipeForm({
             id="is-active"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
+            className="h-4 w-4 rounded border-input bg-background"
             disabled={isFieldsDisabled}
           />
           <Label htmlFor="is-active">Active</Label>

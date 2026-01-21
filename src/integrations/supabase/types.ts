@@ -8945,6 +8945,9 @@ export type Database = {
           approved_by: string | null
           batch_size: number
           batch_unit_id: string | null
+          batch_volume: number | null
+          batch_volume_unit: string | null
+          batch_weight_kg: number
           cost_per_unit: number | null
           created_at: string
           created_by: string | null
@@ -8973,6 +8976,9 @@ export type Database = {
           approved_by?: string | null
           batch_size?: number
           batch_unit_id?: string | null
+          batch_volume?: number | null
+          batch_volume_unit?: string | null
+          batch_weight_kg?: number
           cost_per_unit?: number | null
           created_at?: string
           created_by?: string | null
@@ -9001,6 +9007,9 @@ export type Database = {
           approved_by?: string | null
           batch_size?: number
           batch_unit_id?: string | null
+          batch_volume?: number | null
+          batch_volume_unit?: string | null
+          batch_weight_kg?: number
           cost_per_unit?: number | null
           created_at?: string
           created_by?: string | null
@@ -9700,6 +9709,7 @@ export type Database = {
           quantity_available: number
           quantity_consumed_from_parent: number | null
           quantity_produced: number
+          quantity_volume: number | null
           recipe_id: string | null
           stage_released_at: string | null
           stage_released_by: string | null
@@ -9709,6 +9719,7 @@ export type Database = {
           trial_canvas_url: string | null
           trial_notes: Json | null
           updated_at: string
+          volume_uom: string | null
           work_order_id: string | null
           xero_journal_id: string | null
         }
@@ -9744,6 +9755,7 @@ export type Database = {
           quantity_available: number
           quantity_consumed_from_parent?: number | null
           quantity_produced: number
+          quantity_volume?: number | null
           recipe_id?: string | null
           stage_released_at?: string | null
           stage_released_by?: string | null
@@ -9753,6 +9765,7 @@ export type Database = {
           trial_canvas_url?: string | null
           trial_notes?: Json | null
           updated_at?: string
+          volume_uom?: string | null
           work_order_id?: string | null
           xero_journal_id?: string | null
         }
@@ -9788,6 +9801,7 @@ export type Database = {
           quantity_available?: number
           quantity_consumed_from_parent?: number | null
           quantity_produced?: number
+          quantity_volume?: number | null
           recipe_id?: string | null
           stage_released_at?: string | null
           stage_released_by?: string | null
@@ -9797,6 +9811,7 @@ export type Database = {
           trial_canvas_url?: string | null
           trial_notes?: Json | null
           updated_at?: string
+          volume_uom?: string | null
           work_order_id?: string | null
           xero_journal_id?: string | null
         }
@@ -9883,6 +9898,8 @@ export type Database = {
           package_type: string | null
           planned_quantity: number
           planned_uom: string
+          planned_volume: number | null
+          planned_volume_uom: string | null
           priority: string | null
           product_id: string | null
           production_line_id: string
@@ -9922,6 +9939,8 @@ export type Database = {
           package_type?: string | null
           planned_quantity: number
           planned_uom?: string
+          planned_volume?: number | null
+          planned_volume_uom?: string | null
           priority?: string | null
           product_id?: string | null
           production_line_id: string
@@ -9961,6 +9980,8 @@ export type Database = {
           package_type?: string | null
           planned_quantity?: number
           planned_uom?: string
+          planned_volume?: number | null
+          planned_volume_uom?: string | null
           priority?: string | null
           product_id?: string | null
           production_line_id?: string
@@ -12317,6 +12338,9 @@ export type Database = {
           approved_by: string | null
           batch_size: number
           batch_uom: string | null
+          batch_volume: number | null
+          batch_volume_unit: string | null
+          batch_weight_kg: number
           cost_per_unit: number | null
           created_at: string | null
           created_by: string | null
@@ -12342,6 +12366,9 @@ export type Database = {
           approved_by?: string | null
           batch_size?: number
           batch_uom?: string | null
+          batch_volume?: number | null
+          batch_volume_unit?: string | null
+          batch_weight_kg?: number
           cost_per_unit?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -12367,6 +12394,9 @@ export type Database = {
           approved_by?: string | null
           batch_size?: number
           batch_uom?: string | null
+          batch_volume?: number | null
+          batch_volume_unit?: string | null
+          batch_weight_kg?: number
           cost_per_unit?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -14350,6 +14380,8 @@ export type Database = {
           started_at: string | null
           target_quantity: number
           target_uom: string
+          target_volume: number | null
+          target_volume_uom: string | null
           total_variance: number | null
           updated_at: string | null
           updated_by: string | null
@@ -14401,6 +14433,8 @@ export type Database = {
           started_at?: string | null
           target_quantity: number
           target_uom: string
+          target_volume?: number | null
+          target_volume_uom?: string | null
           total_variance?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -14452,6 +14486,8 @@ export type Database = {
           started_at?: string | null
           target_quantity?: number
           target_uom?: string
+          target_volume?: number | null
+          target_volume_uom?: string | null
           total_variance?: number | null
           updated_at?: string | null
           updated_by?: string | null
