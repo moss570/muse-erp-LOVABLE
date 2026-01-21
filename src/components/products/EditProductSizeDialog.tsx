@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useContainerSizes } from "@/hooks/useContainerSizes";
 import { usePackagingIndicators } from "@/hooks/usePackagingIndicators";
 import { useProductSizes, ProductSize } from "@/hooks/useProductSizes";
+import { useProductSizeParLevels, useParLevelLocations, ParLevelInput } from "@/hooks/useProductSizeParLevels";
 import { generateProductSizeSKU } from "@/lib/skuGenerator";
 import { generateUPCPair } from "@/lib/upcGenerator";
 import {
@@ -26,7 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler, Printer } from "lucide-react";
+import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler, Printer, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STANDARD_PALLET_WEIGHT_KG = 20; // Standard wooden pallet ~20kg
@@ -56,6 +57,8 @@ export function EditProductSizeDialog({
   const { activeContainerSizes, isLoading: loadingContainers } = useContainerSizes();
   const { data: packagingIndicators = [] } = usePackagingIndicators();
   const { createSize, updateSize } = useProductSizes(productId);
+  const { caseParLevels, palletParLevels, saveAllParLevels, isLoading: loadingParLevels } = useProductSizeParLevels(size?.id || null);
+  const { caseLocations, palletLocations, isLoading: loadingLocations } = useParLevelLocations();
 
   // Form state
   const [containerSizeId, setContainerSizeId] = useState<string>("");
@@ -82,6 +85,11 @@ export function EditProductSizeDialog({
   const [customPalletLengthIn, setCustomPalletLengthIn] = useState<number | null>(null);
   const [customPalletWidthIn, setCustomPalletWidthIn] = useState<number | null>(null);
   const [showLabelPrintDialog, setShowLabelPrintDialog] = useState(false);
+  const [parLevelSectionOpen, setParLevelSectionOpen] = useState(false);
+  
+  // Par level tracking state
+  const [caseParLevelInputs, setCaseParLevelInputs] = useState<ParLevelInput[]>([]);
+  const [palletParLevelInputs, setPalletParLevelInputs] = useState<ParLevelInput[]>([]);
 
   // Get effective pallet dimensions based on type
   const effectivePalletDims = useMemo(() => {
@@ -271,12 +279,39 @@ export function EditProductSizeDialog({
         setPalletType('US_STANDARD');
         setCustomPalletLengthIn(null);
         setCustomPalletWidthIn(null);
+        // Reset par level inputs for new size
+        setCaseParLevelInputs([]);
+        setPalletParLevelInputs([]);
       }
       setWeightSectionOpen(false);
       setUpcSectionOpen(false);
       setPalletSectionOpen(false);
+      setParLevelSectionOpen(false);
     }
   }, [open, size]);
+
+  // Load par levels when editing an existing size
+  useEffect(() => {
+    if (size && open) {
+      // Map existing par levels to input format
+      setCaseParLevelInputs(
+        caseParLevels.map((p) => ({
+          location_id: p.location_id,
+          par_level: p.par_level,
+          reorder_point: p.reorder_point,
+          max_stock: p.max_stock,
+        }))
+      );
+      setPalletParLevelInputs(
+        palletParLevels.map((p) => ({
+          location_id: p.location_id,
+          par_level: p.par_level,
+          reorder_point: p.reorder_point,
+          max_stock: p.max_stock,
+        }))
+      );
+    }
+  }, [size, open, caseParLevels, palletParLevels]);
 
   // Auto-calculate Min/Max when Target or variance changes
   useEffect(() => {
@@ -385,10 +420,18 @@ export function EditProductSizeDialog({
         custom_pallet_width_in: palletType === 'CUSTOM' ? customPalletWidthIn : null,
       };
 
+      let savedSizeId: string;
       if (isEditing && size) {
         await updateSize.mutateAsync({ id: size.id, ...sizeData });
+        savedSizeId = size.id;
       } else {
-        await createSize.mutateAsync(sizeData);
+        const newSize = await createSize.mutateAsync(sizeData);
+        savedSizeId = newSize.id;
+      }
+
+      // Save par levels (only if we have a valid size id)
+      if (savedSizeId) {
+        await saveAllParLevels(savedSizeId, caseParLevelInputs, palletParLevelInputs);
       }
 
       onSave();
@@ -400,7 +443,7 @@ export function EditProductSizeDialog({
     }
   };
 
-  const isLoading = loadingContainers;
+  const isLoading = loadingContainers || loadingLocations;
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => {
@@ -930,6 +973,283 @@ export function EditProductSizeDialog({
                   </div>
                 </div>
               )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Par Level Tracking - Collapsible */}
+          <Collapsible open={parLevelSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setParLevelSectionOpen(next)}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Par Level Tracking
+                {(caseParLevelInputs.length > 0 || palletParLevelInputs.length > 0) && (
+                  <Badge variant="secondary" className="text-xs">
+                    {caseParLevelInputs.length + palletParLevelInputs.length}
+                  </Badge>
+                )}
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${parLevelSectionOpen ? 'rotate-180' : ''}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2">
+              <p className="text-xs text-muted-foreground">
+                Set par levels by location for inventory tracking. These are optional.
+              </p>
+
+              {/* CASE Par Levels */}
+              <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Case Par Levels</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Allowed: 3PL, Onsite Freezer
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCaseParLevelInputs([...caseParLevelInputs, { location_id: "", par_level: 0 }]);
+                    }}
+                    disabled={isFieldsDisabled}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+
+                {caseParLevelInputs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">
+                    No case par levels configured
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {caseParLevelInputs.map((input, index) => {
+                      const usedLocationIds = caseParLevelInputs
+                        .filter((_, i) => i !== index)
+                        .map((i) => i.location_id);
+                      const availableLocations = caseLocations.filter(
+                        (loc) => !usedLocationIds.includes(loc.id) || loc.id === input.location_id
+                      );
+
+                      return (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-start">
+                          <div className="col-span-5">
+                            <Select
+                              value={input.location_id || "__none__"}
+                              onValueChange={(v) => {
+                                const updated = [...caseParLevelInputs];
+                                updated[index] = { ...updated[index], location_id: v === "__none__" ? "" : v };
+                                setCaseParLevelInputs(updated);
+                              }}
+                              disabled={isFieldsDisabled}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Location" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Select...</SelectItem>
+                                {availableLocations.map((loc) => (
+                                  <SelectItem key={loc.id} value={loc.id}>
+                                    {loc.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Par"
+                              value={input.par_level || ""}
+                              onChange={(e) => {
+                                const updated = [...caseParLevelInputs];
+                                updated[index] = { ...updated[index], par_level: parseInt(e.target.value) || 0 };
+                                setCaseParLevelInputs(updated);
+                              }}
+                              className="h-8 text-xs"
+                              disabled={isFieldsDisabled}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Reorder"
+                              value={input.reorder_point ?? ""}
+                              onChange={(e) => {
+                                const updated = [...caseParLevelInputs];
+                                updated[index] = { ...updated[index], reorder_point: e.target.value ? parseInt(e.target.value) : null };
+                                setCaseParLevelInputs(updated);
+                              }}
+                              className="h-8 text-xs"
+                              disabled={isFieldsDisabled}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Max"
+                              value={input.max_stock ?? ""}
+                              onChange={(e) => {
+                                const updated = [...caseParLevelInputs];
+                                updated[index] = { ...updated[index], max_stock: e.target.value ? parseInt(e.target.value) : null };
+                                setCaseParLevelInputs(updated);
+                              }}
+                              className="h-8 text-xs"
+                              disabled={isFieldsDisabled}
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setCaseParLevelInputs(caseParLevelInputs.filter((_, i) => i !== index));
+                              }}
+                              disabled={isFieldsDisabled}
+                            >
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* PALLET Par Levels */}
+              <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Pallet Par Levels</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Allowed: 3PL only
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPalletParLevelInputs([...palletParLevelInputs, { location_id: "", par_level: 0 }]);
+                    }}
+                    disabled={isFieldsDisabled}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+
+                {palletParLevelInputs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">
+                    No pallet par levels configured
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {palletParLevelInputs.map((input, index) => {
+                      const usedLocationIds = palletParLevelInputs
+                        .filter((_, i) => i !== index)
+                        .map((i) => i.location_id);
+                      const availableLocations = palletLocations.filter(
+                        (loc) => !usedLocationIds.includes(loc.id) || loc.id === input.location_id
+                      );
+
+                      return (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-start">
+                          <div className="col-span-5">
+                            <Select
+                              value={input.location_id || "__none__"}
+                              onValueChange={(v) => {
+                                const updated = [...palletParLevelInputs];
+                                updated[index] = { ...updated[index], location_id: v === "__none__" ? "" : v };
+                                setPalletParLevelInputs(updated);
+                              }}
+                              disabled={isFieldsDisabled}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Location" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Select...</SelectItem>
+                                {availableLocations.map((loc) => (
+                                  <SelectItem key={loc.id} value={loc.id}>
+                                    {loc.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Par"
+                              value={input.par_level || ""}
+                              onChange={(e) => {
+                                const updated = [...palletParLevelInputs];
+                                updated[index] = { ...updated[index], par_level: parseInt(e.target.value) || 0 };
+                                setPalletParLevelInputs(updated);
+                              }}
+                              className="h-8 text-xs"
+                              disabled={isFieldsDisabled}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Reorder"
+                              value={input.reorder_point ?? ""}
+                              onChange={(e) => {
+                                const updated = [...palletParLevelInputs];
+                                updated[index] = { ...updated[index], reorder_point: e.target.value ? parseInt(e.target.value) : null };
+                                setPalletParLevelInputs(updated);
+                              }}
+                              className="h-8 text-xs"
+                              disabled={isFieldsDisabled}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Max"
+                              value={input.max_stock ?? ""}
+                              onChange={(e) => {
+                                const updated = [...palletParLevelInputs];
+                                updated[index] = { ...updated[index], max_stock: e.target.value ? parseInt(e.target.value) : null };
+                                setPalletParLevelInputs(updated);
+                              }}
+                              className="h-8 text-xs"
+                              disabled={isFieldsDisabled}
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setPalletParLevelInputs(palletParLevelInputs.filter((_, i) => i !== index));
+                              }}
+                              disabled={isFieldsDisabled}
+                            >
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </CollapsibleContent>
           </Collapsible>
 
