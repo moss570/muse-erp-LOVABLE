@@ -197,8 +197,8 @@ const App = () => (
               }
             />
             {/* Manufacturing routes */}
-            <Route path="/manufacturing/dashboard" element={<ProductionDashboard />} />
-            <Route path="/manufacturing/production" element={<ProductionExecution />} />
+            <Route path="/manufacturing/dashboard" element={<AppLayout><ProductionDashboard /></AppLayout>} />
+            <Route path="/manufacturing/production" element={<AppLayout><ProductionExecution /></AppLayout>} />
             <Route path="/manufacturing/lots" element={<AppLayout><ManufacturingLots /></AppLayout>} />
             <Route path="/manufacturing/lots/new" element={<AppLayout><CreateManufacturingLot /></AppLayout>} />
             <Route path="/manufacturing/lots/:id" element={<AppLayout><LotDetail /></AppLayout>} />

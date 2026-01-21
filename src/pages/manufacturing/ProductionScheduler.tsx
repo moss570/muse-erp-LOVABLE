@@ -22,13 +22,14 @@ import {
   ChevronRight,
   AlertCircle,
   Users,
-  DollarSign,
   GripVertical,
   Calendar,
   Factory,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { aggregateAllergensForRecipe } from "@/lib/bomAggregation";
 
 interface RecipeVolumeData {
   batch_volume: number | null;
@@ -66,10 +67,19 @@ interface WorkOrder {
   product?: { name: string; sku: string } | null;
   scheduledQuantity?: number; // Total already scheduled across all days
   recipeData?: RecipeVolumeData | null;
+  allergens?: string[] | null;
 }
 
 // Draggable Work Order Card
-function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "scheduled" | "unscheduled" }) {
+function DraggableCard({ 
+  item, 
+  type, 
+  onUnschedule 
+}: { 
+  item: ScheduleItem | WorkOrder; 
+  type: "scheduled" | "unscheduled";
+  onUnschedule?: (id: string) => void;
+}) {
   // Use a delimiter that won't conflict with UUIDs (which contain "-")
   const id =
     type === "scheduled"
@@ -100,14 +110,31 @@ function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "
       ref={setNodeRef}
       style={style}
       className={cn(
-        "p-3 mb-2 rounded-lg border-l-4 bg-card border shadow-sm cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md",
+        "p-3 mb-2 rounded-lg border-l-4 bg-card border shadow-sm cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md relative",
         getPriorityColor(item.priority),
         isDragging && "opacity-50 shadow-lg"
       )}
       {...listeners}
       {...attributes}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
+      {/* Unschedule button */}
+      {isScheduled && onUnschedule && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 absolute top-1 right-1 hover:bg-destructive/10"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onUnschedule(scheduleItem.id);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+        </Button>
+      )}
+
+      <div className="flex items-start justify-between gap-2 mb-2 pr-6">
         <div className="flex items-center gap-2">
           <GripVertical className="h-4 w-4 text-muted-foreground" />
           <div>
@@ -157,10 +184,22 @@ function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "
           </div>
         )}
 
+        {/* Allergen badges */}
         {isScheduled && scheduleItem.allergens && scheduleItem.allergens.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap mt-2">
             {scheduleItem.allergens.map((allergen: string) => (
               <Badge key={allergen} variant="destructive" className="text-xs px-1 py-0">
+                {allergen}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {/* Also show allergens on unscheduled WOs */}
+        {!isScheduled && woItem.allergens && (woItem.allergens as string[]).length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap mt-2">
+            {(woItem.allergens as string[]).map((allergen: string) => (
+              <Badge key={allergen} variant="outline" className="text-xs px-1 py-0 border-destructive text-destructive">
                 {allergen}
               </Badge>
             ))}
@@ -191,13 +230,15 @@ function DroppableColumn({
   lineId, 
   lineName, 
   scheduleItems,
-  laborStatus 
+  laborStatus,
+  onUnschedule,
 }: { 
   date: string; 
   lineId: string; 
   lineName: string; 
   scheduleItems: ScheduleItem[];
   laborStatus: any;
+  onUnschedule: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${date}|${lineId}` });
 
@@ -259,7 +300,7 @@ function DroppableColumn({
           </div>
         ) : (
           scheduleItems.map((item) => (
-            <DraggableCard key={item.id} item={item} type="scheduled" />
+            <DraggableCard key={item.id} item={item} type="scheduled" onUnschedule={onUnschedule} />
           ))
         )}
       </div>
@@ -341,7 +382,7 @@ export default function ProductionScheduler() {
     enabled: weekDates.length > 0,
   });
 
-  // Get unscheduled work orders with partial scheduling info
+  // Get unscheduled work orders with partial scheduling info and allergens
   const { data: unscheduledWorkOrders = [] } = useQuery({
     queryKey: ["unscheduled-work-orders", scheduledItems.length],
     queryFn: async () => {
@@ -374,26 +415,48 @@ export default function ProductionScheduler() {
       // Get unique product_ids to fetch their default recipes
       const productIds = [...new Set(allWOs.map((wo: any) => wo.product_id).filter(Boolean))];
       
-      // Fetch default recipes for all products
+      // Fetch default recipes for all products (with id for allergen fetching)
       const { data: recipes } = productIds.length > 0 
         ? await (supabase.from("product_recipes") as any)
-            .select("product_id, batch_volume, batch_volume_unit")
+            .select("id, product_id, batch_volume, batch_volume_unit")
             .in("product_id", productIds)
             .eq("is_default", true)
         : { data: [] };
       
-      // Create a map of product_id -> recipe data
-      const recipeMap = new Map<string, RecipeVolumeData>();
+      // Create a map of product_id -> recipe data (including recipe id)
+      const recipeMap = new Map<string, RecipeVolumeData & { id: string }>();
       (recipes || []).forEach((r: any) => {
-        recipeMap.set(r.product_id, { batch_volume: r.batch_volume, batch_volume_unit: r.batch_volume_unit });
+        recipeMap.set(r.product_id, { 
+          id: r.id, 
+          batch_volume: r.batch_volume, 
+          batch_volume_unit: r.batch_volume_unit 
+        });
       });
 
-      // Attach scheduled quantity and recipe data to each WO
-      return allWOs.map((wo: any) => ({
-        ...wo,
-        scheduledQuantity: scheduledByWo.get(wo.id) || 0,
-        recipeData: wo.product_id ? recipeMap.get(wo.product_id) : null,
-      })) as WorkOrder[];
+      // Fetch allergens for each product's default recipe
+      const allergenMap = new Map<string, string[]>();
+      for (const recipe of (recipes || [])) {
+        try {
+          const allergens = await aggregateAllergensForRecipe(recipe.id);
+          allergenMap.set(recipe.product_id, allergens);
+        } catch (e) {
+          // Ignore allergen fetch errors
+        }
+      }
+
+      // Filter out fully scheduled WOs and attach data
+      return allWOs
+        .map((wo: any) => ({
+          ...wo,
+          scheduledQuantity: scheduledByWo.get(wo.id) || 0,
+          recipeData: wo.product_id ? recipeMap.get(wo.product_id) : null,
+          allergens: wo.product_id ? allergenMap.get(wo.product_id) || null : null,
+        }))
+        .filter((wo: WorkOrder) => {
+          // Only show WOs that have remaining capacity
+          const remaining = wo.target_quantity - (wo.scheduledQuantity || 0);
+          return remaining > 0;
+        }) as WorkOrder[];
     },
     enabled: scheduledItems !== undefined,
   });
@@ -462,6 +525,24 @@ export default function ProductionScheduler() {
 
         if (!wo) throw new Error("Work order not found");
 
+        // Calculate allergens for this product's default recipe
+        let allergensList: string[] = [];
+        if (wo.product_id) {
+          const { data: recipe } = await (supabase.from("product_recipes") as any)
+            .select("id")
+            .eq("product_id", wo.product_id)
+            .eq("is_default", true)
+            .single();
+          
+          if (recipe?.id) {
+            try {
+              allergensList = await aggregateAllergensForRecipe(recipe.id);
+            } catch (e) {
+              console.error("Failed to fetch allergens:", e);
+            }
+          }
+        }
+
         const { error } = await (supabase.from("production_schedule") as any)
           .insert({
             work_order_id: sourceId,
@@ -473,6 +554,7 @@ export default function ProductionScheduler() {
             planned_uom: wo.target_uom,
             priority: wo.priority,
             schedule_status: "Scheduled",
+            allergens: allergensList.length > 0 ? allergensList : null,
             created_by: userData?.user?.id,
           });
 
@@ -489,6 +571,29 @@ export default function ProductionScheduler() {
       toast.error("Failed to update schedule", { description: error.message });
     },
   });
+
+  // Unschedule (delete) mutation
+  const unscheduleMutation = useMutation({
+    mutationFn: async (scheduleId: string) => {
+      const { error } = await (supabase.from("production_schedule") as any)
+        .delete()
+        .eq("id", scheduleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["production-schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["unscheduled-work-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["labor-status"] });
+      toast.success("Work order unscheduled");
+    },
+    onError: (error: any) => {
+      toast.error("Failed to unschedule", { description: error.message });
+    },
+  });
+
+  const handleUnschedule = (scheduleId: string) => {
+    unscheduleMutation.mutate(scheduleId);
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -614,6 +719,7 @@ export default function ProductionScheduler() {
                         lineName={line.line_name}
                         scheduleItems={getScheduleItemsForCell(date, line.id)}
                         laborStatus={laborStatus[`${date}|${line.id}`]}
+                        onUnschedule={handleUnschedule}
                       />
                     ))}
                   </div>
