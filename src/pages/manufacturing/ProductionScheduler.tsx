@@ -59,7 +59,11 @@ interface WorkOrder {
 
 // Draggable Work Order Card
 function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "scheduled" | "unscheduled" }) {
-  const id = type === "scheduled" ? `schedule-${(item as ScheduleItem).id}` : `wo-${(item as WorkOrder).id}`;
+  // Use a delimiter that won't conflict with UUIDs (which contain "-")
+  const id =
+    type === "scheduled"
+      ? `schedule:${(item as ScheduleItem).id}`
+      : `wo:${(item as WorkOrder).id}`;
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
   const style = transform ? {
@@ -405,10 +409,12 @@ export default function ProductionScheduler() {
 
     if (!targetDate || !targetLineId) return;
 
-    const activeIdStr = active.id as string;
-    const [sourceType, sourceId] = activeIdStr.split("-") as ["schedule" | "wo", string];
+    const activeIdStr = String(active.id);
+    const [sourceTypeRaw, ...rest] = activeIdStr.split(":");
+    const sourceId = rest.join(":");
+    const sourceType = sourceTypeRaw as "schedule" | "wo";
 
-    if (sourceType && sourceId) {
+    if ((sourceType === "schedule" || sourceType === "wo") && sourceId) {
       moveScheduleMutation.mutate({
         sourceId,
         sourceType,
