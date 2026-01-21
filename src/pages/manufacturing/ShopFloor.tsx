@@ -18,7 +18,7 @@ interface WorkOrder {
   due_date: string | null;
   priority: number;
   actual_total_cost: number | null;
-  product?: { id: string; name: string; code: string } | null;
+  product?: { id: string; name: string; sku: string } | null;
   production_line?: { id: string; line_name: string } | null;
 }
 
@@ -78,7 +78,7 @@ export default function ShopFloor() {
         .from("work_orders")
         .select(`
           *,
-          product:materials!work_orders_product_id_fkey(id, name, code),
+          product:products!work_orders_product_id_fkey(id, name, sku),
           production_line:production_lines(id, line_name)
         `)
         .in("wo_status", ["Released", "In Progress", "Created"])

@@ -44,14 +44,12 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [specialInstructions, setSpecialInstructions] = useState("");
 
-  // Fetch products
-  // Note: work_orders.product_id currently has an FK to public.materials, so we list active materials here.
-  // (The previous filter used material_type, but that column doesn't exist in this schema.)
+  // Fetch products (FK now points to public.products)
   const { data: products = [] } = useQuery({
     queryKey: ["products-for-wo"],
-    queryFn: async (): Promise<{ id: string; name: string; code: string }[]> => {
-      const { data, error } = await (supabase.from("materials") as any)
-        .select("id, name, code")
+    queryFn: async (): Promise<{ id: string; name: string; sku: string }[]> => {
+      const { data, error } = await (supabase.from("products") as any)
+        .select("id, name, sku")
         .eq("is_active", true)
         .order("name");
 
@@ -191,7 +189,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                 <SelectContent>
                   {products.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name} ({p.code})
+                      {p.name} ({p.sku})
                     </SelectItem>
                   ))}
                 </SelectContent>
