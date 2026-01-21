@@ -90,8 +90,6 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Production Dashboard', href: '/manufacturing/dashboard' },
       { title: 'Shop Floor', href: '/manufacturing/shop-floor' },
-      { title: 'Production Scheduler', href: '/manufacturing/scheduler' },
-      { title: 'Employee Scheduler', href: '/manufacturing/employee-scheduler' },
       { title: 'Manufacturing Lots', href: '/manufacturing/lots' },
       { title: 'Recipes', href: '/manufacturing/recipes' },
       { title: 'QA Testing', href: '/manufacturing/qa-tests' },
@@ -164,7 +162,7 @@ const navItems: NavItem[] = [
     icon: Calendar,
     children: [
       { title: 'Employee Schedule', href: '/scheduling/employees' },
-      { title: 'Production Schedule', href: '/scheduling/production' },
+      { title: 'Production Schedule', href: '/manufacturing/scheduler' },
       { title: 'Time Clock', href: '/scheduling/timeclock' },
     ],
   },

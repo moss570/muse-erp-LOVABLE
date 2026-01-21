@@ -53,7 +53,7 @@ import Recipes from "./pages/manufacturing/Recipes";
 import RecipeDetail from "./pages/manufacturing/RecipeDetail";
 import ShopFloor from "./pages/manufacturing/ShopFloor";
 import ProductionScheduler from "./pages/manufacturing/ProductionScheduler";
-import EmployeeSchedulerPage from "./pages/manufacturing/EmployeeSchedulerPage";
+// EmployeeSchedulerPage removed - consolidated into Schedule.tsx
 import ShopFloorWorkOrder from "./pages/manufacturing/ShopFloorWorkOrder";
 import ProductionLinesSettings from "./pages/settings/ProductionLinesSettings";
 import ProductionStagesSettings from "./pages/settings/ProductionStagesSettings";
@@ -207,7 +207,7 @@ const App = () => (
             <Route path="/manufacturing/shop-floor" element={<AppLayout><ShopFloor /></AppLayout>} />
             <Route path="/manufacturing/shop-floor/:workOrderId" element={<AppLayout><ShopFloorWorkOrder /></AppLayout>} />
             <Route path="/manufacturing/scheduler" element={<AppLayout><ProductionScheduler /></AppLayout>} />
-            <Route path="/manufacturing/employee-scheduler" element={<AppLayout><EmployeeSchedulerPage /></AppLayout>} />
+            {/* Employee Scheduler consolidated to /scheduling/employees */}
             <Route path="/manufacturing/qa-tests" element={<BatchQATests />} />
             
             {/* Production Issue Requests */}
