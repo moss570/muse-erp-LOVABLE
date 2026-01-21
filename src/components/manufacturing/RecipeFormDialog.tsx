@@ -43,6 +43,8 @@ const formSchema = z.object({
   standard_labor_hours: z.number().default(0),
   approval_status: z.string().default("Draft"),
   notes: z.string().optional(),
+  batch_volume: z.number().nullable().optional(),
+  batch_volume_unit: z.string().default("GAL"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -68,6 +70,8 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
       standard_labor_hours: 0,
       approval_status: "Draft",
       notes: "",
+      batch_volume: null,
+      batch_volume_unit: "GAL",
     },
   });
 
@@ -97,6 +101,8 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
         standard_labor_hours: recipe.standard_labor_hours || 0,
         approval_status: recipe.approval_status || "Draft",
         notes: recipe.notes || "",
+        batch_volume: recipe.batch_volume ?? null,
+        batch_volume_unit: recipe.batch_volume_unit || "GAL",
       });
     } else {
       form.reset({
@@ -108,6 +114,8 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
         standard_labor_hours: 0,
         approval_status: "Draft",
         notes: "",
+        batch_volume: null,
+        batch_volume_unit: "GAL",
       });
     }
   }, [recipe, form]);
@@ -124,6 +132,9 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
         standard_labor_hours: values.standard_labor_hours,
         approval_status: values.approval_status,
         notes: values.notes || null,
+        batch_weight_kg: 1,
+        batch_volume: values.batch_volume,
+        batch_volume_unit: values.batch_volume_unit,
       };
       const { data, error } = await supabase
         .from("recipes")
@@ -149,7 +160,17 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
       const { data, error } = await supabase
         .from("recipes")
         .update({
-          ...values,
+          recipe_code: values.recipe_code,
+          recipe_name: values.recipe_name,
+          recipe_version: values.recipe_version,
+          product_id: values.product_id || null,
+          batch_size: values.batch_size,
+          batch_uom: values.batch_uom,
+          standard_labor_hours: values.standard_labor_hours,
+          approval_status: values.approval_status,
+          notes: values.notes || null,
+          batch_volume: values.batch_volume,
+          batch_volume_unit: values.batch_volume_unit,
           updated_by: user?.id,
           updated_at: new Date().toISOString(),
         })
@@ -302,6 +323,66 @@ export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialo
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Volume Yield Section */}
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">Batch Yield</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">1 KG (fixed)</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Each batch yields 1 KG weight. Specify volume yield for UOM conversions.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="batch_volume"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Volume Yield</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 2.75"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="batch_volume_unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Volume Unit</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="GAL">Gallons (GAL)</SelectItem>
+                          <SelectItem value="L">Liters (L)</SelectItem>
+                          <SelectItem value="FL_OZ">Fluid Ounces (FL OZ)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              {form.watch("batch_volume") && (
+                <p className="text-xs text-muted-foreground">
+                  1 KG = {form.watch("batch_volume")} {form.watch("batch_volume_unit")}
+                </p>
+              )}
             </div>
 
             <FormField
