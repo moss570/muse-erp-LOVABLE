@@ -86,6 +86,7 @@ export function EditProductSizeDialog({
   const [customPalletWidthIn, setCustomPalletWidthIn] = useState<number | null>(null);
   const [showLabelPrintDialog, setShowLabelPrintDialog] = useState(false);
   const [parLevelSectionOpen, setParLevelSectionOpen] = useState(false);
+  const [parLevelsInitialized, setParLevelsInitialized] = useState(false);
   
   // Par level tracking state
   const [caseParLevelInputs, setCaseParLevelInputs] = useState<ParLevelInput[]>([]);
@@ -287,13 +288,14 @@ export function EditProductSizeDialog({
       setUpcSectionOpen(false);
       setPalletSectionOpen(false);
       setParLevelSectionOpen(false);
+      setParLevelsInitialized(false); // Reset so par levels can be loaded fresh
     }
   }, [open, size]);
 
-  // Load par levels when editing an existing size
+  // Load par levels when editing an existing size - only once when data is available
   useEffect(() => {
-    if (size && open) {
-      // Map existing par levels to input format
+    if (size && open && !parLevelsInitialized && !loadingParLevels) {
+      // Only initialize if we have the data loaded and haven't initialized yet
       setCaseParLevelInputs(
         caseParLevels.map((p) => ({
           location_id: p.location_id,
@@ -310,8 +312,9 @@ export function EditProductSizeDialog({
           max_stock: p.max_stock,
         }))
       );
+      setParLevelsInitialized(true);
     }
-  }, [size, open, caseParLevels, palletParLevels]);
+  }, [size, open, caseParLevels, palletParLevels, parLevelsInitialized, loadingParLevels]);
 
   // Auto-calculate Min/Max when Target or variance changes
   useEffect(() => {
