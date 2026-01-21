@@ -47,11 +47,11 @@ interface ScheduleItem {
   allergens: string[] | null;
   exceeds_line_capacity: boolean;
   insufficient_labor: boolean;
-  recipe?: RecipeVolumeData | null;
+  product_recipe?: RecipeVolumeData | null;
   work_order?: {
     wo_number: string;
+    recipe_id?: string | null;
     product?: { name: string; sku: string } | null;
-    recipe?: RecipeVolumeData | null;
   } | null;
 }
 
@@ -61,8 +61,8 @@ interface WorkOrder {
   target_quantity: number;
   target_uom: string;
   priority: string;
+  recipe_id?: string | null;
   product?: { name: string; sku: string } | null;
-  recipe?: RecipeVolumeData | null;
 }
 
 // Draggable Work Order Card
@@ -133,13 +133,12 @@ function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "
             {(() => {
               const qty = isScheduled ? scheduleItem.planned_quantity : woItem.target_quantity;
               const uom = isScheduled ? scheduleItem.planned_uom : woItem.target_uom;
-              const recipe = isScheduled 
-                ? (scheduleItem.recipe || scheduleItem.work_order?.recipe) 
-                : woItem.recipe;
+              // For scheduled items, use product_recipe from production_schedule
+              const recipeData = isScheduled ? scheduleItem.product_recipe : null;
               
-              if (recipe?.batch_volume && recipe?.batch_volume_unit) {
-                const volume = qty * recipe.batch_volume;
-                return `${qty} ${uom} / ${volume.toFixed(1)} ${recipe.batch_volume_unit}`;
+              if (recipeData?.batch_volume && recipeData?.batch_volume_unit) {
+                const volume = qty * recipeData.batch_volume;
+                return `${qty} ${uom} / ${volume.toFixed(1)} ${recipeData.batch_volume_unit}`;
               }
               return `${qty} ${uom}`;
             })()}
@@ -199,11 +198,11 @@ function DroppableColumn({
   // Calculate total volume by summing each item's converted volume
   const { totalVolume, volumeUnit } = scheduleItems.reduce(
     (acc, item) => {
-      const recipe = item.recipe || item.work_order?.recipe;
-      if (recipe?.batch_volume && recipe?.batch_volume_unit && item.planned_quantity) {
+      const recipeData = item.product_recipe;
+      if (recipeData?.batch_volume && recipeData?.batch_volume_unit && item.planned_quantity) {
         return {
-          totalVolume: acc.totalVolume + (item.planned_quantity * recipe.batch_volume),
-          volumeUnit: recipe.batch_volume_unit, // Use the unit from recipes
+          totalVolume: acc.totalVolume + (item.planned_quantity * recipeData.batch_volume),
+          volumeUnit: recipeData.batch_volume_unit, // Use the unit from product_recipes
         };
       }
       return acc;
@@ -291,11 +290,11 @@ export default function ProductionScheduler() {
       const { data, error } = await (supabase.from("production_schedule") as any)
         .select(`
           *,
-          recipe:recipes!recipe_id(batch_volume, batch_volume_unit),
+          product_recipe:product_recipes(batch_volume, batch_volume_unit),
           work_order:work_orders(
             wo_number,
-            product:products(name, sku),
-            recipe:recipes!recipe_id(batch_volume, batch_volume_unit)
+            recipe_id,
+            product:products(name, sku)
           )
         `)
         .gte("schedule_date", weekDates[0])
@@ -321,8 +320,8 @@ export default function ProductionScheduler() {
           target_quantity,
           target_uom,
           priority,
-          product:products(name, sku),
-          recipe:recipes!recipe_id(batch_volume, batch_volume_unit)
+          recipe_id,
+          product:products(name, sku)
         `)
         .in("wo_status", ["Created", "Released"])
         .order("priority", { ascending: false })
