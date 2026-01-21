@@ -30,6 +30,11 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+interface RecipeVolumeData {
+  batch_volume: number | null;
+  batch_volume_unit: string | null;
+}
+
 interface ScheduleItem {
   id: string;
   work_order_id: string | null;
@@ -42,9 +47,11 @@ interface ScheduleItem {
   allergens: string[] | null;
   exceeds_line_capacity: boolean;
   insufficient_labor: boolean;
+  recipe?: RecipeVolumeData | null;
   work_order?: {
     wo_number: string;
     product?: { name: string; sku: string } | null;
+    recipe?: RecipeVolumeData | null;
   } | null;
 }
 
@@ -55,6 +62,7 @@ interface WorkOrder {
   target_uom: string;
   priority: string;
   product?: { name: string; sku: string } | null;
+  recipe?: RecipeVolumeData | null;
 }
 
 // Draggable Work Order Card
@@ -122,8 +130,19 @@ function DraggableCard({ item, type }: { item: ScheduleItem | WorkOrder; type: "
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Quantity:</span>
           <span className="font-medium">
-            {isScheduled ? scheduleItem.planned_quantity : woItem.target_quantity}{" "}
-            {isScheduled ? scheduleItem.planned_uom : woItem.target_uom}
+            {(() => {
+              const qty = isScheduled ? scheduleItem.planned_quantity : woItem.target_quantity;
+              const uom = isScheduled ? scheduleItem.planned_uom : woItem.target_uom;
+              const recipe = isScheduled 
+                ? (scheduleItem.recipe || scheduleItem.work_order?.recipe) 
+                : woItem.recipe;
+              
+              if (recipe?.batch_volume && recipe?.batch_volume_unit) {
+                const volume = qty * recipe.batch_volume;
+                return `${qty} ${uom} / ${volume.toFixed(1)} ${recipe.batch_volume_unit}`;
+              }
+              return `${qty} ${uom}`;
+            })()}
           </span>
         </div>
 
@@ -171,9 +190,25 @@ function DroppableColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${date}|${lineId}` });
 
-  const totalQuantity = scheduleItems.reduce(
+  // Calculate total weight (KG)
+  const totalWeightKg = scheduleItems.reduce(
     (sum, item) => sum + (item.planned_quantity || 0),
     0
+  );
+
+  // Calculate total volume by summing each item's converted volume
+  const { totalVolume, volumeUnit } = scheduleItems.reduce(
+    (acc, item) => {
+      const recipe = item.recipe || item.work_order?.recipe;
+      if (recipe?.batch_volume && recipe?.batch_volume_unit && item.planned_quantity) {
+        return {
+          totalVolume: acc.totalVolume + (item.planned_quantity * recipe.batch_volume),
+          volumeUnit: recipe.batch_volume_unit, // Use the unit from recipes
+        };
+      }
+      return acc;
+    },
+    { totalVolume: 0, volumeUnit: "GAL" as string }
   );
 
   const getLaborStatusColor = (status: string) => {
@@ -194,7 +229,7 @@ function DroppableColumn({
         <div className="flex items-center justify-between mb-1">
           <p className="font-semibold text-sm">{format(new Date(date), "EEE M/d")}</p>
           <Badge variant="outline" className="text-xs">
-            {totalQuantity.toFixed(0)} gal
+            {totalWeightKg.toFixed(0)} kg{totalVolume > 0 && ` / ${totalVolume.toFixed(0)} ${volumeUnit.toLowerCase()}`}
           </Badge>
         </div>
         
@@ -256,9 +291,11 @@ export default function ProductionScheduler() {
       const { data, error } = await (supabase.from("production_schedule") as any)
         .select(`
           *,
+          recipe:recipes(batch_volume, batch_volume_unit),
           work_order:work_orders(
             wo_number,
-            product:products(name, sku)
+            product:products(name, sku),
+            recipe:recipes(batch_volume, batch_volume_unit)
           )
         `)
         .gte("schedule_date", weekDates[0])
@@ -284,7 +321,8 @@ export default function ProductionScheduler() {
           target_quantity,
           target_uom,
           priority,
-          product:products(name, sku)
+          product:products(name, sku),
+          recipe:recipes(batch_volume, batch_volume_unit)
         `)
         .in("wo_status", ["Created", "Released"])
         .order("priority", { ascending: false })
