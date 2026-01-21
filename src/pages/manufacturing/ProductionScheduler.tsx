@@ -291,11 +291,11 @@ export default function ProductionScheduler() {
       const { data, error } = await (supabase.from("production_schedule") as any)
         .select(`
           *,
-          recipe:recipes(batch_volume, batch_volume_unit),
+          recipe:recipes!recipe_id(batch_volume, batch_volume_unit),
           work_order:work_orders(
             wo_number,
             product:products(name, sku),
-            recipe:recipes(batch_volume, batch_volume_unit)
+            recipe:recipes!recipe_id(batch_volume, batch_volume_unit)
           )
         `)
         .gte("schedule_date", weekDates[0])
@@ -322,7 +322,7 @@ export default function ProductionScheduler() {
           target_uom,
           priority,
           product:products(name, sku),
-          recipe:recipes(batch_volume, batch_volume_unit)
+          recipe:recipes!recipe_id(batch_volume, batch_volume_unit)
         `)
         .in("wo_status", ["Created", "Released"])
         .order("priority", { ascending: false })
