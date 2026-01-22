@@ -383,8 +383,9 @@ export default function ProductionScheduler() {
   });
 
   // Get unscheduled work orders with partial scheduling info and allergens
+  // IMPORTANT: This query fetches GLOBAL schedule totals, not just the current week view
   const { data: unscheduledWorkOrders = [] } = useQuery({
-    queryKey: ["unscheduled-work-orders", scheduledItems.length],
+    queryKey: ["unscheduled-work-orders"],
     queryFn: async () => {
       // Get work orders that are still active
       const { data: allWOs, error } = await (supabase.from("work_orders") as any)
@@ -404,11 +405,20 @@ export default function ProductionScheduler() {
       if (error) throw error;
       if (!allWOs) return [];
 
-      // Calculate how much of each WO is already scheduled
+      // Fetch ALL non-cancelled schedule entries to calculate GLOBAL totals
+      // This ensures WO cards don't jump when changing week views
+      const { data: allScheduleTotals } = await (supabase.from("production_schedule") as any)
+        .select("work_order_id, planned_quantity")
+        .neq("schedule_status", "Cancelled");
+
+      // Build the map from ALL schedules, not just current week
       const scheduledByWo = new Map<string, number>();
-      scheduledItems.forEach(s => {
+      (allScheduleTotals || []).forEach((s: { work_order_id: string | null; planned_quantity: number }) => {
         if (s.work_order_id) {
-          scheduledByWo.set(s.work_order_id, (scheduledByWo.get(s.work_order_id) || 0) + s.planned_quantity);
+          scheduledByWo.set(
+            s.work_order_id, 
+            (scheduledByWo.get(s.work_order_id) || 0) + (s.planned_quantity || 0)
+          );
         }
       });
 
@@ -458,7 +468,6 @@ export default function ProductionScheduler() {
           return remaining > 0;
         }) as WorkOrder[];
     },
-    enabled: scheduledItems !== undefined,
   });
 
   // Get labor status for each day/line
