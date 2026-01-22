@@ -31,6 +31,8 @@ const productSchema = z.object({
   shelf_life_days: z.number().optional(),
   storage_requirements: z.string().optional(),
   handling_instructions: z.string().optional(),
+  is_family_head: z.boolean().default(false),
+  family_head_id: z.string().optional().nullable(),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;
@@ -51,6 +53,8 @@ interface ProductFormDialogProps {
     shelf_life_days?: number | null;
     storage_requirements?: string | null;
     handling_instructions?: string | null;
+    is_family_head?: boolean | null;
+    family_head_id?: string | null;
   } | null;
   onSubmit: (data: ProductFormData) => void;
   isSubmitting?: boolean;
@@ -84,6 +88,8 @@ export function ProductFormDialog({
       shelf_life_days: undefined,
       storage_requirements: "",
       handling_instructions: "",
+      is_family_head: false,
+      family_head_id: undefined,
     },
   });
 
@@ -102,6 +108,8 @@ export function ProductFormDialog({
         shelf_life_days: product.shelf_life_days || undefined,
         storage_requirements: product.storage_requirements || "",
         handling_instructions: product.handling_instructions || "",
+        is_family_head: product.is_family_head || false,
+        family_head_id: product.family_head_id || undefined,
       });
       setIsEditMode(false); // Start in view mode for existing products
     } else {
@@ -117,6 +125,8 @@ export function ProductFormDialog({
         shelf_life_days: undefined,
         storage_requirements: "",
         handling_instructions: "",
+        is_family_head: false,
+        family_head_id: undefined,
       });
       setIsEditMode(true); // New products start in edit mode
     }
@@ -152,6 +162,8 @@ export function ProductFormDialog({
         shelf_life_days: product.shelf_life_days || undefined,
         storage_requirements: product.storage_requirements || "",
         handling_instructions: product.handling_instructions || "",
+        is_family_head: product.is_family_head || false,
+        family_head_id: product.family_head_id || undefined,
       });
     }
     setIsEditMode(false);
@@ -224,6 +236,7 @@ export function ProductFormDialog({
                     form={form} 
                     isEditing={isExistingProduct} 
                     isFieldsDisabled={isFieldsDisabled}
+                    currentProductId={product?.id}
                   />
                 </form>
               </Form>
