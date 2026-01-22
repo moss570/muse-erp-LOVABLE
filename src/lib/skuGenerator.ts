@@ -97,14 +97,23 @@ export async function checkSkuUniqueness(
 
 /**
  * Generate product size SKU
- * Format: {Product_SKU}-{Container_Code}-CS{Case_Pack}
- * Example: G-VAN-08-CS4
+ * Format depends on size type:
+ * - Unit/Tub: {Product_SKU}-{Container_Code}  (e.g., G-VAN-08)
+ * - Case: {Product_SKU}-{Container_Code}-CS{Case_Pack}  (e.g., G-VAN-08-CS4)
  */
 export function generateProductSizeSKU(
   productSku: string,
   containerCode: string,
-  casePack: number
+  casePack?: number,
+  sizeType: 'unit' | 'case' | 'pallet' = 'case'
 ): string {
   if (!productSku || !containerCode) return '';
-  return `${productSku}-${containerCode}-CS${casePack}`;
+  
+  // Tubs don't include case pack suffix
+  if (sizeType === 'unit') {
+    return `${productSku}-${containerCode}`;
+  }
+  
+  // Cases include CS prefix with pack count
+  return `${productSku}-${containerCode}-CS${casePack || 1}`;
 }

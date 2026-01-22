@@ -152,6 +152,41 @@ export async function generateUPCPair(
 }
 
 /**
+ * Generates a GTIN-14 case code from an existing parent tub UPC
+ * Used when creating case sizes that inherit the tub UPC from their parent
+ * 
+ * @param parentTubUpc - The 12-digit UPC-A code from the parent tub size
+ * @param casePackSize - The number of units per case (used to look up packaging indicator)
+ * @param packagingIndicatorOverride - Optional override for packaging indicator
+ * @returns The 14-digit GTIN-14 case code
+ */
+export async function generateCaseUPCFromParent(
+  parentTubUpc: string,
+  casePackSize?: number,
+  packagingIndicatorOverride?: string
+): Promise<string | null> {
+  if (!parentTubUpc || parentTubUpc.length !== 12) {
+    console.error("Invalid parent tub UPC - must be 12 digits");
+    return null;
+  }
+  
+  const { generateGTIN14FromUPC } = await import("./upcUtils");
+  const { getPackagingIndicatorForSize } = await import("@/hooks/usePackagingIndicators");
+  
+  // Get packaging indicator - priority: override > lookup by case size > default "1"
+  let indicator = packagingIndicatorOverride;
+  if (!indicator && casePackSize) {
+    indicator = await getPackagingIndicatorForSize(casePackSize);
+  }
+  if (!indicator) {
+    indicator = "1";
+  }
+  
+  // Derive the GTIN-14 case code from the parent tub UPC
+  return generateGTIN14FromUPC(parentTubUpc, indicator);
+}
+
+/**
  * Validates if a UPC code is unique across all products
  */
 export async function isUPCUnique(upcCode: string, excludeSizeId?: string): Promise<boolean> {
