@@ -9751,6 +9751,7 @@ export type Database = {
           parent_production_lot_id: string | null
           produced_by: string | null
           product_id: string
+          product_size_id: string | null
           production_date: string
           production_stage: string | null
           qa_hold_reason: string | null
@@ -9797,6 +9798,7 @@ export type Database = {
           parent_production_lot_id?: string | null
           produced_by?: string | null
           product_id: string
+          product_size_id?: string | null
           production_date?: string
           production_stage?: string | null
           qa_hold_reason?: string | null
@@ -9843,6 +9845,7 @@ export type Database = {
           parent_production_lot_id?: string | null
           produced_by?: string | null
           product_id?: string
+          product_size_id?: string | null
           production_date?: string
           production_stage?: string | null
           qa_hold_reason?: string | null
@@ -9900,6 +9903,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_lots_product_size_id_fkey"
+            columns: ["product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
             referencedColumns: ["id"]
           },
           {
@@ -10088,6 +10098,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           creates_intermediate_lot: boolean | null
+          default_output_uom: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -10106,6 +10117,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creates_intermediate_lot?: boolean | null
+          default_output_uom?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -10124,6 +10136,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creates_intermediate_lot?: boolean | null
+          default_output_uom?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -14248,6 +14261,7 @@ export type Database = {
           labor_cost_this_stage: number | null
           material_cost_this_stage: number | null
           notes: string | null
+          output_product_size_id: string | null
           output_quantity: number | null
           overhead_cost_this_stage: number | null
           qc_approved: boolean | null
@@ -14278,6 +14292,7 @@ export type Database = {
           labor_cost_this_stage?: number | null
           material_cost_this_stage?: number | null
           notes?: string | null
+          output_product_size_id?: string | null
           output_quantity?: number | null
           overhead_cost_this_stage?: number | null
           qc_approved?: boolean | null
@@ -14308,6 +14323,7 @@ export type Database = {
           labor_cost_this_stage?: number | null
           material_cost_this_stage?: number | null
           notes?: string | null
+          output_product_size_id?: string | null
           output_quantity?: number | null
           overhead_cost_this_stage?: number | null
           qc_approved?: boolean | null
@@ -14326,6 +14342,13 @@ export type Database = {
           yield_percentage?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "work_order_stage_progress_output_product_size_id_fkey"
+            columns: ["output_product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "work_order_stage_progress_stage_id_fkey"
             columns: ["stage_id"]
@@ -14407,6 +14430,7 @@ export type Database = {
           due_date: string | null
           estimated_labor_hours: number | null
           id: string
+          input_lot_id: string | null
           is_rework: boolean | null
           labor_rate_per_hour: number | null
           labor_variance: number | null
@@ -14422,6 +14446,7 @@ export type Database = {
           planned_total_cost: number | null
           priority: string | null
           product_id: string | null
+          product_size_id: string | null
           production_line_id: string | null
           recipe_id: string | null
           released_at: string | null
@@ -14430,6 +14455,7 @@ export type Database = {
           special_instructions: string | null
           started_at: string | null
           target_quantity: number
+          target_stage_code: string | null
           target_uom: string
           target_volume: number | null
           target_volume_uom: string | null
@@ -14460,6 +14486,7 @@ export type Database = {
           due_date?: string | null
           estimated_labor_hours?: number | null
           id?: string
+          input_lot_id?: string | null
           is_rework?: boolean | null
           labor_rate_per_hour?: number | null
           labor_variance?: number | null
@@ -14475,6 +14502,7 @@ export type Database = {
           planned_total_cost?: number | null
           priority?: string | null
           product_id?: string | null
+          product_size_id?: string | null
           production_line_id?: string | null
           recipe_id?: string | null
           released_at?: string | null
@@ -14483,6 +14511,7 @@ export type Database = {
           special_instructions?: string | null
           started_at?: string | null
           target_quantity: number
+          target_stage_code?: string | null
           target_uom: string
           target_volume?: number | null
           target_volume_uom?: string | null
@@ -14513,6 +14542,7 @@ export type Database = {
           due_date?: string | null
           estimated_labor_hours?: number | null
           id?: string
+          input_lot_id?: string | null
           is_rework?: boolean | null
           labor_rate_per_hour?: number | null
           labor_variance?: number | null
@@ -14528,6 +14558,7 @@ export type Database = {
           planned_total_cost?: number | null
           priority?: string | null
           product_id?: string | null
+          product_size_id?: string | null
           production_line_id?: string | null
           recipe_id?: string | null
           released_at?: string | null
@@ -14536,6 +14567,7 @@ export type Database = {
           special_instructions?: string | null
           started_at?: string | null
           target_quantity?: number
+          target_stage_code?: string | null
           target_uom?: string
           target_volume?: number | null
           target_volume_uom?: string | null
@@ -14549,6 +14581,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "work_orders_input_lot_id_fkey"
+            columns: ["input_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "work_orders_original_wo_id_fkey"
             columns: ["original_wo_id"]
             isOneToOne: false
@@ -14560,6 +14599,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_product_size_id_fkey"
+            columns: ["product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
             referencedColumns: ["id"]
           },
           {
@@ -14910,6 +14956,16 @@ export type Database = {
       }
       complete_production_stage: {
         Args: {
+          p_output_quantity: number
+          p_stage_code: string
+          p_waste_quantity?: number
+          p_work_order_id: string
+        }
+        Returns: Json
+      }
+      complete_production_stage_v2: {
+        Args: {
+          p_output_product_size_id?: string
           p_output_quantity: number
           p_stage_code: string
           p_waste_quantity?: number
