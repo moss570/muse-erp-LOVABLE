@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -23,14 +23,34 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2, Info } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
+export interface WorkOrder {
+  id: string;
+  wo_number: string;
+  wo_status: string;
+  wo_type: string;
+  product_id: string | null;
+  recipe_id: string | null;
+  production_line_id: string | null;
+  target_quantity: number;
+  target_uom: string;
+  priority: string;
+  scheduled_date: string | null;
+  due_date: string | null;
+  special_instructions: string | null;
+  target_stage_code: string | null;
+  product_size_id: string | null;
+  input_lot_id: string | null;
+}
+
 interface WorkOrderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  workOrder?: WorkOrder | null; // If provided, edit mode
 }
 
 interface ProductionStage {
@@ -47,6 +67,8 @@ interface ProductSize {
   sku: string;
   size_name: string;
   size_value: number;
+  size_type: string | null;
+  units_per_case: number | null;
   container_size?: { name: string; volume_gallons: number } | null;
 }
 
@@ -61,8 +83,12 @@ interface WipLot {
   product_size?: { sku: string; size_name: string } | null;
 }
 
-export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogProps) {
+export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrderFormDialogProps) {
   const queryClient = useQueryClient();
+  const isEditMode = !!workOrder;
+  const isInProgress = workOrder?.wo_status === "In Progress";
+  const isCompleted = workOrder?.wo_status === "Completed";
+
   const [productId, setProductId] = useState("");
   const [recipeId, setRecipeId] = useState("");
   const [productionLineId, setProductionLineId] = useState("");
@@ -77,6 +103,26 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
   const [targetStageCode, setTargetStageCode] = useState("");
   const [productSizeId, setProductSizeId] = useState("");
   const [inputLotId, setInputLotId] = useState("");
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (open && workOrder) {
+      setProductId(workOrder.product_id || "");
+      setRecipeId(workOrder.recipe_id || "");
+      setProductionLineId(workOrder.production_line_id || "");
+      setTargetQuantity(workOrder.target_quantity?.toString() || "");
+      setTargetUom(workOrder.target_uom || "kg");
+      setPriority(workOrder.priority || "Standard");
+      setScheduledDate(workOrder.scheduled_date ? parseISO(workOrder.scheduled_date) : undefined);
+      setDueDate(workOrder.due_date ? parseISO(workOrder.due_date) : undefined);
+      setSpecialInstructions(workOrder.special_instructions || "");
+      setTargetStageCode(workOrder.target_stage_code || "");
+      setProductSizeId(workOrder.product_size_id || "");
+      setInputLotId(workOrder.input_lot_id || "");
+    } else if (open && !workOrder) {
+      resetForm();
+    }
+  }, [open, workOrder]);
 
   // Fetch production stages
   const { data: productionStages = [] } = useQuery({
@@ -109,17 +155,27 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
     enabled: open,
   });
 
-  // Fetch product sizes for the selected product
+  // Fetch product sizes for the selected product - WITH SMART FILTERING BY STAGE
   const { data: productSizes = [] } = useQuery({
-    queryKey: ["product-sizes-for-wo", productId],
+    queryKey: ["product-sizes-for-wo", productId, targetStageCode],
     queryFn: async (): Promise<ProductSize[]> => {
       if (!productId) return [];
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from("product_sizes")
-        .select("id, sku, size_name, size_value, container_size:container_sizes(name, volume_gallons)")
+        .select("id, sku, size_name, size_value, size_type, units_per_case, container_size:container_sizes(name, volume_gallons)")
         .eq("product_id", productId)
-        .eq("is_active", true)
-        .order("size_value");
+        .eq("is_active", true);
+      
+      // Filter by size_type based on selected stage
+      if (targetStageCode === "FREEZE") {
+        query = query.eq("size_type", "unit");
+      } else if (targetStageCode === "CASE_PACK") {
+        query = query.eq("size_type", "case");
+      }
+      // PACKAGE stage is now deactivated, but if it were active, it would show cases/pallets
+
+      const { data, error } = await query.order("size_value");
 
       if (error) throw error;
       return (data || []) as unknown as ProductSize[];
@@ -200,9 +256,16 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
     return productionStages.find(s => s.stage_code === targetStageCode);
   }, [productionStages, targetStageCode]);
 
-  // Determine if we need product size selection (FREEZE, CASE_PACK, PACKAGE)
+  // Determine if we need product size selection (FREEZE, CASE_PACK)
   const needsProductSize = useMemo(() => {
-    return ["FREEZE", "CASE_PACK", "PACKAGE"].includes(targetStageCode);
+    return ["FREEZE", "CASE_PACK"].includes(targetStageCode);
+  }, [targetStageCode]);
+
+  // Get dynamic label for product size based on stage
+  const productSizeLabel = useMemo(() => {
+    if (targetStageCode === "FREEZE") return "Output Tub Size (individual units)";
+    if (targetStageCode === "CASE_PACK") return "Output Case Configuration";
+    return "Output Product Size";
   }, [targetStageCode]);
 
   // Determine if we need input lot selection (everything except BASE_PREP)
@@ -282,6 +345,54 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
     },
   });
 
+  // Update work order mutation
+  const updateWorkOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!workOrder) throw new Error("No work order to update");
+
+      // Build update payload based on status
+      const updateData: Record<string, any> = {
+        target_quantity: parseFloat(targetQuantity),
+        due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
+        priority: priority,
+        special_instructions: specialInstructions || null,
+      };
+
+      // Only allow full edits if not in progress
+      if (!isInProgress) {
+        updateData.product_id = productId;
+        updateData.recipe_id = recipeId || null;
+        updateData.production_line_id = productionLineId || null;
+        updateData.target_uom = selectedStage?.default_output_uom === "EA" ? "units" : targetUom;
+        updateData.scheduled_date = scheduledDate ? format(scheduledDate, "yyyy-MM-dd") : null;
+        updateData.target_stage_code = targetStageCode || null;
+        updateData.product_size_id = productSizeId || null;
+        updateData.input_lot_id = inputLotId || null;
+      }
+
+      const { data, error } = await supabase
+        .from("work_orders")
+        .update(updateData)
+        .eq("id", workOrder.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["active-work-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["work-order", workOrder?.id] });
+      toast.success("Work order updated", {
+        description: `${(data as any).wo_number} updated successfully`,
+      });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast.error("Failed to update work order", { description: error.message });
+    },
+  });
+
   const resetForm = () => {
     setProductId("");
     setRecipeId("");
@@ -299,45 +410,75 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productId) {
-      toast.error("Please select a product");
+    
+    if (isCompleted) {
+      toast.error("Cannot edit a completed work order");
       return;
     }
-    if (!targetStageCode) {
-      toast.error("Please select a target stage");
-      return;
+    
+    if (!isEditMode) {
+      if (!productId) {
+        toast.error("Please select a product");
+        return;
+      }
+      if (!targetStageCode) {
+        toast.error("Please select a target stage");
+        return;
+      }
     }
+    
     if (!targetQuantity || parseFloat(targetQuantity) <= 0) {
       toast.error("Please enter a valid target quantity");
       return;
     }
-    if (needsInputLot && !inputLotId && availableWipLots.length > 0) {
+    
+    if (!isEditMode && needsInputLot && !inputLotId && availableWipLots.length > 0) {
       toast.error("Please select an input lot from the previous stage");
       return;
     }
-    createWorkOrderMutation.mutate();
+    
+    if (isEditMode) {
+      updateWorkOrderMutation.mutate();
+    } else {
+      createWorkOrderMutation.mutate();
+    }
   };
+
+  const isPending = createWorkOrderMutation.isPending || updateWorkOrderMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Work Order</DialogTitle>
+            <DialogTitle>
+              {isEditMode ? `Edit Work Order ${workOrder?.wo_number}` : "Create Work Order"}
+            </DialogTitle>
             <DialogDescription>
-              Create a new manufacturing work order for a specific production stage
+              {isEditMode 
+                ? isInProgress 
+                  ? "Limited editing available for in-progress work orders"
+                  : isCompleted
+                    ? "This work order is completed and cannot be edited"
+                    : "Update work order details"
+                : "Create a new manufacturing work order for a specific production stage"
+              }
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Target Stage Selection - NEW */}
+            {/* Target Stage Selection */}
             <div className="grid gap-2">
               <Label htmlFor="stage">Target Production Stage *</Label>
-              <Select value={targetStageCode} onValueChange={(val) => {
-                setTargetStageCode(val);
-                setInputLotId("");
-                setProductSizeId("");
-              }}>
+              <Select 
+                value={targetStageCode} 
+                onValueChange={(val) => {
+                  setTargetStageCode(val);
+                  setInputLotId("");
+                  setProductSizeId("");
+                }}
+                disabled={isEditMode && isInProgress}
+              >
                 <SelectTrigger id="stage">
                   <SelectValue placeholder="Select production stage" />
                 </SelectTrigger>
@@ -365,12 +506,16 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
             {/* Product Selection */}
             <div className="grid gap-2">
               <Label htmlFor="product">Product *</Label>
-              <Select value={productId} onValueChange={(val) => {
-                setProductId(val);
-                setRecipeId("");
-                setInputLotId("");
-                setProductSizeId("");
-              }}>
+              <Select 
+                value={productId} 
+                onValueChange={(val) => {
+                  setProductId(val);
+                  setRecipeId("");
+                  setInputLotId("");
+                  setProductSizeId("");
+                }}
+                disabled={isEditMode && isInProgress}
+              >
                 <SelectTrigger id="product">
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
@@ -384,7 +529,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
               </Select>
             </div>
 
-            {/* Input Lot Selection - NEW (for stages after BASE_PREP) */}
+            {/* Input Lot Selection - for stages after BASE_PREP */}
             {needsInputLot && productId && (
               <div className="grid gap-2">
                 <Label htmlFor="inputLot">Input Lot (from previous stage)</Label>
@@ -393,7 +538,11 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                     No approved WIP lots available from the previous stage. Complete the previous stage first.
                   </p>
                 ) : (
-                  <Select value={inputLotId} onValueChange={setInputLotId}>
+                  <Select 
+                    value={inputLotId} 
+                    onValueChange={setInputLotId}
+                    disabled={isEditMode && isInProgress}
+                  >
                     <SelectTrigger id="inputLot">
                       <SelectValue placeholder="Select input lot" />
                     </SelectTrigger>
@@ -414,18 +563,27 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
               </div>
             )}
 
-            {/* Product Size Selection - NEW (for FREEZE, CASE_PACK, PACKAGE) */}
+            {/* Product Size Selection - for FREEZE, CASE_PACK with smart filtering */}
             {needsProductSize && productId && (
               <div className="grid gap-2">
-                <Label htmlFor="productSize">Output Product Size *</Label>
+                <Label htmlFor="productSize">{productSizeLabel} *</Label>
                 {productSizes.length === 0 ? (
                   <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                    No sizes configured for this product. Add sizes in Product Settings.
+                    {targetStageCode === "FREEZE" 
+                      ? "No tub sizes (size_type = 'unit') configured for this product. Add sizes in Product Settings."
+                      : targetStageCode === "CASE_PACK"
+                        ? "No case sizes (size_type = 'case') configured for this product. Add sizes in Product Settings."
+                        : "No sizes configured for this product."
+                    }
                   </p>
                 ) : (
-                  <Select value={productSizeId} onValueChange={setProductSizeId}>
+                  <Select 
+                    value={productSizeId} 
+                    onValueChange={setProductSizeId}
+                    disabled={isEditMode && isInProgress}
+                  >
                     <SelectTrigger id="productSize">
-                      <SelectValue placeholder="Select output size (e.g., G-CHOC-08)" />
+                      <SelectValue placeholder={`Select ${targetStageCode === "FREEZE" ? "tub size" : "case configuration"}`} />
                     </SelectTrigger>
                     <SelectContent>
                       {productSizes.map((size) => (
@@ -442,7 +600,11 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
             {/* Recipe Selection */}
             <div className="grid gap-2">
               <Label htmlFor="recipe">Recipe</Label>
-              <Select value={recipeId} onValueChange={setRecipeId} disabled={!productId}>
+              <Select 
+                value={recipeId} 
+                onValueChange={setRecipeId} 
+                disabled={!productId || (isEditMode && isInProgress)}
+              >
                 <SelectTrigger id="recipe">
                   <SelectValue placeholder={productId ? "Select recipe" : "Select product first"} />
                 </SelectTrigger>
@@ -459,7 +621,11 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
             {/* Production Line */}
             <div className="grid gap-2">
               <Label htmlFor="line">Production Line</Label>
-              <Select value={productionLineId} onValueChange={setProductionLineId}>
+              <Select 
+                value={productionLineId} 
+                onValueChange={setProductionLineId}
+                disabled={isEditMode && isInProgress}
+              >
                 <SelectTrigger id="line">
                   <SelectValue placeholder="Select line (optional)" />
                 </SelectTrigger>
@@ -485,6 +651,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                   value={targetQuantity}
                   onChange={(e) => setTargetQuantity(e.target.value)}
                   placeholder="Enter quantity"
+                  disabled={isCompleted}
                 />
               </div>
               <div className="grid gap-2">
@@ -492,7 +659,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                 <Select 
                   value={selectedStage?.default_output_uom === "EA" ? "units" : targetUom} 
                   onValueChange={setTargetUom}
-                  disabled={selectedStage?.default_output_uom === "EA"}
+                  disabled={selectedStage?.default_output_uom === "EA" || (isEditMode && isInProgress)}
                 >
                   <SelectTrigger id="uom">
                     <SelectValue />
@@ -511,7 +678,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
             {/* Priority */}
             <div className="grid gap-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={setPriority}>
+              <Select value={priority} onValueChange={setPriority} disabled={isCompleted}>
                 <SelectTrigger id="priority">
                   <SelectValue />
                 </SelectTrigger>
@@ -536,6 +703,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                         "justify-start text-left font-normal",
                         !scheduledDate && "text-muted-foreground"
                       )}
+                      disabled={isEditMode && isInProgress}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {scheduledDate ? format(scheduledDate, "PP") : "Pick date"}
@@ -561,6 +729,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                         "justify-start text-left font-normal",
                         !dueDate && "text-muted-foreground"
                       )}
+                      disabled={isCompleted}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dueDate ? format(dueDate, "PP") : "Pick date"}
@@ -587,6 +756,7 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
                 onChange={(e) => setSpecialInstructions(e.target.value)}
                 placeholder="Any special instructions or notes..."
                 rows={2}
+                disabled={isCompleted}
               />
             </div>
           </div>
@@ -595,11 +765,11 @@ export function WorkOrderFormDialog({ open, onOpenChange }: WorkOrderFormDialogP
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createWorkOrderMutation.isPending}>
-              {createWorkOrderMutation.isPending && (
+            <Button type="submit" disabled={isPending || isCompleted}>
+              {isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Create Work Order
+              {isEditMode ? "Update Work Order" : "Create Work Order"}
             </Button>
           </DialogFooter>
         </form>

@@ -142,6 +142,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Dashboard', href: '/warehouse' },
       { title: 'Putaway', href: '/warehouse/putaway' },
+      { title: 'Pallet Building', href: '/warehouse/pallet-building' },
       { title: 'Issue to Production', href: '/warehouse/issue-to-production' },
       { title: 'Transfers', href: '/warehouse/transfers' },
       { title: 'Cycle Counts', href: '/warehouse/cycle-counts' },

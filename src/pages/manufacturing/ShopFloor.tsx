@@ -4,19 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, PlayCircle, StopCircle, Package, Factory, Loader2, Plus } from "lucide-react";
+import { Clock, PlayCircle, StopCircle, Package, Factory, Loader2, Plus, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { WorkOrderFormDialog } from "@/components/manufacturing/WorkOrderFormDialog";
-interface WorkOrder {
+import { WorkOrderFormDialog, WorkOrder } from "@/components/manufacturing/WorkOrderFormDialog";
+
+interface WorkOrderDisplay {
   id: string;
   wo_number: string;
   wo_status: string;
+  wo_type: string;
+  product_id: string | null;
+  recipe_id: string | null;
+  production_line_id: string | null;
   target_quantity: number;
   target_uom: string;
+  priority: string;
+  scheduled_date: string | null;
   due_date: string | null;
-  priority: number;
+  special_instructions: string | null;
+  target_stage_code: string | null;
+  product_size_id: string | null;
+  input_lot_id: string | null;
   actual_total_cost: number | null;
   product?: { id: string; name: string; sku: string } | null;
   production_line?: { id: string; line_name: string } | null;
@@ -38,6 +48,9 @@ export default function ShopFloor() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeClock, setActiveClock] = useState<ClockEntry | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrderDisplay | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -85,7 +98,7 @@ export default function ShopFloor() {
         .order("priority", { ascending: false });
 
       if (error) throw error;
-      return data as unknown as WorkOrder[];
+      return data as unknown as WorkOrderDisplay[];
     },
     refetchInterval: 60000,
   });
@@ -177,146 +190,189 @@ export default function ShopFloor() {
     clockOutMutation.mutate();
   };
 
-  const getPriorityBadge = (priority: number) => {
-    if (priority >= 8) return <Badge variant="destructive">Rush</Badge>;
-    if (priority >= 5) return <Badge variant="secondary">Normal</Badge>;
+  const handleEditWorkOrder = (wo: WorkOrderDisplay) => {
+    setSelectedWorkOrder(wo);
+    setIsEditDialogOpen(true);
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    if (priority === "Rush") return <Badge variant="destructive">Rush</Badge>;
+    if (priority === "High") return <Badge variant="default">High</Badge>;
+    if (priority === "Standard") return <Badge variant="secondary">Normal</Badge>;
     return <Badge variant="outline">Low</Badge>;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "In Progress":
+        return <Badge>In Progress</Badge>;
+      case "Released":
+        return <Badge variant="secondary">Released</Badge>;
+      case "Created":
+        return <Badge variant="outline">Created</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   return (
     <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Factory className="h-8 w-8" />
-              Shop Floor
-            </h1>
-            <p className="text-muted-foreground">Mobile production interface</p>
-          </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Work Order
-          </Button>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Factory className="h-8 w-8" />
+            Shop Floor
+          </h1>
+          <p className="text-muted-foreground">Mobile production interface</p>
         </div>
-        {/* Clock Status Card */}
-        <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Time Clock
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeClock ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Clocked in at</p>
-                  <p className="text-2xl font-bold">
-                    {format(new Date(activeClock.clock_in), "h:mm a")}
-                  </p>
-                  <Badge className="mt-1 bg-green-500">WORKING</Badge>
-                </div>
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  onClick={handleClockOut}
-                  disabled={clockOutMutation.isPending}
-                  className="gap-2"
-                >
-                  <StopCircle className="h-5 w-5" />
-                  Clock Out
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground mb-2">Not clocked in</p>
-                <p className="text-sm text-muted-foreground">
-                  Select a work order below to clock in
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create Work Order
+        </Button>
+      </div>
 
-        {/* Active Work Orders */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Work Orders</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loadingWOs ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin" />
+      {/* Clock Status Card */}
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Time Clock
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activeClock ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Clocked in at</p>
+                <p className="text-2xl font-bold">
+                  {format(new Date(activeClock.clock_in), "h:mm a")}
+                </p>
+                <Badge className="mt-1 bg-primary">WORKING</Badge>
               </div>
-            ) : activeWorkOrders.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No active work orders</p>
-              </div>
-            ) : (
-              <div className="divide-y">
-                {activeWorkOrders.map((wo) => (
-                  <div key={wo.id} className="p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono font-bold">{wo.wo_number}</span>
-                          {getPriorityBadge(wo.priority)}
-                          <Badge variant={wo.wo_status === "In Progress" ? "default" : "secondary"}>
-                            {wo.wo_status}
-                          </Badge>
-                        </div>
-                        <p className="font-medium">{wo.product?.name || "—"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {wo.production_line?.line_name || "No line assigned"}
-                        </p>
-                        <div className="flex gap-4 mt-2 text-sm">
-                          <span>
-                            <strong>Target:</strong> {wo.target_quantity} {wo.target_uom}
-                          </span>
-                          {wo.due_date && (
-                            <span>
-                              <strong>Due:</strong> {format(new Date(wo.due_date), "MMM d")}
-                            </span>
-                          )}
-                        </div>
+              <Button
+                size="lg"
+                variant="destructive"
+                onClick={handleClockOut}
+                disabled={clockOutMutation.isPending}
+                className="gap-2"
+              >
+                <StopCircle className="h-5 w-5" />
+                Clock Out
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground mb-2">Not clocked in</p>
+              <p className="text-sm text-muted-foreground">
+                Select a work order below to clock in
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active Work Orders */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Work Orders</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loadingWOs ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : activeWorkOrders.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No active work orders</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {activeWorkOrders.map((wo) => (
+                <div key={wo.id} className="p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono font-bold">{wo.wo_number}</span>
+                        {getPriorityBadge(wo.priority)}
+                        {getStatusBadge(wo.wo_status)}
                       </div>
-                      <div className="flex flex-col gap-2">
-                        {!activeClock && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleClockIn(wo.id)}
-                            disabled={clockInMutation.isPending}
-                            className="gap-1"
-                          >
-                            <PlayCircle className="h-4 w-4" />
-                            Clock In
-                          </Button>
+                      <p className="font-medium">{wo.product?.name || "—"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {wo.production_line?.line_name || "No line assigned"}
+                        {wo.target_stage_code && (
+                          <span className="ml-2">• Stage: {wo.target_stage_code}</span>
                         )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(`/manufacturing/shop-floor/${wo.id}`)}
-                          className="gap-1"
-                        >
-                          <Package className="h-4 w-4" />
-                          Execute
-                        </Button>
+                      </p>
+                      <div className="flex gap-4 mt-2 text-sm">
+                        <span>
+                          <strong>Target:</strong> {wo.target_quantity} {wo.target_uom}
+                        </span>
+                        {wo.due_date && (
+                          <span>
+                            <strong>Due:</strong> {format(new Date(wo.due_date), "MMM d")}
+                          </span>
+                        )}
                       </div>
                     </div>
+                    <div className="flex flex-col gap-2">
+                      {/* Edit button - always visible for non-completed orders */}
+                      {wo.wo_status !== "Completed" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditWorkOrder(wo)}
+                          className="gap-1"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Button>
+                      )}
+                      {!activeClock && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleClockIn(wo.id)}
+                          disabled={clockInMutation.isPending}
+                          className="gap-1"
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                          Clock In
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/manufacturing/shop-floor/${wo.id}`)}
+                        className="gap-1"
+                      >
+                        <Package className="h-4 w-4" />
+                        Execute
+                      </Button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Create Work Order Dialog */}
-        <WorkOrderFormDialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-        />
+      {/* Create Work Order Dialog */}
+      <WorkOrderFormDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+
+      {/* Edit Work Order Dialog */}
+      <WorkOrderFormDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) setSelectedWorkOrder(null);
+        }}
+        workOrder={selectedWorkOrder as WorkOrder | null}
+      />
     </div>
   );
 }
