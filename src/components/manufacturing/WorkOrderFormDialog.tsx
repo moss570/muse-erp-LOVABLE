@@ -210,34 +210,50 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
       .map(m => m.category_code);
   }, [targetStageCode, stageCategoryMappings]);
 
-  // Fetch products - filtered by stage/category
+  // Fetch products - filtered by stage/category using product_categories.code
   const { data: products = [] } = useQuery({
     queryKey: ["products-for-wo", targetStageCode, allowedCategories],
-    queryFn: async (): Promise<{ id: string; name: string; sku: string; category: string; is_family_head: boolean }[]> => {
-      let query = supabase.from("products")
-        .select("id, name, sku, category, is_family_head")
-        .eq("is_active", true);
+    queryFn: async (): Promise<{ id: string; name: string; sku: string; category_code: string | null; is_family_head: boolean }[]> => {
+      // First, get products with their category codes
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          id, 
+          name, 
+          sku, 
+          is_family_head,
+          product_category:product_categories(code)
+        `)
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      
+      // Map and filter based on stage
+      const productsWithCategory = (data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        category_code: p.product_category?.code || null,
+        is_family_head: p.is_family_head || false,
+      }));
 
       // Filter by stage
       if (targetStageCode === "BASE_PREP") {
-        // Only BASE category products
-        query = query.eq("category", "BASE");
+        return productsWithCategory.filter(p => p.category_code === "BASE");
       } else if (targetStageCode === "FLAVOR" && allowedCategories.length > 0) {
-        // Only family heads for flavor categories
-        query = query.in("category", allowedCategories).eq("is_family_head", true);
-      } else if (targetStageCode === "FREEZE" || targetStageCode === "CASE_PACK") {
-        // For FREEZE/CASE_PACK, show products that have sizes of the right type
-        // This will be filtered by product_sizes
-        if (allowedCategories.length > 0) {
-          query = query.in("category", allowedCategories);
-        }
+        return productsWithCategory.filter(p => 
+          allowedCategories.includes(p.category_code || "") && p.is_family_head
+        );
+      } else if ((targetStageCode === "FREEZE" || targetStageCode === "CASE_PACK") && allowedCategories.length > 0) {
+        return productsWithCategory.filter(p => 
+          allowedCategories.includes(p.category_code || "")
+        );
       }
-
-      const { data, error } = await query.order("name");
-      if (error) throw error;
-      return (data || []) as any[];
+      
+      return productsWithCategory;
     },
-    enabled: open,
+    enabled: open && !!targetStageCode,
   });
 
   // Fetch product sizes for the selected product - WITH SMART FILTERING BY STAGE
@@ -641,12 +657,18 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                 <SelectTrigger id="product">
                   <SelectValue placeholder={targetStageCode ? "Select product" : "Select stage first"} />
                 </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} ({p.sku})
-                    </SelectItem>
-                  ))}
+                <SelectContent className="z-[200]">
+                  {products.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      No products found for this stage
+                    </div>
+                  ) : (
+                    products.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} ({p.sku})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {targetStageCode === "FLAVOR" && (
