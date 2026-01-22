@@ -51,13 +51,13 @@ export default function Products() {
         .select(`
           *,
           units_of_measure:unit_id(*),
-          product_category:product_categories(id, name, code)
+          product_category:product_categories(id, name, code, wip_uom)
         `)
         .order('name');
       if (error) throw error;
       return data as (Product & { 
         units_of_measure: Unit | null;
-        product_category: { id: string; name: string; code: string } | null;
+        product_category: { id: string; name: string; code: string; wip_uom: string | null } | null;
       })[];
     },
   });
@@ -264,7 +264,13 @@ export default function Products() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>{product.units_of_measure?.code || '-'}</TableCell>
+                      <TableCell>
+                        {/* For WIP categories, show wip_uom if set (e.g., KG for base mix) */}
+                        {product.product_category?.wip_uom 
+                          ? product.product_category.wip_uom 
+                          : (product.units_of_measure?.code || '-')
+                        }
+                      </TableCell>
                       <TableCell>
                         {product.product_category?.code === 'BASE' ? (
                           <Badge className="bg-blue-100 text-blue-800">Base</Badge>

@@ -105,6 +105,12 @@ export function EditProductSizeDialog({
     return parentTubSizes.find(s => s.id === parentSizeId);
   }, [parentTubSizes, parentSizeId]);
 
+  // Get parent's container size for case packs
+  const selectedParentContainer = useMemo(() => {
+    if (!selectedParentSize) return null;
+    return activeContainerSizes.find(c => c.id === (selectedParentSize as any).container_size_id);
+  }, [selectedParentSize, activeContainerSizes]);
+
   // Get effective pallet dimensions based on type
   const effectivePalletDims = useMemo(() => {
     if (palletType === 'CUSTOM') {
@@ -165,13 +171,17 @@ export function EditProductSizeDialog({
     return Math.round(volumeIn3 * 0.0000163871 * 1000000) / 1000000; // Round to 6 decimals
   }, [selectedBoxMaterial]);
 
-  // Auto-calculate Case Weight: (units × target weight) + box weight
+  // Auto-calculate Case Weight: (units × parent target weight) + box weight
+  // For case packs with a parent, use parent's target weight; otherwise use form's target weight
   const calculatedCaseWeightKg = useMemo(() => {
-    if (!targetWeight || !unitsPerCase) return null;
-    const productWeight = unitsPerCase * targetWeight;
+    const unitWeight = sizeType === 'case' && (selectedParentSize as any)?.target_weight_kg
+      ? (selectedParentSize as any).target_weight_kg
+      : targetWeight;
+    if (!unitWeight || !unitsPerCase) return null;
+    const productWeight = unitsPerCase * unitWeight;
     const boxWeight = selectedBoxMaterial?.box_weight_kg || 0;
     return Math.round((productWeight + boxWeight) * 100) / 100;
-  }, [targetWeight, unitsPerCase, selectedBoxMaterial]);
+  }, [sizeType, selectedParentSize, targetWeight, unitsPerCase, selectedBoxMaterial]);
 
   // Calculate case cube in cubic feet for display
   const caseCubeFt3 = useMemo(() => {
@@ -405,6 +415,18 @@ export function EditProductSizeDialog({
   const handleSave = async () => {
     if (isFieldsDisabled) return;
     // Validation
+    // For case types, require parent tub selection
+    if (sizeType === 'case' && !parentSizeId) {
+      toast.error("Please select a parent tub size");
+      return;
+    }
+
+    // For case types, require box material
+    if (sizeType === 'case' && !boxMaterialId) {
+      toast.error("Box material is required for case packs");
+      return;
+    }
+
     if (!containerSizeId) {
       toast.error("Please select a container size");
       return;
@@ -541,66 +563,92 @@ export function EditProductSizeDialog({
              )}
            </div>
 
-           {/* Parent Tub Size - Only for Case type */}
+   {/* Parent Tub Size - Only for Case type */}
            {sizeType === 'case' && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Link className="h-3 w-3" />
+                  Parent Tub Size *
+                </Label>
+                <Select
+                  value={parentSizeId || "__none__"}
+                  onValueChange={(v) => {
+                    const newParentId = v === "__none__" ? "" : v;
+                    setParentSizeId(newParentId);
+                    // When parent is selected, inherit its container size
+                    const parent = parentTubSizes.find(ps => ps.id === newParentId);
+                    if (parent && (parent as any).container_size_id) {
+                      setContainerSizeId((parent as any).container_size_id);
+                    }
+                  }}
+                  disabled={isFieldsDisabled}
+                >
+                  <SelectTrigger className={!parentSizeId ? "border-amber-500" : ""}>
+                    <SelectValue placeholder="Select parent tub" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select parent tub...</SelectItem>
+                    {parentTubSizes.map((ps) => (
+                      <SelectItem key={ps.id} value={ps.id}>
+                        {ps.sku} - {ps.size_name} {ps.upc_code ? `(UPC: ${ps.upc_code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {parentTubSizes.length === 0 
+                    ? "No tub sizes exist yet. Create an Individual Tub first to link case packs."
+                    : "Select the parent tub to inherit its container size and UPC"
+                  }
+                </p>
+                {selectedParentSize && (
+                  <div className="p-2 bg-muted rounded-md text-xs space-y-1">
+                    {selectedParentSize.upc_code && (
+                      <div>
+                        <span className="text-muted-foreground">Inherited Tub UPC: </span>
+                        <code className="font-mono">{selectedParentSize.upc_code}</code>
+                      </div>
+                    )}
+                    {selectedParentContainer && (
+                      <div>
+                        <span className="text-muted-foreground">Container: </span>
+                        <span>{selectedParentContainer.name} ({selectedParentContainer.volume_gallons} gal)</span>
+                      </div>
+                    )}
+                    {(selectedParentSize as any)?.target_weight_kg && (
+                      <div>
+                        <span className="text-muted-foreground">Tub Weight: </span>
+                        <span>{(selectedParentSize as any).target_weight_kg} kg</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+   {/* Container Size - Hidden when parent tub is selected for case types */}
+           {!(sizeType === 'case' && parentSizeId) && (
              <div className="space-y-2">
-               <Label className="flex items-center gap-1">
-                 <Link className="h-3 w-3" />
-                 Parent Tub Size
-               </Label>
+               <Label htmlFor="container-size">Container Size *</Label>
                <Select
-                 value={parentSizeId || "__none__"}
-                 onValueChange={(v) => setParentSizeId(v === "__none__" ? "" : v)}
+                 value={containerSizeId || "__none__"}
+                 onValueChange={(v) => setContainerSizeId(v === "__none__" ? "" : v)}
                  disabled={isFieldsDisabled}
                >
                  <SelectTrigger>
-                   <SelectValue placeholder="Select parent tub (optional)" />
+                   <SelectValue placeholder="Select container size" />
                  </SelectTrigger>
                  <SelectContent>
-                   <SelectItem value="__none__">No parent (standalone case)</SelectItem>
-                   {parentTubSizes.map((ps) => (
-                     <SelectItem key={ps.id} value={ps.id}>
-                       {ps.sku} - {ps.size_name} {ps.upc_code ? `(UPC: ${ps.upc_code})` : ''}
+                   <SelectItem value="__none__">Select container...</SelectItem>
+                   {activeContainerSizes.map((cs) => (
+                     <SelectItem key={cs.id} value={cs.id}>
+                       {cs.name} ({cs.volume_gallons} gal) - Code {cs.sku_code}
                      </SelectItem>
                    ))}
                  </SelectContent>
                </Select>
-               <p className="text-xs text-muted-foreground">
-                 {parentTubSizes.length === 0 
-                   ? "No tub sizes exist yet. Create an Individual Tub first to link case packs."
-                   : "Linking to a parent tub shares the same tub UPC and auto-generates case GTIN-14"
-                 }
-               </p>
-               {selectedParentSize?.upc_code && (
-                 <div className="p-2 bg-muted rounded-md text-xs">
-                   <span className="text-muted-foreground">Inherited Tub UPC: </span>
-                   <code className="font-mono">{selectedParentSize.upc_code}</code>
-                 </div>
-               )}
              </div>
            )}
-
-           {/* Container Size */}
-           <div className="space-y-2">
-             <Label htmlFor="container-size">Container Size *</Label>
-             <Select
-               value={containerSizeId || "__none__"}
-               onValueChange={(v) => setContainerSizeId(v === "__none__" ? "" : v)}
-               disabled={isFieldsDisabled}
-             >
-               <SelectTrigger>
-                 <SelectValue placeholder="Select container size" />
-               </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="__none__">Select container...</SelectItem>
-                 {activeContainerSizes.map((cs) => (
-                   <SelectItem key={cs.id} value={cs.id}>
-                     {cs.name} ({cs.volume_gallons} gal) - Code {cs.sku_code}
-                   </SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
-           </div>
 
            {/* Case Pack Quantity - Only for Case type */}
            {sizeType === 'case' && (
@@ -636,29 +684,32 @@ export function EditProductSizeDialog({
              </div>
            )}
 
-           {/* Box Material - Only for Case type */}
+   {/* Box Material - Required for Case type */}
            {sizeType === 'case' && (
-             <div className="space-y-2">
-               <Label htmlFor="box-material">Box Material</Label>
-               <Select 
-                 value={boxMaterialId || "__none__"} 
-                 onValueChange={(v) => setBoxMaterialId(v === "__none__" ? "" : v)}
-                 disabled={isFieldsDisabled}
-               >
-                 <SelectTrigger>
-                   <SelectValue placeholder="Select box material" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="__none__">None</SelectItem>
-                   {boxMaterials.map((mat) => (
-                     <SelectItem key={mat.id} value={mat.id}>
-                       {mat.code} - {mat.name}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </div>
-           )}
+              <div className="space-y-2">
+                <Label htmlFor="box-material">Box Material *</Label>
+                <Select 
+                  value={boxMaterialId || "__none__"} 
+                  onValueChange={(v) => setBoxMaterialId(v === "__none__" ? "" : v)}
+                  disabled={isFieldsDisabled}
+                >
+                  <SelectTrigger className={!boxMaterialId ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select box material (required)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select box material...</SelectItem>
+                    {boxMaterials.map((mat) => (
+                      <SelectItem key={mat.id} value={mat.id}>
+                        {mat.code} - {mat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!boxMaterialId && (
+                  <p className="text-xs text-destructive">Box material is required for case packs</p>
+                )}
+              </div>
+            )}
 
           {/* Generated SKU Display */}
           {generatedSku && (
@@ -733,14 +784,14 @@ export function EditProductSizeDialog({
 
           {/* UPC Codes - Collapsible */}
            <Collapsible open={upcSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setUpcSectionOpen(next)}>
-             <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
-               UPC Codes
-               <ChevronDown className={`h-4 w-4 transition-transform ${upcSectionOpen ? 'rotate-180' : ''}`} />
-             </CollapsibleTrigger>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
+                UPC Codes
+                <ChevronDown className={`h-4 w-4 transition-transform ${upcSectionOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Tub UPC (12-digit)</Label>
+                  <Label>{sizeType === 'unit' ? 'Tub UPC (12-digit)' : 'Tub UPC (inherited from parent)'}</Label>
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -753,89 +804,96 @@ export function EditProductSizeDialog({
                     ) : (
                       <Wand2 className="h-4 w-4 mr-1" />
                     )}
-                    Generate
+                    {sizeType === 'case' && parentSizeId ? 'Generate Case UPC' : 'Generate'}
                   </Button>
                 </div>
                 <Input
                   value={tubUpc}
                   onChange={(e) => setTubUpc(e.target.value)}
-                  placeholder="Enter or generate UPC"
+                  placeholder={sizeType === 'case' && parentSizeId ? "Auto-populated from parent" : "Enter or generate UPC"}
                   maxLength={12}
-                  disabled={isFieldsDisabled}
+                  disabled={isFieldsDisabled || (sizeType === 'case' && !!parentSizeId)}
+                  className={sizeType === 'case' && parentSizeId ? "bg-muted" : ""}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Case UPC / GTIN-14 (14-digit)</Label>
-                <Input
-                  value={caseUpc}
-                  onChange={(e) => setCaseUpc(e.target.value)}
-                  placeholder="Enter or generate GTIN-14"
-                  maxLength={14}
-                  disabled={isFieldsDisabled}
-                />
-              </div>
+              {/* Case UPC - Only for case types */}
+              {sizeType === 'case' && (
+                <div className="space-y-2">
+                  <Label>Case UPC / GTIN-14 (14-digit)</Label>
+                  <Input
+                    value={caseUpc}
+                    onChange={(e) => setCaseUpc(e.target.value)}
+                    placeholder="Enter or generate GTIN-14"
+                    maxLength={14}
+                    disabled={isFieldsDisabled}
+                  />
+                </div>
+              )}
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Case Specifications - Auto-calculated */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className={calculatedCaseWeightKg !== null ? "text-muted-foreground" : ""}>
-                Case Weight (kg){calculatedCaseWeightKg !== null ? " - calculated" : ""}
-              </Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={caseWeightKg ?? ""}
-                onChange={(e) => setCaseWeightKg(e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder={calculatedCaseWeightKg !== null ? "Auto-calculated" : "Total case weight"}
-                readOnly={calculatedCaseWeightKg !== null || isFieldsDisabled}
-                disabled={isFieldsDisabled}
-                className={calculatedCaseWeightKg !== null ? "bg-muted" : ""}
-              />
-              {calculatedCaseWeightKg === null && targetWeight && (
-                <p className="text-xs text-muted-foreground">
-                  Select box material to auto-calculate
-                </p>
-              )}
+          {/* Case Specifications - Auto-calculated - Only for case types */}
+          {sizeType === 'case' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={calculatedCaseWeightKg !== null ? "text-muted-foreground" : ""}>
+                  Case Weight (kg){calculatedCaseWeightKg !== null ? " - calculated" : ""}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={caseWeightKg ?? ""}
+                  onChange={(e) => setCaseWeightKg(e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder={calculatedCaseWeightKg !== null ? "Auto-calculated" : "Total case weight"}
+                  readOnly={calculatedCaseWeightKg !== null || isFieldsDisabled}
+                  disabled={isFieldsDisabled}
+                  className={calculatedCaseWeightKg !== null ? "bg-muted" : ""}
+                />
+                {calculatedCaseWeightKg !== null && (
+                  <p className="text-xs text-muted-foreground">
+                    {unitsPerCase} × {(sizeType === 'case' && (selectedParentSize as any)?.target_weight_kg) || targetWeight || 0} kg + {selectedBoxMaterial?.box_weight_kg || 0} kg box
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className={calculatedCaseCubeM3 !== null ? "text-muted-foreground" : ""}>
+                  Case Cube (m³){calculatedCaseCubeM3 !== null ? " - calculated" : ""}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  value={caseCubeM3 ?? ""}
+                  onChange={(e) => setCaseCubeM3(e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder={calculatedCaseCubeM3 !== null ? "Auto-calculated" : "Cubic volume"}
+                  readOnly={calculatedCaseCubeM3 !== null || isFieldsDisabled}
+                  disabled={isFieldsDisabled}
+                  className={calculatedCaseCubeM3 !== null ? "bg-muted" : ""}
+                />
+                {calculatedCaseCubeM3 === null && boxMaterialId && (
+                  <p className="text-xs text-amber-600">
+                    Box dimensions not set in Materials
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className={calculatedCaseCubeM3 !== null ? "text-muted-foreground" : ""}>
-                Case Cube (m³){calculatedCaseCubeM3 !== null ? " - calculated" : ""}
-              </Label>
-              <Input
-                type="number"
-                step="0.0001"
-                value={caseCubeM3 ?? ""}
-                onChange={(e) => setCaseCubeM3(e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder={calculatedCaseCubeM3 !== null ? "Auto-calculated" : "Cubic volume"}
-                readOnly={calculatedCaseCubeM3 !== null || isFieldsDisabled}
-                disabled={isFieldsDisabled}
-                className={calculatedCaseCubeM3 !== null ? "bg-muted" : ""}
-              />
-              {calculatedCaseCubeM3 === null && boxMaterialId && (
-                <p className="text-xs text-amber-600">
-                  Box dimensions not set in Materials
-                </p>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Pallet Configuration - Collapsible */}
            <Collapsible open={palletSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setPalletSectionOpen(next)}>
-             <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
-               <span className="flex items-center gap-2">
-                 <Layers className="h-4 w-4" />
-                 Pallet Configuration
-                 {overhangSeverity === 'danger' && (
-                   <Badge variant="destructive" className="text-xs">Overhang</Badge>
-                 )}
-                 {overhangSeverity === 'warning' && (
-                   <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Minor Overhang</Badge>
-                 )}
-               </span>
-               <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
-             </CollapsibleTrigger>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium" disabled={isFieldsDisabled}>
+                <span className="flex items-center gap-2">
+                  <Layers className="h-4 w-4" />
+                  Pallet Configuration
+                  {sizeType === 'unit' && <span className="text-muted-foreground text-xs">(Optional)</span>}
+                  {sizeType === 'case' && overhangSeverity === 'danger' && (
+                    <Badge variant="destructive" className="text-xs">Overhang</Badge>
+                  )}
+                  {sizeType === 'case' && overhangSeverity === 'warning' && (
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Minor Overhang</Badge>
+                  )}
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${palletSectionOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
               {/* Pallet Type Selector */}
                <PalletTypeSelector

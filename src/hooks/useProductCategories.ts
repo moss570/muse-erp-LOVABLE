@@ -18,6 +18,7 @@ export interface ProductCategory {
   spec_sheet_sections: string[];
   is_active: boolean;
   sort_order: number;
+  wip_uom: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -8655,6 +8655,7 @@ export type Database = {
           sort_order: number | null
           spec_sheet_sections: Json | null
           updated_at: string | null
+          wip_uom: string | null
         }
         Insert: {
           code: string
@@ -8668,6 +8669,7 @@ export type Database = {
           sort_order?: number | null
           spec_sheet_sections?: Json | null
           updated_at?: string | null
+          wip_uom?: string | null
         }
         Update: {
           code?: string
@@ -8681,6 +8683,7 @@ export type Database = {
           sort_order?: number | null
           spec_sheet_sections?: Json | null
           updated_at?: string | null
+          wip_uom?: string | null
         }
         Relationships: []
       }

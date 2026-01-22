@@ -43,6 +43,8 @@ export interface ProductSize {
     sku: string | null;
     upc_code: string | null;
     size_name: string;
+    target_weight_kg?: number | null;
+    container_size_id?: string | null;
   } | null;
 }
 
@@ -76,7 +78,7 @@ export function useProductSizes(productId: string | null) {
         .select(`
           *,
           size_unit:units_of_measure(id, name, code),
-          parent_size:product_sizes!parent_size_id(id, sku, upc_code, size_name)
+          parent_size:product_sizes!parent_size_id(id, sku, upc_code, size_name, target_weight_kg, container_size_id)
         `)
         .eq("product_id", productId)
         .order("sort_order", { ascending: true });
