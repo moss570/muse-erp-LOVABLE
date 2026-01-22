@@ -26,7 +26,12 @@ interface WorkOrderDetail {
   target_quantity: number;
   target_uom: string;
   actual_total_cost: number | null;
-  product?: { id: string; name: string; material_code: string } | null;
+  target_stage_code: string | null;
+  product_size_id: string | null;
+  input_lot_id: string | null;
+  product?: { id: string; name: string; sku: string } | null;
+  product_size?: { id: string; sku: string; size_name: string } | null;
+  input_lot?: { id: string; lot_number: string; quantity_available: number } | null;
   work_order_materials?: Array<{
     id: string;
     material_id: string;
@@ -39,7 +44,9 @@ interface WorkOrderDetail {
     id: string;
     stage_status: string;
     cumulative_total_cost: number;
-    stage?: { id: string; stage_code: string; stage_name: string; sequence_order: number } | null;
+    wip_lot_id: string | null;
+    wip_lot?: { id: string; lot_number: string } | null;
+    stage?: { id: string; stage_code: string; stage_name: string; sequence_order: number; creates_intermediate_lot: boolean } | null;
   }>;
 }
 
@@ -71,14 +78,17 @@ export default function ShopFloorWorkOrder() {
         .from("work_orders")
         .select(`
           *,
-          product:materials!work_orders_product_id_fkey(id, name, material_code),
+          product:products(id, name, sku),
+          product_size:product_sizes(id, sku, size_name),
+          input_lot:production_lots!work_orders_input_lot_id_fkey(id, lot_number, quantity_available),
           work_order_materials(
             *,
             material:materials(id, name, material_code)
           ),
           work_order_stage_progress(
             *,
-            stage:production_stages_master(id, stage_code, stage_name, sequence_order)
+            wip_lot:production_lots(id, lot_number),
+            stage:production_stages_master(id, stage_code, stage_name, sequence_order, creates_intermediate_lot)
           )
         `)
         .eq("id", id)
@@ -165,23 +175,39 @@ export default function ShopFloorWorkOrder() {
     },
   });
 
-  // Complete stage mutation
+  // Complete stage mutation - uses v2 function with WIP lot creation
   const completeStageMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("complete_production_stage", {
+      // Try the v2 function first, fall back to original if not available
+      const { data, error } = await supabase.rpc("complete_production_stage_v2", {
         p_work_order_id: id,
         p_stage_code: currentStage,
         p_output_quantity: outputQuantity,
         p_waste_quantity: wasteQuantity,
+        p_output_product_size_id: workOrder?.product_size_id || null,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Fall back to original function if v2 doesn't exist
+        if (error.message.includes("does not exist")) {
+          const { data: fallbackData, error: fallbackError } = await supabase.rpc("complete_production_stage", {
+            p_work_order_id: id,
+            p_stage_code: currentStage,
+            p_output_quantity: outputQuantity,
+            p_waste_quantity: wasteQuantity,
+          });
+          if (fallbackError) throw fallbackError;
+          return fallbackData;
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["shop-floor-wo", id] });
+      const wipMessage = data.wip_lot_number ? ` • WIP Lot: ${data.wip_lot_number}` : '';
       toast.success("Stage completed", {
-        description: `Yield: ${data.yield_percentage?.toFixed(1) || '0'}% • Cost: $${data.stage_costs?.total?.toFixed(2) || '0.00'}`,
+        description: `Yield: ${data.yield_percentage?.toFixed(1) || '0'}% • Cost: $${data.stage_costs?.total?.toFixed(2) || '0.00'}${wipMessage}`,
       });
     },
     onError: (error: any) => {
@@ -249,8 +275,19 @@ export default function ShopFloorWorkOrder() {
               <Badge variant={workOrder.wo_status === "In Progress" ? "default" : "secondary"}>
                 {workOrder.wo_status}
               </Badge>
+              {workOrder.target_stage_code && (
+                <Badge variant="outline">{workOrder.target_stage_code}</Badge>
+              )}
             </h1>
-            <p className="text-muted-foreground">{workOrder.product?.name || "—"}</p>
+            <p className="text-muted-foreground">
+              {workOrder.product?.name || "—"}
+              {workOrder.product_size && (
+                <span className="ml-2 font-mono text-sm">→ {workOrder.product_size.sku}</span>
+              )}
+              {workOrder.input_lot && (
+                <span className="ml-2 text-sm">• Input: {workOrder.input_lot.lot_number}</span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -458,8 +495,18 @@ export default function ShopFloorWorkOrder() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium">{sp.stage?.stage_name || "Unknown Stage"}</p>
+                            <p className="font-medium flex items-center gap-2">
+                              {sp.stage?.stage_name || "Unknown Stage"}
+                              {sp.stage?.creates_intermediate_lot && (
+                                <Badge variant="outline" className="text-xs">WIP</Badge>
+                              )}
+                            </p>
                             <p className="text-sm text-muted-foreground">{sp.stage?.stage_code}</p>
+                            {sp.wip_lot && (
+                              <p className="text-xs font-mono text-primary mt-1">
+                                → Lot: {sp.wip_lot.lot_number}
+                              </p>
+                            )}
                           </div>
                           <div className="text-right">
                             <Badge
