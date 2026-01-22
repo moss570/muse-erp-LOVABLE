@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   DndContext,
   DragEndEvent,
@@ -35,6 +36,8 @@ import {
   LayoutGrid,
   TrendingUp,
   ShoppingCart,
+  GanttChart,
+  CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -42,6 +45,10 @@ import { aggregateAllergensForRecipe } from "@/lib/bomAggregation";
 import { DailyTargetIndicator } from "@/components/manufacturing/DailyTargetIndicator";
 import { RequiredCapacityView } from "@/components/manufacturing/RequiredCapacityView";
 import { ProcurementScheduleView } from "@/components/manufacturing/ProcurementScheduleView";
+import { ScheduleTimelineView } from "@/components/manufacturing/ScheduleTimelineView";
+import { ScheduleMonthView } from "@/components/manufacturing/ScheduleMonthView";
+
+type ScheduleViewMode = "grid" | "timeline" | "month";
 
 interface RecipeVolumeData {
   batch_volume: number | null;
@@ -369,6 +376,7 @@ export default function ProductionScheduler() {
   const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("schedule");
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>("grid");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -719,8 +727,8 @@ export default function ProductionScheduler() {
 
         {/* Master Production Schedule Tab */}
         <TabsContent value="schedule" className="mt-4 space-y-4">
-          {/* Week Navigation */}
-          <div className="flex items-center justify-between">
+          {/* Navigation and View Toggle */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -762,94 +770,136 @@ export default function ProductionScheduler() {
                 Today
               </Button>
             </div>
-            
-            <p className="text-sm text-muted-foreground">
-              Drag work orders to schedule production
-            </p>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-4">
+              <ToggleGroup 
+                type="single" 
+                value={viewMode} 
+                onValueChange={(v) => v && setViewMode(v as ScheduleViewMode)}
+                className="border rounded-lg p-1"
+              >
+                <ToggleGroupItem value="grid" aria-label="Grid view" className="px-3">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Grid</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="timeline" aria-label="Timeline view" className="px-3">
+                  <GanttChart className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Timeline</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="month" aria-label="Month view" className="px-3">
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Month</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            {/* Collapsible Unscheduled Panel */}
-            <Collapsible open={isUnscheduledOpen} onOpenChange={setIsUnscheduledOpen}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="py-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <CardTitle className="flex items-center justify-between text-base">
-                      <div className="flex items-center gap-2">
-                        <Factory className="h-5 w-5" />
-                        Unscheduled Work Orders ({unscheduledWorkOrders.length})
-                      </div>
-                      {isUnscheduledOpen ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          {/* Conditional View Rendering */}
+          {viewMode === "grid" && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {/* Collapsible Unscheduled Panel */}
+              <Collapsible open={isUnscheduledOpen} onOpenChange={setIsUnscheduledOpen}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="py-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <div className="flex items-center gap-2">
+                          <Factory className="h-5 w-5" />
+                          Unscheduled Work Orders ({unscheduledWorkOrders.length})
+                        </div>
+                        {isUnscheduledOpen ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0 pb-4">
+                      {unscheduledWorkOrders.length === 0 ? (
+                        <p className="text-center text-muted-foreground text-sm py-4">
+                          All work orders are scheduled
+                        </p>
                       ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                          {unscheduledWorkOrders.map((wo) => (
+                            <DraggableCard key={wo.id} item={wo} type="unscheduled" compact />
+                          ))}
+                        </div>
                       )}
-                    </CardTitle>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0 pb-4">
-                    {unscheduledWorkOrders.length === 0 ? (
-                      <p className="text-center text-muted-foreground text-sm py-4">
-                        All work orders are scheduled
-                      </p>
-                    ) : (
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+
+              {/* Full-Width Schedule Grid */}
+              <div className="space-y-4">
+                {productionLines.map((line: any) => (
+                  <Card key={line.id}>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-base flex items-center justify-between">
+                        <span>{line.line_name}</span>
+                        <Badge variant="outline" className="font-normal">
+                          Target: {line.capacity_value || 0} gal/day
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-4">
                       <div className="flex gap-3 overflow-x-auto pb-2">
-                        {unscheduledWorkOrders.map((wo) => (
-                          <DraggableCard key={wo.id} item={wo} type="unscheduled" compact />
+                        {weekDates.map((date) => (
+                          <DroppableColumn
+                            key={`${date}|${line.id}`}
+                            date={date}
+                            lineId={line.id}
+                            lineName={line.line_name}
+                            scheduleItems={getScheduleItemsForCell(date, line.id)}
+                            laborStatus={laborStatus[`${date}|${line.id}`]}
+                            lineCapacity={line.capacity_value || 0}
+                            onUnschedule={handleUnschedule}
+                          />
                         ))}
                       </div>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-            {/* Full-Width Schedule Grid */}
-            <div className="space-y-4">
-              {productionLines.map((line: any) => (
-                <Card key={line.id}>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base flex items-center justify-between">
-                      <span>{line.line_name}</span>
-                      <Badge variant="outline" className="font-normal">
-                        Target: {line.capacity_value || 0} gal/day
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-4">
-                    <div className="flex gap-3 overflow-x-auto pb-2">
-                      {weekDates.map((date) => (
-                        <DroppableColumn
-                          key={`${date}|${line.id}`}
-                          date={date}
-                          lineId={line.id}
-                          lineName={line.line_name}
-                          scheduleItems={getScheduleItemsForCell(date, line.id)}
-                          laborStatus={laborStatus[`${date}|${line.id}`]}
-                          lineCapacity={line.capacity_value || 0}
-                          onUnschedule={handleUnschedule}
-                        />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+              <DragOverlay>
+                {activeId ? (
+                  <div className="p-3 rounded-lg border bg-card shadow-lg opacity-90">
+                    <p className="text-sm font-medium">Moving...</p>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
 
-            <DragOverlay>
-              {activeId ? (
-                <div className="p-3 rounded-lg border bg-card shadow-lg opacity-90">
-                  <p className="text-sm font-medium">Moving...</p>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+          {viewMode === "timeline" && (
+            <ScheduleTimelineView
+              weekStart={weekStart}
+              weekDates={weekDates}
+              productionLines={productionLines}
+              scheduledItems={scheduledItems}
+            />
+          )}
+
+          {viewMode === "month" && (
+            <ScheduleMonthView
+              weekStart={weekStart}
+              productionLines={productionLines}
+              onDayClick={(date) => {
+                setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+                setViewMode("grid");
+              }}
+            />
+          )}
         </TabsContent>
 
         {/* Required Capacity Tab */}
