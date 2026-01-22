@@ -93,6 +93,7 @@ import CycleCountEntry from "./pages/warehouse/CycleCountEntry";
 import CycleCountReview from "./pages/warehouse/CycleCountReview";
 import LotTraceability from "./pages/quality/LotTraceability";
 import Transfers from "./pages/warehouse/Transfers";
+import PalletBuilding from "./pages/warehouse/PalletBuilding";
 import MockRecallDrills from "./pages/quality/MockRecallDrills";
 import RecallContacts from "./pages/settings/RecallContacts";
 import Tasks from "./pages/tasks/Tasks";
