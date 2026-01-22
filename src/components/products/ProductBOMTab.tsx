@@ -1402,6 +1402,11 @@ function AddItemForm({
   const [notes, setNotes] = useState("");
   const [open, setOpen] = useState(false);
 
+  // Volume unit codes that require density for accurate calculations
+  const VOLUME_UNIT_CODES = ['GAL', 'L', 'ML', 'FL_OZ', 'QT', 'PT'];
+  const selectedUnit = units.find(u => u.id === unitId);
+  const isVolumeUnit = selectedUnit && VOLUME_UNIT_CODES.includes(selectedUnit.code.toUpperCase());
+
   // Filter out already added materials and those without linked materials
   const availableMaterials = listedMaterials.filter(
     (m) => !existingListedMaterialIds.includes(m.id) && m.linkedMaterialsCount > 0
@@ -1540,6 +1545,18 @@ function AddItemForm({
           </Select>
         </div>
       </div>
+      {isVolumeUnit && (
+        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Volume unit selected</p>
+            <p className="text-amber-700">
+              Volume units require material density for accurate nutrition calculations. 
+              Consider using weight units (KG, LB) for consistency, or ensure the material has a density value set.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="wastage">Wastage Percentage</Label>
         <Input
@@ -1600,6 +1617,11 @@ function EditItemForm({
   const [wastage, setWastage] = useState((item.wastage_percentage || 0).toString());
   const [notes, setNotes] = useState(item.notes || "");
 
+  // Volume unit codes that require density for accurate calculations
+  const VOLUME_UNIT_CODES = ['GAL', 'L', 'ML', 'FL_OZ', 'QT', 'PT'];
+  const selectedUnit = units.find(u => u.id === unitId);
+  const isVolumeUnit = selectedUnit && VOLUME_UNIT_CODES.includes(selectedUnit.code.toUpperCase());
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isFieldsDisabled) return;
@@ -1642,6 +1664,18 @@ function EditItemForm({
           </Select>
         </div>
       </div>
+      {isVolumeUnit && (
+        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Volume unit selected</p>
+            <p className="text-amber-700">
+              Volume units require material density for accurate nutrition calculations. 
+              Consider using weight units (KG, LB) for consistency, or ensure the material has a density value set.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="wastage">Wastage Percentage</Label>
         <Input
