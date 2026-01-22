@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, IceCream } from 'lucide-react';
+import { Pencil, Trash2, IceCream, Crown } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { usePermissions } from '@/hooks/usePermission';
@@ -76,12 +76,15 @@ export default function Products() {
         shelf_life_days: data.shelf_life_days || null,
         storage_requirements: data.storage_requirements || null,
         handling_instructions: data.handling_instructions || null,
+        is_family_head: data.is_family_head || false,
+        family_head_id: data.family_head_id || null,
       }]).select().single();
       if (error) throw error;
       return newProduct;
     },
     onSuccess: (newProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['family-head-products'] });
       toast({ title: 'Product created successfully' });
       // Keep dialog open and switch to editing the new product
       if (newProduct) {
@@ -110,6 +113,8 @@ export default function Products() {
           shelf_life_days: rest.shelf_life_days || null,
           storage_requirements: rest.storage_requirements || null,
           handling_instructions: rest.handling_instructions || null,
+          is_family_head: rest.is_family_head || false,
+          family_head_id: rest.family_head_id || null,
         })
         .eq('id', id)
         .select()
@@ -119,6 +124,8 @@ export default function Products() {
     },
     onSuccess: (updatedProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['family-head-products'] });
+      queryClient.invalidateQueries({ queryKey: ['child-products'] });
       toast({ title: 'Product updated successfully' });
       // Update the editing product with new data so tabs reflect changes
       if (updatedProduct) {
@@ -272,9 +279,16 @@ export default function Products() {
                         }
                       </TableCell>
                       <TableCell>
-                        {product.product_category?.code === 'BASE' ? (
-                          <Badge className="bg-blue-100 text-blue-800">Base</Badge>
-                        ) : '-'}
+                        <div className="flex items-center gap-2">
+                          {product.product_category?.code === 'BASE' ? (
+                            <Badge className="bg-blue-100 text-blue-800">Base</Badge>
+                          ) : product.is_family_head ? (
+                            <Badge variant="outline" className="gap-1">
+                              <Crown className="h-3 w-3" />
+                              Family Head
+                            </Badge>
+                          ) : '-'}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
