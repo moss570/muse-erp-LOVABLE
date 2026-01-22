@@ -20,6 +20,9 @@ export interface ProductSize {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  // Size type for tub vs case hierarchy
+  size_type: 'unit' | 'case' | 'pallet';
+  parent_size_id: string | null;
   // Additional fields for pallet configuration
   container_size_id?: string | null;
   box_material_id?: string | null;
@@ -33,6 +36,13 @@ export interface ProductSize {
     id: string;
     name: string;
     code: string;
+  } | null;
+  // Parent size relationship for case→tub linking
+  parent_size?: {
+    id: string;
+    sku: string | null;
+    upc_code: string | null;
+    size_name: string;
   } | null;
 }
 
@@ -65,7 +75,8 @@ export function useProductSizes(productId: string | null) {
         .from("product_sizes")
         .select(`
           *,
-          size_unit:units_of_measure(id, name, code)
+          size_unit:units_of_measure(id, name, code),
+          parent_size:product_sizes!parent_size_id(id, sku, upc_code, size_name)
         `)
         .eq("product_id", productId)
         .order("sort_order", { ascending: true });

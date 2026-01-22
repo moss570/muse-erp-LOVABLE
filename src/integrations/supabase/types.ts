@@ -9153,6 +9153,7 @@ export type Database = {
           packaging_indicator: string | null
           packaging_material_id: string | null
           pallet_type: string | null
+          parent_size_id: string | null
           product_id: string
           size_name: string
           size_type: string | null
@@ -9184,6 +9185,7 @@ export type Database = {
           packaging_indicator?: string | null
           packaging_material_id?: string | null
           pallet_type?: string | null
+          parent_size_id?: string | null
           product_id: string
           size_name: string
           size_type?: string | null
@@ -9215,6 +9217,7 @@ export type Database = {
           packaging_indicator?: string | null
           packaging_material_id?: string | null
           pallet_type?: string | null
+          parent_size_id?: string | null
           product_id?: string
           size_name?: string
           size_type?: string | null
@@ -9248,6 +9251,13 @@ export type Database = {
             columns: ["packaging_material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_sizes_parent_size_id_fkey"
+            columns: ["parent_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
             referencedColumns: ["id"]
           },
           {

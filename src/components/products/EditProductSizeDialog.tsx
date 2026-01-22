@@ -6,7 +6,7 @@ import { usePackagingIndicators } from "@/hooks/usePackagingIndicators";
 import { useProductSizes, ProductSize } from "@/hooks/useProductSizes";
 import { useProductSizeParLevels, useParLevelLocations, ParLevelInput } from "@/hooks/useProductSizeParLevels";
 import { generateProductSizeSKU } from "@/lib/skuGenerator";
-import { generateUPCPair } from "@/lib/upcGenerator";
+import { generateUPCPair, generateCaseUPCFromParent } from "@/lib/upcGenerator";
 import {
   validateTiConfiguration,
   calculateOverhang,
@@ -27,7 +27,8 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler, Printer, MapPin, Plus, Trash2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ChevronDown, Loader2, Wand2, Layers, Scale, AlertTriangle, CheckCircle2, Package, Box, Ruler, Printer, MapPin, Plus, Trash2, Link } from "lucide-react";
 import { toast } from "sonner";
 
 const STANDARD_PALLET_WEIGHT_KG = 20; // Standard wooden pallet ~20kg
@@ -56,11 +57,13 @@ export function EditProductSizeDialog({
   const isEditing = !!size;
   const { activeContainerSizes, isLoading: loadingContainers } = useContainerSizes();
   const { data: packagingIndicators = [] } = usePackagingIndicators();
-  const { createSize, updateSize } = useProductSizes(productId);
+  const { sizes, createSize, updateSize } = useProductSizes(productId);
   const { caseParLevels, palletParLevels, saveAllParLevels, isLoading: loadingParLevels } = useProductSizeParLevels(size?.id || null);
   const { caseLocations, palletLocations, isLoading: loadingLocations } = useParLevelLocations();
 
   // Form state
+  const [sizeType, setSizeType] = useState<'unit' | 'case'>('case');
+  const [parentSizeId, setParentSizeId] = useState<string>("");
   const [containerSizeId, setContainerSizeId] = useState<string>("");
   const [unitsPerCase, setUnitsPerCase] = useState<number>(4);
   const [boxMaterialId, setBoxMaterialId] = useState<string>("");
@@ -91,6 +94,16 @@ export function EditProductSizeDialog({
   // Par level tracking state
   const [caseParLevelInputs, setCaseParLevelInputs] = useState<ParLevelInput[]>([]);
   const [palletParLevelInputs, setPalletParLevelInputs] = useState<ParLevelInput[]>([]);
+
+  // Get available parent tub sizes (unit sizes for this product)
+  const parentTubSizes = useMemo(() => {
+    return sizes.filter(s => (s as any).size_type === 'unit' && s.is_active);
+  }, [sizes]);
+
+  // Get selected parent size details
+  const selectedParentSize = useMemo(() => {
+    return parentTubSizes.find(s => s.id === parentSizeId);
+  }, [parentTubSizes, parentSizeId]);
 
   // Get effective pallet dimensions based on type
   const effectivePalletDims = useMemo(() => {
@@ -136,11 +149,11 @@ export function EditProductSizeDialog({
     return boxMaterials.find(b => b.id === boxMaterialId);
   }, [boxMaterials, boxMaterialId]);
 
-  // Generate SKU based on selections
+  // Generate SKU based on selections and size type
   const generatedSku = useMemo(() => {
     if (!selectedContainer || !productSku) return "";
-    return generateProductSizeSKU(productSku, selectedContainer.sku_code, unitsPerCase);
-  }, [productSku, selectedContainer, unitsPerCase]);
+    return generateProductSizeSKU(productSku, selectedContainer.sku_code, unitsPerCase, sizeType);
+  }, [productSku, selectedContainer, unitsPerCase, sizeType]);
 
   // Auto-calculate Case Cube from box dimensions (box dims are in inches)
   const calculatedCaseCubeM3 = useMemo(() => {
@@ -233,6 +246,8 @@ export function EditProductSizeDialog({
   useEffect(() => {
     if (open) {
       if (size) {
+        setSizeType((size as any).size_type || 'case');
+        setParentSizeId((size as any).parent_size_id || "");
         setContainerSizeId((size as any).container_size_id || "");
         setUnitsPerCase(size.units_per_case || 4);
         setBoxMaterialId((size as any).box_material_id || "");
@@ -262,6 +277,8 @@ export function EditProductSizeDialog({
         setCustomPalletWidthIn((size as any).custom_pallet_width_in || null);
       } else {
         // Reset to defaults for new size
+        setSizeType('case');
+        setParentSizeId("");
         setContainerSizeId("");
         setUnitsPerCase(4);
         setBoxMaterialId("");
@@ -344,22 +361,46 @@ export function EditProductSizeDialog({
   const handleGenerateUpc = async () => {
     setIsGeneratingUpc(true);
     try {
-      const { tubUpc: newTubUpc, caseUpc: newCaseUpc } = await generateUPCPair(unitsPerCase);
-      
-      if (!newTubUpc) {
-        toast.error("GS1 company prefix not configured. Please set it in Company Settings.");
-        return;
-      }
+      // For case sizes with a parent, derive case UPC from parent's tub UPC
+      if (sizeType === 'case' && selectedParentSize?.upc_code) {
+        const newCaseUpc = await generateCaseUPCFromParent(
+          selectedParentSize.upc_code,
+          unitsPerCase
+        );
+        setTubUpc(selectedParentSize.upc_code); // Inherit parent's tub UPC
+        setCaseUpc(newCaseUpc || "");
+        toast.success("Case UPC generated from parent tub");
+      } else {
+        // For unit sizes or cases without parent, generate new pair
+        const { tubUpc: newTubUpc, caseUpc: newCaseUpc } = await generateUPCPair(unitsPerCase);
+        
+        if (!newTubUpc) {
+          toast.error("GS1 company prefix not configured. Please set it in Company Settings.");
+          return;
+        }
 
-      setTubUpc(newTubUpc);
-      setCaseUpc(newCaseUpc);
-      toast.success("UPC codes generated");
+        setTubUpc(newTubUpc);
+        // Only set case UPC if this is a case type
+        if (sizeType === 'case') {
+          setCaseUpc(newCaseUpc || "");
+        } else {
+          setCaseUpc(""); // Units don't have case UPC
+        }
+        toast.success("UPC codes generated");
+      }
     } catch (error) {
       toast.error(`Failed to generate UPC: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingUpc(false);
     }
   };
+
+  // Auto-populate tub UPC when parent size is selected for case types
+  useEffect(() => {
+    if (sizeType === 'case' && selectedParentSize?.upc_code && !tubUpc) {
+      setTubUpc(selectedParentSize.upc_code);
+    }
+  }, [sizeType, selectedParentSize, tubUpc]);
 
   const handleSave = async () => {
     if (isFieldsDisabled) return;
@@ -406,21 +447,23 @@ export function EditProductSizeDialog({
         container_size_id: containerSizeId,
         box_material_id: boxMaterialId || null,
         sku: generatedSku,
-        units_per_case: unitsPerCase,
+        units_per_case: sizeType === 'unit' ? 1 : unitsPerCase,
+        size_type: sizeType,
+        parent_size_id: sizeType === 'case' ? (parentSizeId || null) : null,
         target_weight_kg: targetWeight,
         min_weight_kg: minWeight,
         max_weight_kg: maxWeight,
         upc_code: tubUpc || null,
-        case_upc_code: caseUpc || null,
-        case_weight_kg: caseWeightKg,
-        case_cube_m3: caseCubeM3,
+        case_upc_code: sizeType === 'case' ? (caseUpc || null) : null,
+        case_weight_kg: sizeType === 'case' ? caseWeightKg : null,
+        case_cube_m3: sizeType === 'case' ? caseCubeM3 : null,
         is_default: isDefault,
         is_active: isActive,
-        ti_count: tiCount,
-        hi_count: hiCount,
-        pallet_type: palletType,
-        custom_pallet_length_in: palletType === 'CUSTOM' ? customPalletLengthIn : null,
-        custom_pallet_width_in: palletType === 'CUSTOM' ? customPalletWidthIn : null,
+        ti_count: sizeType === 'case' ? tiCount : null,
+        hi_count: sizeType === 'case' ? hiCount : null,
+        pallet_type: sizeType === 'case' ? palletType : null,
+        custom_pallet_length_in: (sizeType === 'case' && palletType === 'CUSTOM') ? customPalletLengthIn : null,
+        custom_pallet_width_in: (sizeType === 'case' && palletType === 'CUSTOM') ? customPalletWidthIn : null,
       };
 
       let savedSizeId: string;
@@ -469,6 +512,74 @@ export function EditProductSizeDialog({
           </div>
         ) : (
         <div className="space-y-4">
+           {/* Size Type Selector */}
+           <div className="space-y-2">
+             <Label>Size Type *</Label>
+             <RadioGroup
+               value={sizeType}
+               onValueChange={(v) => setSizeType(v as 'unit' | 'case')}
+               className="flex gap-4"
+               disabled={isFieldsDisabled || isEditing}
+             >
+               <div className="flex items-center space-x-2">
+                 <RadioGroupItem value="unit" id="size-type-unit" />
+                 <Label htmlFor="size-type-unit" className="font-normal cursor-pointer">
+                   <span className="font-medium">Individual Tub</span>
+                   <span className="text-muted-foreground text-xs ml-1">(single unit)</span>
+                 </Label>
+               </div>
+               <div className="flex items-center space-x-2">
+                 <RadioGroupItem value="case" id="size-type-case" />
+                 <Label htmlFor="size-type-case" className="font-normal cursor-pointer">
+                   <span className="font-medium">Case Pack</span>
+                   <span className="text-muted-foreground text-xs ml-1">(multiple units)</span>
+                 </Label>
+               </div>
+             </RadioGroup>
+             {isEditing && (
+               <p className="text-xs text-muted-foreground">Size type cannot be changed after creation</p>
+             )}
+           </div>
+
+           {/* Parent Tub Size - Only for Case type */}
+           {sizeType === 'case' && (
+             <div className="space-y-2">
+               <Label className="flex items-center gap-1">
+                 <Link className="h-3 w-3" />
+                 Parent Tub Size
+               </Label>
+               <Select
+                 value={parentSizeId || "__none__"}
+                 onValueChange={(v) => setParentSizeId(v === "__none__" ? "" : v)}
+                 disabled={isFieldsDisabled}
+               >
+                 <SelectTrigger>
+                   <SelectValue placeholder="Select parent tub (optional)" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="__none__">No parent (standalone case)</SelectItem>
+                   {parentTubSizes.map((ps) => (
+                     <SelectItem key={ps.id} value={ps.id}>
+                       {ps.sku} - {ps.size_name} {ps.upc_code ? `(UPC: ${ps.upc_code})` : ''}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+               <p className="text-xs text-muted-foreground">
+                 {parentTubSizes.length === 0 
+                   ? "No tub sizes exist yet. Create an Individual Tub first to link case packs."
+                   : "Linking to a parent tub shares the same tub UPC and auto-generates case GTIN-14"
+                 }
+               </p>
+               {selectedParentSize?.upc_code && (
+                 <div className="p-2 bg-muted rounded-md text-xs">
+                   <span className="text-muted-foreground">Inherited Tub UPC: </span>
+                   <code className="font-mono">{selectedParentSize.upc_code}</code>
+                 </div>
+               )}
+             </div>
+           )}
+
            {/* Container Size */}
            <div className="space-y-2">
              <Label htmlFor="container-size">Container Size *</Label>
@@ -491,59 +602,63 @@ export function EditProductSizeDialog({
              </Select>
            </div>
 
-           {/* Case Pack Quantity */}
-           <div className="space-y-2">
-             <Label htmlFor="units-per-case">Case Pack Quantity *</Label>
-             <Select 
-               value={String(unitsPerCase)} 
-               onValueChange={(v) => setUnitsPerCase(parseInt(v))}
-               disabled={isFieldsDisabled}
-             >
-               <SelectTrigger>
-                 <SelectValue placeholder="Select case pack" />
-               </SelectTrigger>
-               <SelectContent>
-                 {casePackSizes.length > 0 ? (
-                   casePackSizes.map((size) => (
-                     <SelectItem key={size} value={String(size)}>
-                       {size} units per case
-                     </SelectItem>
-                   ))
-                 ) : (
-                   <>
-                     <SelectItem value="1">1 unit per case</SelectItem>
-                     <SelectItem value="4">4 units per case</SelectItem>
-                     <SelectItem value="6">6 units per case</SelectItem>
-                     <SelectItem value="8">8 units per case</SelectItem>
-                     <SelectItem value="12">12 units per case</SelectItem>
-                     <SelectItem value="24">24 units per case</SelectItem>
-                   </>
-                 )}
-               </SelectContent>
-             </Select>
-           </div>
+           {/* Case Pack Quantity - Only for Case type */}
+           {sizeType === 'case' && (
+             <div className="space-y-2">
+               <Label htmlFor="units-per-case">Case Pack Quantity *</Label>
+               <Select 
+                 value={String(unitsPerCase)} 
+                 onValueChange={(v) => setUnitsPerCase(parseInt(v))}
+                 disabled={isFieldsDisabled}
+               >
+                 <SelectTrigger>
+                   <SelectValue placeholder="Select case pack" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {casePackSizes.length > 0 ? (
+                     casePackSizes.map((size) => (
+                       <SelectItem key={size} value={String(size)}>
+                         {size} units per case
+                       </SelectItem>
+                     ))
+                   ) : (
+                     <>
+                       <SelectItem value="1">1 unit per case</SelectItem>
+                       <SelectItem value="4">4 units per case</SelectItem>
+                       <SelectItem value="6">6 units per case</SelectItem>
+                       <SelectItem value="8">8 units per case</SelectItem>
+                       <SelectItem value="12">12 units per case</SelectItem>
+                       <SelectItem value="24">24 units per case</SelectItem>
+                     </>
+                   )}
+                 </SelectContent>
+               </Select>
+             </div>
+           )}
 
-           {/* Box Material */}
-           <div className="space-y-2">
-             <Label htmlFor="box-material">Box Material</Label>
-             <Select 
-               value={boxMaterialId || "__none__"} 
-               onValueChange={(v) => setBoxMaterialId(v === "__none__" ? "" : v)}
-               disabled={isFieldsDisabled}
-             >
-               <SelectTrigger>
-                 <SelectValue placeholder="Select box material" />
-               </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="__none__">None</SelectItem>
-                 {boxMaterials.map((mat) => (
-                   <SelectItem key={mat.id} value={mat.id}>
-                     {mat.code} - {mat.name}
-                   </SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
-           </div>
+           {/* Box Material - Only for Case type */}
+           {sizeType === 'case' && (
+             <div className="space-y-2">
+               <Label htmlFor="box-material">Box Material</Label>
+               <Select 
+                 value={boxMaterialId || "__none__"} 
+                 onValueChange={(v) => setBoxMaterialId(v === "__none__" ? "" : v)}
+                 disabled={isFieldsDisabled}
+               >
+                 <SelectTrigger>
+                   <SelectValue placeholder="Select box material" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="__none__">None</SelectItem>
+                   {boxMaterials.map((mat) => (
+                     <SelectItem key={mat.id} value={mat.id}>
+                       {mat.code} - {mat.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
+           )}
 
           {/* Generated SKU Display */}
           {generatedSku && (
