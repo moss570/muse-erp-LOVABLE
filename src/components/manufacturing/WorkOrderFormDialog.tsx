@@ -27,6 +27,11 @@ import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { InputAvailabilityPanel } from "./InputAvailabilityPanel";
+import { TubYieldProjectionPanel } from "./TubYieldProjectionPanel";
+import { ParLevelSummaryPanel } from "./ParLevelSummaryPanel";
+import { VolumeConversionDisplay } from "./VolumeConversionDisplay";
+import { UnfulfilledOrdersPanel } from "./UnfulfilledOrdersPanel";
 
 export interface WorkOrder {
   id: string;
@@ -50,7 +55,7 @@ export interface WorkOrder {
 interface WorkOrderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  workOrder?: WorkOrder | null; // If provided, edit mode
+  workOrder?: WorkOrder | null;
 }
 
 interface ProductionStage {
@@ -60,6 +65,7 @@ interface ProductionStage {
   sequence_order: number;
   creates_intermediate_lot: boolean;
   default_output_uom: string;
+  default_line_id: string | null;
 }
 
 interface ProductSize {
@@ -83,6 +89,21 @@ interface WipLot {
   product_size?: { sku: string; size_name: string } | null;
 }
 
+interface Recipe {
+  id: string;
+  recipe_name: string;
+  recipe_version: string;
+  batch_size: number;
+  batch_weight_kg: number;
+  batch_volume: number | null;
+  batch_volume_unit: string | null;
+}
+
+interface StageCategoryMapping {
+  stage_code: string;
+  category_code: string;
+}
+
 export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrderFormDialogProps) {
   const queryClient = useQueryClient();
   const isEditMode = !!workOrder;
@@ -95,11 +116,11 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
   const [targetQuantity, setTargetQuantity] = useState("");
   const [targetUom, setTargetUom] = useState("kg");
   const [priority, setPriority] = useState("Standard");
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(new Date());
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [specialInstructions, setSpecialInstructions] = useState("");
   
-  // New fields for multi-stage workflow
+  // Multi-stage workflow fields
   const [targetStageCode, setTargetStageCode] = useState("");
   const [productSizeId, setProductSizeId] = useState("");
   const [inputLotId, setInputLotId] = useState("");
@@ -130,9 +151,38 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     queryFn: async (): Promise<ProductionStage[]> => {
       const { data, error } = await supabase
         .from("production_stages_master")
-        .select("id, stage_code, stage_name, sequence_order, creates_intermediate_lot, default_output_uom")
+        .select("id, stage_code, stage_name, sequence_order, creates_intermediate_lot, default_output_uom, default_line_id")
         .eq("is_active", true)
         .order("sequence_order");
+
+      if (error) throw error;
+      return (data || []) as unknown as ProductionStage[];
+    },
+    enabled: open,
+  });
+
+  // Fetch stage-category mappings
+  const { data: stageCategoryMappings = [] } = useQuery({
+    queryKey: ["stage-category-mappings"],
+    queryFn: async (): Promise<StageCategoryMapping[]> => {
+      const { data, error } = await supabase
+        .from("stage_category_mapping")
+        .select("stage_code, category_code");
+
+      if (error) throw error;
+      return (data || []) as StageCategoryMapping[];
+    },
+    enabled: open,
+  });
+
+  // Fetch production lines
+  const { data: productionLines = [] } = useQuery({
+    queryKey: ["production-lines-for-wo"],
+    queryFn: async (): Promise<{ id: string; line_name: string; line_code: string }[]> => {
+      const { data, error } = await (supabase.from("production_lines") as any)
+        .select("id, line_name, line_code")
+        .eq("is_active", true)
+        .order("line_name");
 
       if (error) throw error;
       return data || [];
@@ -140,17 +190,52 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     enabled: open,
   });
 
-  // Fetch products
-  const { data: products = [] } = useQuery({
-    queryKey: ["products-for-wo"],
-    queryFn: async (): Promise<{ id: string; name: string; sku: string }[]> => {
-      const { data, error } = await (supabase.from("products") as any)
-        .select("id, name, sku")
-        .eq("is_active", true)
-        .order("name");
+  // Get current stage configuration
+  const selectedStage = useMemo(() => {
+    return productionStages.find(s => s.stage_code === targetStageCode);
+  }, [productionStages, targetStageCode]);
 
+  // Auto-set default production line when stage changes
+  useEffect(() => {
+    if (selectedStage?.default_line_id && !productionLineId && !isEditMode) {
+      setProductionLineId(selectedStage.default_line_id);
+    }
+  }, [selectedStage, productionLineId, isEditMode]);
+
+  // Get allowed category codes for the selected stage
+  const allowedCategories = useMemo(() => {
+    if (!targetStageCode) return [];
+    return stageCategoryMappings
+      .filter(m => m.stage_code === targetStageCode)
+      .map(m => m.category_code);
+  }, [targetStageCode, stageCategoryMappings]);
+
+  // Fetch products - filtered by stage/category
+  const { data: products = [] } = useQuery({
+    queryKey: ["products-for-wo", targetStageCode, allowedCategories],
+    queryFn: async (): Promise<{ id: string; name: string; sku: string; category: string; is_family_head: boolean }[]> => {
+      let query = supabase.from("products")
+        .select("id, name, sku, category, is_family_head")
+        .eq("is_active", true);
+
+      // Filter by stage
+      if (targetStageCode === "BASE_PREP") {
+        // Only BASE category products
+        query = query.eq("category", "BASE");
+      } else if (targetStageCode === "FLAVOR" && allowedCategories.length > 0) {
+        // Only family heads for flavor categories
+        query = query.in("category", allowedCategories).eq("is_family_head", true);
+      } else if (targetStageCode === "FREEZE" || targetStageCode === "CASE_PACK") {
+        // For FREEZE/CASE_PACK, show products that have sizes of the right type
+        // This will be filtered by product_sizes
+        if (allowedCategories.length > 0) {
+          query = query.in("category", allowedCategories);
+        }
+      }
+
+      const { data, error } = await query.order("name");
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: open,
   });
@@ -173,10 +258,8 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
       } else if (targetStageCode === "CASE_PACK") {
         query = query.eq("size_type", "case");
       }
-      // PACKAGE stage is now deactivated, but if it were active, it would show cases/pallets
 
       const { data, error } = await query.order("size_value");
-
       if (error) throw error;
       return (data || []) as unknown as ProductSize[];
     },
@@ -222,10 +305,10 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
   // Fetch recipes for selected product
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-for-wo", productId],
-    queryFn: async (): Promise<{ id: string; recipe_name: string; recipe_version: number; batch_size: number }[]> => {
+    queryFn: async (): Promise<Recipe[]> => {
       if (!productId) return [];
       const { data, error } = await (supabase.from("product_recipes") as any)
-        .select("id, recipe_name, recipe_version, batch_size")
+        .select("id, recipe_name, recipe_version, batch_size, batch_weight_kg, batch_volume, batch_volume_unit")
         .eq("product_id", productId)
         .eq("is_active", true)
         .order("recipe_version", { ascending: false });
@@ -236,25 +319,10 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     enabled: !!productId && open,
   });
 
-  // Fetch production lines
-  const { data: productionLines = [] } = useQuery({
-    queryKey: ["production-lines-for-wo"],
-    queryFn: async (): Promise<{ id: string; line_name: string }[]> => {
-      const { data, error } = await (supabase.from("production_lines") as any)
-        .select("id, line_name")
-        .eq("is_active", true)
-        .order("line_name");
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
-
-  // Get current stage configuration
-  const selectedStage = useMemo(() => {
-    return productionStages.find(s => s.stage_code === targetStageCode);
-  }, [productionStages, targetStageCode]);
+  // Get selected recipe for volume calculation
+  const selectedRecipe = useMemo(() => {
+    return recipes.find(r => r.id === recipeId);
+  }, [recipes, recipeId]);
 
   // Determine if we need product size selection (FREEZE, CASE_PACK)
   const needsProductSize = useMemo(() => {
@@ -273,15 +341,21 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     return targetStageCode && targetStageCode !== "BASE_PREP";
   }, [targetStageCode]);
 
-  // Get UOM label based on stage
-  const quantityLabel = useMemo(() => {
-    if (!selectedStage) return "Target Quantity";
-    switch (selectedStage.default_output_uom) {
-      case "EA": return "Target Quantity (Units)";
-      case "GAL": return "Target Quantity (Gallons)";
-      default: return "Target Quantity (KG)";
+  // Get UOM settings based on stage
+  const stageUomSettings = useMemo(() => {
+    if (!selectedStage) return { uom: "kg", label: "Target Quantity", isLocked: false };
+    
+    switch (targetStageCode) {
+      case "BASE_PREP":
+      case "FLAVOR":
+        return { uom: "kg", label: "Target Quantity (KG)", isLocked: true };
+      case "FREEZE":
+      case "CASE_PACK":
+        return { uom: "units", label: "Target Quantity (Units)", isLocked: true };
+      default:
+        return { uom: selectedStage.default_output_uom === "EA" ? "units" : "kg", label: "Target Quantity", isLocked: false };
     }
-  }, [selectedStage]);
+  }, [selectedStage, targetStageCode]);
 
   // Create work order mutation
   const createWorkOrderMutation = useMutation({
@@ -292,6 +366,8 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
       const { data: woNumber, error: woNumError } = await supabase.rpc("generate_wo_number");
       if (woNumError) throw woNumError;
 
+      const finalUom = stageUomSettings.isLocked ? stageUomSettings.uom : targetUom;
+
       const insertData = {
         wo_number: woNumber as string,
         wo_type: "Make-to-Stock",
@@ -299,14 +375,13 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
         recipe_id: recipeId || null,
         production_line_id: productionLineId || null,
         target_quantity: parseFloat(targetQuantity),
-        target_uom: selectedStage?.default_output_uom === "EA" ? "units" : targetUom,
+        target_uom: finalUom,
         priority: priority,
         scheduled_date: scheduledDate ? format(scheduledDate, "yyyy-MM-dd") : null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         special_instructions: specialInstructions || null,
         wo_status: "Created",
         created_by: userData?.user?.id,
-        // New fields
         target_stage_code: targetStageCode || null,
         product_size_id: productSizeId || null,
         input_lot_id: inputLotId || null,
@@ -328,14 +403,39 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
         if (stageError) {
           console.warn("Failed to initialize stages:", stageError.message);
         }
+
+        // Auto-create schedule entry if scheduled_date is provided
+        if (scheduledDate && productionLineId) {
+          const scheduleInsert = {
+            work_order_id: (data as any).id,
+            schedule_date: format(scheduledDate, "yyyy-MM-dd"),
+            production_line_id: productionLineId,
+            product_id: productId,
+            recipe_id: recipeId || null,
+            planned_quantity: parseFloat(targetQuantity),
+            planned_uom: finalUom,
+            priority: priority,
+            schedule_status: "Scheduled",
+            created_by: userData?.user?.id,
+          };
+
+          const { error: schedError } = await supabase
+            .from("production_schedule")
+            .insert(scheduleInsert as any);
+
+          if (schedError) {
+            console.warn("Failed to create schedule entry:", schedError.message);
+          }
+        }
       }
 
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["active-work-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["production-schedule"] });
       toast.success("Work order created", {
-        description: `${(data as any).wo_number} created successfully`,
+        description: `${(data as any).wo_number} created successfully${scheduledDate ? " and added to schedule" : ""}`,
       });
       resetForm();
       onOpenChange(false);
@@ -350,6 +450,8 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     mutationFn: async () => {
       if (!workOrder) throw new Error("No work order to update");
 
+      const finalUom = stageUomSettings.isLocked ? stageUomSettings.uom : targetUom;
+
       // Build update payload based on status
       const updateData: Record<string, any> = {
         target_quantity: parseFloat(targetQuantity),
@@ -363,7 +465,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
         updateData.product_id = productId;
         updateData.recipe_id = recipeId || null;
         updateData.production_line_id = productionLineId || null;
-        updateData.target_uom = selectedStage?.default_output_uom === "EA" ? "units" : targetUom;
+        updateData.target_uom = finalUom;
         updateData.scheduled_date = scheduledDate ? format(scheduledDate, "yyyy-MM-dd") : null;
         updateData.target_stage_code = targetStageCode || null;
         updateData.product_size_id = productSizeId || null;
@@ -400,12 +502,28 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     setTargetQuantity("");
     setTargetUom("kg");
     setPriority("Standard");
-    setScheduledDate(new Date());
+    setScheduledDate(undefined);
     setDueDate(undefined);
     setSpecialInstructions("");
     setTargetStageCode("");
     setProductSizeId("");
     setInputLotId("");
+  };
+
+  const handleStageChange = (val: string) => {
+    setTargetStageCode(val);
+    setInputLotId("");
+    setProductSizeId("");
+    setProductId("");
+    setRecipeId("");
+    
+    // Set default production line for the stage
+    const stage = productionStages.find(s => s.stage_code === val);
+    if (stage?.default_line_id) {
+      setProductionLineId(stage.default_line_id);
+    } else {
+      setProductionLineId("");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -425,6 +543,10 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
         toast.error("Please select a target stage");
         return;
       }
+      if (!productionLineId) {
+        toast.error("Please select a production line");
+        return;
+      }
     }
     
     if (!targetQuantity || parseFloat(targetQuantity) <= 0) {
@@ -433,8 +555,8 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     }
     
     if (!isEditMode && needsInputLot && !inputLotId && availableWipLots.length > 0) {
-      toast.error("Please select an input lot from the previous stage");
-      return;
+      // Allow proceeding without input lot for planning purposes
+      // toast.warning("No input lot selected - this can be assigned later");
     }
     
     if (isEditMode) {
@@ -446,9 +568,13 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
 
   const isPending = createWorkOrderMutation.isPending || updateWorkOrderMutation.isPending;
 
+  // Check if we should show planning panels
+  const showFlavorPlanningPanels = targetStageCode === "FLAVOR" && productId;
+  const showFreezePlanningPanels = targetStageCode === "FREEZE" && productId;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -472,11 +598,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
               <Label htmlFor="stage">Target Production Stage *</Label>
               <Select 
                 value={targetStageCode} 
-                onValueChange={(val) => {
-                  setTargetStageCode(val);
-                  setInputLotId("");
-                  setProductSizeId("");
-                }}
+                onValueChange={handleStageChange}
                 disabled={isEditMode && isInProgress}
               >
                 <SelectTrigger id="stage">
@@ -514,10 +636,10 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                   setInputLotId("");
                   setProductSizeId("");
                 }}
-                disabled={isEditMode && isInProgress}
+                disabled={isEditMode && isInProgress || !targetStageCode}
               >
                 <SelectTrigger id="product">
-                  <SelectValue placeholder="Select product" />
+                  <SelectValue placeholder={targetStageCode ? "Select product" : "Select stage first"} />
                 </SelectTrigger>
                 <SelectContent>
                   {products.map((p) => (
@@ -527,39 +649,48 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                   ))}
                 </SelectContent>
               </Select>
+              {targetStageCode === "FLAVOR" && (
+                <p className="text-xs text-muted-foreground">
+                  Showing flavor family products only
+                </p>
+              )}
             </div>
 
-            {/* Input Lot Selection - for stages after BASE_PREP */}
+            {/* Input Availability Panel - Smart Planning Info */}
             {needsInputLot && productId && (
+              <InputAvailabilityPanel
+                stageCode={targetStageCode}
+                productId={productId}
+                recipeId={recipeId}
+                targetQuantity={parseFloat(targetQuantity) || 0}
+              />
+            )}
+
+            {/* Input Lot Selection - for stages after BASE_PREP */}
+            {needsInputLot && productId && availableWipLots.length > 0 && (
               <div className="grid gap-2">
                 <Label htmlFor="inputLot">Input Lot (from previous stage)</Label>
-                {availableWipLots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                    No approved WIP lots available from the previous stage. Complete the previous stage first.
-                  </p>
-                ) : (
-                  <Select 
-                    value={inputLotId} 
-                    onValueChange={setInputLotId}
-                    disabled={isEditMode && isInProgress}
-                  >
-                    <SelectTrigger id="inputLot">
-                      <SelectValue placeholder="Select input lot" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableWipLots.map((lot) => (
-                        <SelectItem key={lot.id} value={lot.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono">{lot.lot_number}</span>
-                            <span className="text-muted-foreground">
-                              ({lot.quantity_available} {lot.volume_uom || "units"} available)
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Select 
+                  value={inputLotId} 
+                  onValueChange={setInputLotId}
+                  disabled={isEditMode && isInProgress}
+                >
+                  <SelectTrigger id="inputLot">
+                    <SelectValue placeholder="Select input lot (optional for planning)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableWipLots.map((lot) => (
+                      <SelectItem key={lot.id} value={lot.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">{lot.lot_number}</span>
+                          <span className="text-muted-foreground">
+                            ({lot.quantity_available} {lot.volume_uom || "units"} available)
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -611,7 +742,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                 <SelectContent>
                   {recipes.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
-                      {r.recipe_name} v{r.recipe_version} ({r.batch_size})
+                      {r.recipe_name} v{r.recipe_version} ({r.batch_size} kg)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -620,14 +751,14 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
 
             {/* Production Line */}
             <div className="grid gap-2">
-              <Label htmlFor="line">Production Line</Label>
+              <Label htmlFor="line">Production Line *</Label>
               <Select 
                 value={productionLineId} 
                 onValueChange={setProductionLineId}
                 disabled={isEditMode && isInProgress}
               >
                 <SelectTrigger id="line">
-                  <SelectValue placeholder="Select line (optional)" />
+                  <SelectValue placeholder="Select production line" />
                 </SelectTrigger>
                 <SelectContent>
                   {productionLines.map((l) => (
@@ -642,7 +773,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
             {/* Quantity and UOM */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="quantity">{quantityLabel} *</Label>
+                <Label htmlFor="quantity">{stageUomSettings.label} *</Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -657,9 +788,9 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
               <div className="grid gap-2">
                 <Label htmlFor="uom">UOM</Label>
                 <Select 
-                  value={selectedStage?.default_output_uom === "EA" ? "units" : targetUom} 
+                  value={stageUomSettings.isLocked ? stageUomSettings.uom : targetUom} 
                   onValueChange={setTargetUom}
-                  disabled={selectedStage?.default_output_uom === "EA" || (isEditMode && isInProgress)}
+                  disabled={stageUomSettings.isLocked || (isEditMode && isInProgress)}
                 >
                   <SelectTrigger id="uom">
                     <SelectValue />
@@ -674,6 +805,29 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                 </Select>
               </div>
             </div>
+
+            {/* Volume Conversion Display */}
+            {selectedRecipe && (targetStageCode === "BASE_PREP" || targetStageCode === "FLAVOR") && (
+              <VolumeConversionDisplay
+                targetQuantityKg={parseFloat(targetQuantity) || 0}
+                batchSize={selectedRecipe.batch_weight_kg || selectedRecipe.batch_size}
+                batchVolume={selectedRecipe.batch_volume}
+                batchVolumeUnit={selectedRecipe.batch_volume_unit}
+              />
+            )}
+
+            {/* Tub Yield Projection Panel - FLAVOR stage */}
+            {showFlavorPlanningPanels && (
+              <TubYieldProjectionPanel
+                productId={productId}
+                targetQuantityKg={parseFloat(targetQuantity) || 0}
+              />
+            )}
+
+            {/* Par Level Summary Panel - FREEZE stage */}
+            {showFreezePlanningPanels && (
+              <ParLevelSummaryPanel productId={productId} />
+            )}
 
             {/* Priority */}
             <div className="grid gap-2">
@@ -694,7 +848,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
             {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Scheduled Date</Label>
+                <Label>Schedule Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -706,7 +860,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                       disabled={isEditMode && isInProgress}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduledDate ? format(scheduledDate, "PP") : "Pick date"}
+                      {scheduledDate ? format(scheduledDate, "PP") : "Pick date (optional)"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -718,6 +872,11 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                     />
                   </PopoverContent>
                 </Popover>
+                {scheduledDate && (
+                  <p className="text-xs text-muted-foreground">
+                    WO will be auto-placed on the production schedule
+                  </p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label>Due Date</Label>
@@ -732,7 +891,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                       disabled={isCompleted}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dueDate ? format(dueDate, "PP") : "Pick date"}
+                      {dueDate ? format(dueDate, "PP") : "Pick date (optional)"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -759,6 +918,11 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
                 disabled={isCompleted}
               />
             </div>
+
+            {/* Unfulfilled Orders Panel - Placeholder */}
+            {(showFlavorPlanningPanels || showFreezePlanningPanels) && (
+              <UnfulfilledOrdersPanel productId={productId} />
+            )}
           </div>
 
           <DialogFooter>
