@@ -7982,10 +7982,12 @@ export type Database = {
           build_date: string
           created_at: string
           created_by: string | null
+          customer_id: string | null
           id: string
           location_id: string | null
           notes: string | null
           pallet_number: string
+          purpose: string | null
           status: string | null
           total_cases: number | null
           updated_at: string
@@ -7994,10 +7996,12 @@ export type Database = {
           build_date?: string
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           id?: string
           location_id?: string | null
           notes?: string | null
           pallet_number: string
+          purpose?: string | null
           status?: string | null
           total_cases?: number | null
           updated_at?: string
@@ -8006,10 +8010,12 @@ export type Database = {
           build_date?: string
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           id?: string
           location_id?: string | null
           notes?: string | null
           pallet_number?: string
+          purpose?: string | null
           status?: string | null
           total_cases?: number | null
           updated_at?: string
@@ -8020,6 +8026,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
@@ -9142,6 +9155,7 @@ export type Database = {
           pallet_type: string | null
           product_id: string
           size_name: string
+          size_type: string | null
           size_unit_id: string | null
           size_value: number
           sku: string | null
@@ -9172,6 +9186,7 @@ export type Database = {
           pallet_type?: string | null
           product_id: string
           size_name: string
+          size_type?: string | null
           size_unit_id?: string | null
           size_value: number
           sku?: string | null
@@ -9202,6 +9217,7 @@ export type Database = {
           pallet_type?: string | null
           product_id?: string
           size_name?: string
+          size_type?: string | null
           size_unit_id?: string | null
           size_value?: number
           sku?: string | null

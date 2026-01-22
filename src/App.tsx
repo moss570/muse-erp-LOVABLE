@@ -260,6 +260,7 @@ const App = () => (
             <Route path="/warehouse/cycle-counts" element={<AppLayout><CycleCounts /></AppLayout>} />
             <Route path="/warehouse/cycle-counts/:countId" element={<AppLayout><CycleCountEntry /></AppLayout>} />
             <Route path="/warehouse/cycle-counts/:countId/review" element={<AppLayout><CycleCountReview /></AppLayout>} />
+            <Route path="/warehouse/pallet-building" element={<AppLayout><PalletBuilding /></AppLayout>} />
             <Route path="/warehouse/transfers" element={<AppLayout><Transfers /></AppLayout>} />
             
             {/* Operations routes */}
