@@ -92,6 +92,16 @@ const WEIGHT_CONVERSIONS: Record<string, number> = {
   'MG': 0.001,
 };
 
+// Volume conversions to liters (used with material density for weight conversion)
+const VOLUME_TO_LITERS: Record<string, number> = {
+  'GAL': 3.78541,
+  'L': 1,
+  'ML': 0.001,
+  'FL_OZ': 0.0295735,
+  'QT': 0.946353,
+  'PT': 0.473176,
+};
+
 /**
  * Calculate nutrition for a product based on its recipe
  */
@@ -140,7 +150,7 @@ export async function calculateProductNutrition(
     initialWarnings.push(`Multiple active recipes found (${recipes?.length}). Using most recent: "${recipe.recipe_name}".`);
   }
 
-  // Fetch recipe items with material info
+  // Fetch recipe items with material info (including density for volume conversion)
   const { data: recipeItems, error: itemsError } = await supabase
     .from('product_recipe_items')
     .select(`
@@ -154,7 +164,8 @@ export async function calculateProductNutrition(
         name,
         base_unit_id,
         usage_unit_id,
-        usage_unit_conversion
+        usage_unit_conversion,
+        density
       )
     `)
     .eq('recipe_id', recipe.id);
@@ -228,6 +239,7 @@ export async function calculateProductNutrition(
       base_unit_id: string | null;
       usage_unit_id: string | null;
       usage_unit_conversion: number | null;
+      density: number | null;
     } | null;
 
     if (!material) continue;
@@ -235,12 +247,23 @@ export async function calculateProductNutrition(
     // Convert quantity to grams using unit code
     const unit = unitMap.get(item.unit_id);
     const unitCode = unit?.code?.toUpperCase() || '';
-    const conversionFactor = WEIGHT_CONVERSIONS[unitCode];
+    const weightConversionFactor = WEIGHT_CONVERSIONS[unitCode];
+    const volumeConversionFactor = VOLUME_TO_LITERS[unitCode];
     
     let quantityG = item.quantity_required;
     
-    if (conversionFactor) {
-      quantityG = item.quantity_required * conversionFactor;
+    if (weightConversionFactor) {
+      // Direct weight conversion
+      quantityG = item.quantity_required * weightConversionFactor;
+    } else if (volumeConversionFactor) {
+      // Volume-to-weight conversion using material density
+      const liters = item.quantity_required * volumeConversionFactor;
+      const density = material.density || 1.0; // Default to water density (1 kg/L)
+      quantityG = liters * density * 1000; // Convert kg to grams
+      
+      if (!material.density) {
+        warnings.push(`Using default density (water) for ${material.name} - set material density for accurate nutrition`);
+      }
     } else {
       // If no conversion found, assume it's already in grams
       warnings.push(`Unknown unit "${unit?.code || item.unit_id}" for ${material.name} - assuming grams`);
