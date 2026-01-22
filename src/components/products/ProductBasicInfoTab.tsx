@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { generateProductSKU, checkSkuUniqueness } from "@/lib/skuGenerator";
@@ -208,6 +207,89 @@ export function ProductBasicInfoTab({ form, isEditing = false, isFieldsDisabled 
         )}
       />
 
+      {/* Family Head Toggle - Right after Product Name */}
+      <FormField
+        control={form.control}
+        name="is_family_head"
+        render={({ field }) => (
+          <FormItem className="flex items-center gap-2">
+            <FormControl>
+              <Switch
+                checked={field.value}
+                onCheckedChange={(checked) => {
+                  field.onChange(checked);
+                  if (checked) {
+                    form.setValue("family_head_id", undefined);
+                  }
+                }}
+                disabled={isFieldsDisabled}
+              />
+            </FormControl>
+            <div>
+              <FormLabel className="!mt-0 flex items-center gap-1.5">
+                <Crown className="h-3.5 w-3.5" />
+                Family Head Product
+              </FormLabel>
+              <FormDescription className="text-xs">
+                Groups related sizes (e.g., G-MINT groups G-MINT-08, G-MINT-16)
+              </FormDescription>
+            </div>
+          </FormItem>
+        )}
+      />
+
+      {/* Show linked children if family head */}
+      {watchedIsFamilyHead && childProducts.length > 0 && (
+        <div className="rounded-md bg-muted p-3 -mt-3">
+          <div className="flex items-center gap-2 text-sm font-medium mb-2">
+            <Users className="h-4 w-4" />
+            Linked Products ({childProducts.length})
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {childProducts.map((child) => (
+              <Badge key={child.id} variant="secondary">
+                {child.sku}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Parent Family Head selector (only if not a family head) */}
+      {!watchedIsFamilyHead && (
+        <FormField
+          control={form.control}
+          name="family_head_id"
+          render={({ field }) => (
+            <FormItem className="-mt-3">
+              <FormLabel>Parent Family Head</FormLabel>
+              <Select
+                disabled={isFieldsDisabled}
+                value={field.value || "__none__"}
+                onValueChange={(val) => field.onChange(val === "__none__" ? null : val)}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select family head (optional)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="z-[200]">
+                  <SelectItem value="__none__">None (standalone)</SelectItem>
+                  {familyHeadProducts
+                    .filter(p => p.id !== currentProductId)
+                    .map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.sku} - {product.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
       {/* SKU - Third */}
       {!isEditing && (
         <Alert className="bg-amber-500/10 border-amber-500/30">
@@ -375,98 +457,6 @@ export function ProductBasicInfoTab({ form, isEditing = false, isFieldsDisabled 
         />
       </div>
 
-      {/* Product Family Configuration */}
-      <Card className="border-dashed">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Crown className="h-4 w-4" />
-            Product Family Configuration
-          </CardTitle>
-          <CardDescription>
-            Family heads group related products (e.g., G-MINT groups G-MINT-08, G-MINT-16). 
-            Use this for flavoring stages that produce multiple tub sizes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FormField
-            control={form.control}
-            name="is_family_head"
-            render={({ field }) => (
-              <FormItem className="flex items-center gap-2">
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={(checked) => {
-                      field.onChange(checked);
-                      // Clear family_head_id if becoming a family head
-                      if (checked) {
-                        form.setValue("family_head_id", undefined);
-                      }
-                    }}
-                    disabled={isFieldsDisabled}
-                  />
-                </FormControl>
-                <FormLabel className="!mt-0">
-                  This is a Family Head Product
-                </FormLabel>
-              </FormItem>
-            )}
-          />
-
-          {watchedIsFamilyHead && childProducts.length > 0 && (
-            <div className="rounded-md bg-muted p-3">
-              <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                <Users className="h-4 w-4" />
-                Linked Child Products ({childProducts.length})
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {childProducts.map((child) => (
-                  <Badge key={child.id} variant="secondary">
-                    {child.sku} - {child.name}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!watchedIsFamilyHead && (
-            <FormField
-              control={form.control}
-              name="family_head_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Parent Family Head</FormLabel>
-                  <Select
-                    disabled={isFieldsDisabled}
-                    value={field.value || "__none__"}
-                    onValueChange={(val) => field.onChange(val === "__none__" ? null : val)}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select family head product" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="__none__">None (standalone product)</SelectItem>
-                      {familyHeadProducts
-                        .filter(p => p.id !== currentProductId)
-                        .map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.sku} - {product.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Link this product to a family head for production planning
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
