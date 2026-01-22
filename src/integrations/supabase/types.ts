@@ -10127,6 +10127,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           creates_intermediate_lot: boolean | null
+          default_line_id: string | null
           default_output_uom: string | null
           description: string | null
           id: string
@@ -10146,6 +10147,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creates_intermediate_lot?: boolean | null
+          default_line_id?: string | null
           default_output_uom?: string | null
           description?: string | null
           id?: string
@@ -10165,6 +10167,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creates_intermediate_lot?: boolean | null
+          default_line_id?: string | null
           default_output_uom?: string | null
           description?: string | null
           id?: string
@@ -10177,7 +10180,15 @@ export type Database = {
           standard_labor_hours_per_unit?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "production_stages_master_default_line_id_fkey"
+            columns: ["default_line_id"]
+            isOneToOne: false
+            referencedRelation: "production_lines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -10193,10 +10204,12 @@ export type Database = {
           conditional_approval_expires_at: string | null
           created_at: string
           description: string | null
+          family_head_id: string | null
           handling_instructions: string | null
           id: string
           is_active: boolean | null
           is_base_product: boolean | null
+          is_family_head: boolean | null
           name: string
           nutritional_data: Json | null
           product_category_id: string | null
@@ -10227,10 +10240,12 @@ export type Database = {
           conditional_approval_expires_at?: string | null
           created_at?: string
           description?: string | null
+          family_head_id?: string | null
           handling_instructions?: string | null
           id?: string
           is_active?: boolean | null
           is_base_product?: boolean | null
+          is_family_head?: boolean | null
           name: string
           nutritional_data?: Json | null
           product_category_id?: string | null
@@ -10261,10 +10276,12 @@ export type Database = {
           conditional_approval_expires_at?: string | null
           created_at?: string
           description?: string | null
+          family_head_id?: string | null
           handling_instructions?: string | null
           id?: string
           is_active?: boolean | null
           is_base_product?: boolean | null
+          is_family_head?: boolean | null
           name?: string
           nutritional_data?: Json | null
           product_category_id?: string | null
@@ -10302,6 +10319,13 @@ export type Database = {
             columns: ["conditional_approval_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_family_head_id_fkey"
+            columns: ["family_head_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -12701,6 +12725,30 @@ export type Database = {
           },
         ]
       }
+      stage_category_mapping: {
+        Row: {
+          category_code: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          stage_code: string
+        }
+        Insert: {
+          category_code: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          stage_code: string
+        }
+        Update: {
+          category_code?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          stage_code?: string
+        }
+        Relationships: []
+      }
       supplier_contacts: {
         Row: {
           created_at: string
@@ -14977,6 +15025,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      check_wo_input_availability: {
+        Args: {
+          p_product_id: string
+          p_recipe_id?: string
+          p_stage_code: string
+        }
+        Returns: Json
       }
       cleanup_stale_editors: { Args: never; Returns: undefined }
       commit_staged_materials: {
