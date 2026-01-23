@@ -70,13 +70,16 @@ export default function DailyProductionTargets() {
     if (isNaN(target) || target <= 0) return;
 
     // Explicitly filter for Monday(1) through Friday(5) only
+    // Use date-fns getDay which handles timezone correctly
     const weekdayDates = weekDays
       .filter(d => {
         const dayOfWeek = getDay(d); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+        console.log('Day:', format(d, 'EEE yyyy-MM-dd'), 'dayOfWeek:', dayOfWeek);
         return dayOfWeek >= 1 && dayOfWeek <= 5;
       })
       .map(d => format(d, 'yyyy-MM-dd'));
 
+    console.log('Weekday dates to update:', weekdayDates);
     setWeeklyTargets.mutate({ dates: weekdayDates, target_quantity: target });
     setWeeklyDefaultTarget('');
   };
