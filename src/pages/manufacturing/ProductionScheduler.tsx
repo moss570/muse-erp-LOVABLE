@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { aggregateAllergensForRecipe } from "@/lib/bomAggregation";
 import { DailyTargetIndicator } from "@/components/manufacturing/DailyTargetIndicator";
+import { VatLineIndicator } from "@/components/manufacturing/VatLineIndicator";
 import { RequiredCapacityView } from "@/components/manufacturing/RequiredCapacityView";
 import { ProcurementScheduleView } from "@/components/manufacturing/ProcurementScheduleView";
 import { ScheduleTimelineView } from "@/components/manufacturing/ScheduleTimelineView";
@@ -299,6 +300,9 @@ function DroppableColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${date}|${lineId}` });
 
+  // Check if this is the VAT line (case-insensitive)
+  const isVatLine = lineName.toLowerCase().includes("vat");
+
   // Calculate total weight (KG)
   const totalWeightKg = scheduleItems.reduce(
     (sum, item) => sum + (item.planned_quantity || 0),
@@ -339,12 +343,20 @@ function DroppableColumn({
           <p className="font-semibold text-sm">{format(new Date(date), "EEE M/d")}</p>
         </div>
         
-        {/* Daily Target Indicator */}
-        <DailyTargetIndicator 
-          scheduledVolume={totalVolume} 
-          targetVolume={lineCapacity}
-          unit="gal"
-        />
+        {/* VAT line shows WO count + gallons, others show target indicator */}
+        {isVatLine ? (
+          <VatLineIndicator 
+            workOrderCount={scheduleItems.length}
+            totalVolume={totalVolume}
+            volumeUnit={volumeUnit}
+          />
+        ) : (
+          <DailyTargetIndicator 
+            scheduledVolume={totalVolume} 
+            targetVolume={lineCapacity}
+            unit="gal"
+          />
+        )}
         
         {laborStatus && laborStatus.status !== "BALANCED" && (
           <div className={cn("flex items-center gap-1 mt-1 text-xs", getLaborStatusColor(laborStatus.status))}>
