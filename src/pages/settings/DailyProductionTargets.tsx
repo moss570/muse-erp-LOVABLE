@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, isWeekend, eachDayOfInterval } from 'date-fns';
-import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Users, DollarSign, Calendar, Pencil } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, getDay } from 'date-fns';
+import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Users, DollarSign, Calendar, Pencil, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,9 @@ export default function DailyProductionTargets() {
     upsertTarget,
     setWeeklyTargets,
     copyFromLastWeek,
+    autoRollover,
+    toggleAutoRollover,
+    isAutoRolloverPending,
   } = useDailyProductionTargets(startDateStr, endDateStr);
 
   const dailyBreakdowns = useMemo(() => getDailyBreakdowns(), [getDailyBreakdowns]);
@@ -64,8 +68,12 @@ export default function DailyProductionTargets() {
     const target = parseFloat(weeklyDefaultTarget);
     if (isNaN(target) || target <= 0) return;
 
+    // Explicitly filter for Monday(1) through Friday(5) only
     const weekdayDates = weekDays
-      .filter(d => !isWeekend(d))
+      .filter(d => {
+        const dayOfWeek = getDay(d); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+        return dayOfWeek >= 1 && dayOfWeek <= 5;
+      })
       .map(d => format(d, 'yyyy-MM-dd'));
 
     setWeeklyTargets.mutate({ dates: weekdayDates, target_quantity: target });
@@ -247,7 +255,8 @@ export default function DailyProductionTargets() {
             <TableBody>
               {dailyBreakdowns.map((breakdown) => {
                 const date = new Date(breakdown.date);
-                const isWeekendDay = isWeekend(date);
+                const dayOfWeek = getDay(date);
+                const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
                 
                 return (
                   <TableRow 
@@ -303,7 +312,7 @@ export default function DailyProductionTargets() {
         <CardHeader>
           <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <Label htmlFor="weekly-default" className="whitespace-nowrap">
@@ -334,6 +343,27 @@ export default function DailyProductionTargets() {
               <Copy className="h-4 w-4 mr-2" />
               Copy Last Week's Targets
             </Button>
+          </div>
+
+          {/* Auto-Rollover Toggle */}
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <Label htmlFor="auto-rollover" className="text-sm font-medium cursor-pointer">
+                  Auto-Rollover Weekly Targets
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  When enabled, this week's targets will automatically copy to future weeks
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="auto-rollover"
+              checked={autoRollover}
+              onCheckedChange={(checked) => toggleAutoRollover.mutate(checked)}
+              disabled={isAutoRolloverPending}
+            />
           </div>
         </CardContent>
       </Card>
