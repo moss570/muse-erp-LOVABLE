@@ -13,12 +13,15 @@ import { EmployeeJobDetails } from '@/components/hr/EmployeeJobDetails';
 import { EmployeePersonalInfo } from '@/components/hr/EmployeePersonalInfo';
 import { EmployeeDocuments } from '@/components/hr/EmployeeDocuments';
 import { EmployeePerformance } from '@/components/hr/EmployeePerformance';
-import { 
-  ArrowLeft, 
-  Phone, 
-  Mail, 
+import { CreateUserAccountDialog } from '@/components/hr/CreateUserAccountDialog';
+import {
+  ArrowLeft,
+  Phone,
+  Mail,
   Pencil,
   MessageSquare,
+  UserPlus,
+  CheckCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { EmployeeWithRelations } from '@/hooks/useEmployees';
@@ -27,23 +30,25 @@ export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
 
   const { data: employee, isLoading, refetch } = useQuery({
     queryKey: ['employee', id],
     queryFn: async () => {
       if (!id) return null;
-      
+
       const { data, error } = await supabase
         .from('employees')
         .select(`
           *,
           job_position:job_positions(*),
           department:departments(*),
-          location:locations(*)
+          location:locations(*),
+          profile:profiles(id, email, status)
         `)
         .eq('id', id)
         .single();
-      
+
       if (error) throw error;
       return data as EmployeeWithRelations;
     },
@@ -160,8 +165,22 @@ export default function EmployeeDetail() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="destructive" 
+          {!employee.profile_id ? (
+            <Button
+              onClick={() => setIsCreateUserDialogOpen(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create User Account
+            </Button>
+          ) : (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Has User Account
+            </Badge>
+          )}
+          <Button
+            variant="destructive"
             className="bg-red-500 hover:bg-red-600"
             disabled={employee.employment_status === 'terminated'}
           >
@@ -236,6 +255,22 @@ export default function EmployeeDetail() {
         onSuccess={() => {
           refetch();
           setIsEditDialogOpen(false);
+        }}
+      />
+
+      <CreateUserAccountDialog
+        open={isCreateUserDialogOpen}
+        onOpenChange={setIsCreateUserDialogOpen}
+        employee={{
+          id: employee.id,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email,
+          employee_number: employee.employee_number,
+        }}
+        onSuccess={() => {
+          refetch();
+          setIsCreateUserDialogOpen(false);
         }}
       />
     </div>
