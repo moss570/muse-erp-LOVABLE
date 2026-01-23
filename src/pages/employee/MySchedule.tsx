@@ -27,25 +27,36 @@ const MySchedule = () => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 0 });
   const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  // First get the employee_id linked to this profile
+  const { data: myEmployee } = useQuery({
+    queryKey: ['my-employee', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('profile_id', user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   
   const { data: schedule, isLoading } = useQuery({
-    queryKey: ['my-schedule', user?.id, format(weekStart, 'yyyy-MM-dd')],
+    queryKey: ['my-schedule', myEmployee?.id, format(weekStart, 'yyyy-MM-dd')],
     queryFn: async () => {
       const { data } = await supabase
         .from('employee_shifts')
-        .select(`
-          *,
-          location:locations(name)
-        `)
-        .eq('profile_id', user?.id)
+        .select('id, shift_date, start_time, end_time, notes, break_minutes, location_id')
+        .eq('employee_id', myEmployee!.id)
         .gte('shift_date', format(weekStart, 'yyyy-MM-dd'))
         .lte('shift_date', format(weekEnd, 'yyyy-MM-dd'))
         .order('shift_date')
         .order('start_time');
 
-      return data as ScheduleEntry[];
+      return (data || []) as ScheduleEntry[];
     },
-    enabled: !!user?.id,
+    enabled: !!myEmployee?.id,
   });
   
   // Fetch tasks for scheduled shifts
