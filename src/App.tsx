@@ -56,6 +56,7 @@ import ProductionScheduler from "./pages/manufacturing/ProductionScheduler";
 // EmployeeSchedulerPage removed - consolidated into Schedule.tsx
 import ShopFloorWorkOrder from "./pages/manufacturing/ShopFloorWorkOrder";
 import ProductionLinesSettings from "./pages/settings/ProductionLinesSettings";
+import DailyProductionTargets from "./pages/settings/DailyProductionTargets";
 import ProductionStagesSettings from "./pages/settings/ProductionStagesSettings";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
@@ -181,6 +182,7 @@ const App = () => (
             <Route path="/settings/task-templates" element={<AppLayout><TaskTemplates /></AppLayout>} />
             <Route path="/settings/production-lines" element={<AppLayout><ProductionLinesSettings /></AppLayout>} />
             <Route path="/settings/production-stages" element={<AppLayout><ProductionStagesSettings /></AppLayout>} />
+            <Route path="/settings/daily-production-targets" element={<AppLayout><DailyProductionTargets /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}

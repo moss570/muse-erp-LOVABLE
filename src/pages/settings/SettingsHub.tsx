@@ -132,6 +132,13 @@ const settingsCategories: SettingCategory[] = [
         icon: Building,
         status: 'active',
       },
+      {
+        title: 'Daily Production Targets',
+        description: 'Set minimum production goals and calculate cost per gallon',
+        href: '/settings/daily-production-targets',
+        icon: Factory,
+        status: 'active',
+      },
     ],
   },
   {
