@@ -25,24 +25,24 @@ const EmployeePortal = () => {
   // Fetch tasks
   const { data: myTasks } = useMyTasks();
   
-  // Fetch upcoming schedule using employee_shifts table
+  // Fetch upcoming schedule using employee_shifts table (now uses profile_id)
   const { data: schedule } = useQuery({
     queryKey: ['my-schedule-upcoming', user?.id],
     queryFn: async () => {
       const today = new Date();
       const weekEnd = endOfWeek(today);
-      
+
       const { data } = await supabase
         .from('employee_shifts')
         .select(`
           *,
           location:locations(name)
         `)
-        .eq('employee_id', user?.id)
+        .eq('profile_id', user?.id)
         .gte('shift_date', format(today, 'yyyy-MM-dd'))
         .lte('shift_date', format(weekEnd, 'yyyy-MM-dd'))
         .order('shift_date');
-      
+
       return data;
     },
     enabled: !!user?.id,

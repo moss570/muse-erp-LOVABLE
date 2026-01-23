@@ -24,16 +24,18 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { EmployeeFormDialog } from '@/components/hr/EmployeeFormDialog';
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  MoreVertical, 
-  Download, 
+import {
+  Search,
+  Plus,
+  Filter,
+  MoreVertical,
+  Download,
   Printer,
   Users,
   Mail,
   Phone,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import type { EmployeeWithRelations } from '@/hooks/useEmployees';
 
@@ -54,15 +56,16 @@ export default function TeamRoster() {
           *,
           job_position:job_positions(*),
           department:departments(*),
-          location:locations(*)
+          location:locations(*),
+          profile:profiles(id, email, status)
         `)
         .order('last_name')
         .order('first_name');
-      
+
       if (!showTerminated) {
         query = query.neq('employment_status', 'terminated');
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as EmployeeWithRelations[];
@@ -122,6 +125,23 @@ export default function TeamRoster() {
       return `$${emp.hourly_rate.toFixed(2)}/hr`;
     }
     return <span className="text-primary cursor-pointer hover:underline">Add wage</span>;
+  };
+
+  const getUserAccountBadge = (emp: EmployeeWithRelations) => {
+    if (emp.profile_id) {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Active
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+        <XCircle className="h-3 w-3 mr-1" />
+        No Account
+      </Badge>
+    );
   };
 
   const handleRowClick = (emp: EmployeeWithRelations) => {
@@ -197,6 +217,7 @@ export default function TeamRoster() {
                   <TableHead>Location</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Wage</TableHead>
+                  <TableHead>User Account</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -204,7 +225,7 @@ export default function TeamRoster() {
               <TableBody>
                 {paginatedEmployees?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                       <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
                       <p className="font-medium">No team members found</p>
                       <p className="text-sm">Add your first team member to get started</p>
@@ -264,6 +285,9 @@ export default function TeamRoster() {
                       </TableCell>
                       <TableCell className="font-medium">
                         {formatWage(emp)}
+                      </TableCell>
+                      <TableCell>
+                        {getUserAccountBadge(emp)}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(emp.employment_status)}

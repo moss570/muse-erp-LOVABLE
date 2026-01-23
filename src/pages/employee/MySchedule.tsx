@@ -37,12 +37,12 @@ const MySchedule = () => {
           *,
           location:locations(name)
         `)
-        .eq('employee_id', user?.id)
+        .eq('profile_id', user?.id)
         .gte('shift_date', format(weekStart, 'yyyy-MM-dd'))
         .lte('shift_date', format(weekEnd, 'yyyy-MM-dd'))
         .order('shift_date')
         .order('start_time');
-      
+
       return data as ScheduleEntry[];
     },
     enabled: !!user?.id,
