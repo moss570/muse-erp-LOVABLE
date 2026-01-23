@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
+import { addDays, format, getDay, parse } from 'date-fns';
 
 export type DailyProductionTarget = Tables<'daily_production_targets'>;
 
@@ -58,6 +59,10 @@ const DEFAULT_WORK_DAYS_PER_MONTH = 21;
 export function useDailyProductionTargets(startDate: string, endDate: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // IMPORTANT: Date-only strings like "2026-01-23" are parsed as UTC by `new Date(str)`.
+  // That causes weekday shifts in many timezones. Always parse as LOCAL date.
+  const parseLocalYmd = (ymd: string) => parse(ymd, 'yyyy-MM-dd', new Date());
 
   // Fetch existing targets for the date range
   const targetsQuery = useQuery({
@@ -264,8 +269,8 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     const templateByDayOfWeek: Record<number, number> = {};
     if (shouldAutoRoll) {
       templateTargets.forEach(t => {
-        const date = new Date(t.target_date);
-        const dayOfWeek = date.getDay(); // 0-6
+        const date = parseLocalYmd(t.target_date);
+        const dayOfWeek = getDay(date); // 0-6 (local)
         // Only use the first (most recent) target for each day of week
         if (templateByDayOfWeek[dayOfWeek] === undefined && t.target_quantity) {
           templateByDayOfWeek[dayOfWeek] = t.target_quantity;
@@ -274,18 +279,18 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     }
     
     // Generate dates in range
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseLocalYmd(startDate);
+    const end = parseLocalYmd(endDate);
     
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+    for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+      const dateStr = format(d, 'yyyy-MM-dd');
       const existingTarget = targets.find(t => t.target_date === dateStr);
       
       let targetGallons = existingTarget?.target_quantity || 0;
       
       // If no existing target and auto-rollover is enabled, use template
       if (!targetGallons && shouldAutoRoll) {
-        const dayOfWeek = d.getDay();
+        const dayOfWeek = getDay(d);
         targetGallons = templateByDayOfWeek[dayOfWeek] || 0;
       }
       
@@ -437,18 +442,16 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
   // Copy from last week
   const copyFromLastWeek = useMutation({
     mutationFn: async (currentWeekStart: string) => {
-      const current = new Date(currentWeekStart);
-      const lastWeekStart = new Date(current);
-      lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-      const lastWeekEnd = new Date(lastWeekStart);
-      lastWeekEnd.setDate(lastWeekEnd.getDate() + 6);
+      const current = parseLocalYmd(currentWeekStart);
+      const lastWeekStart = addDays(current, -7);
+      const lastWeekEnd = addDays(lastWeekStart, 6);
 
       // Fetch last week's targets
       const { data: lastWeekTargets, error } = await supabase
         .from('daily_production_targets')
         .select('*')
-        .gte('target_date', lastWeekStart.toISOString().split('T')[0])
-        .lte('target_date', lastWeekEnd.toISOString().split('T')[0]);
+        .gte('target_date', format(lastWeekStart, 'yyyy-MM-dd'))
+        .lte('target_date', format(lastWeekEnd, 'yyyy-MM-dd'));
 
       if (error) throw error;
       if (!lastWeekTargets || lastWeekTargets.length === 0) {
@@ -458,10 +461,9 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
       // Copy to current week
       const results = [];
       for (const target of lastWeekTargets) {
-        const lastDate = new Date(target.target_date);
-        const newDate = new Date(lastDate);
-        newDate.setDate(newDate.getDate() + 7);
-        const newDateStr = newDate.toISOString().split('T')[0];
+        const lastDate = parseLocalYmd(target.target_date);
+        const newDate = addDays(lastDate, 7);
+        const newDateStr = format(newDate, 'yyyy-MM-dd');
 
         const { data: existing } = await supabase
           .from('daily_production_targets')

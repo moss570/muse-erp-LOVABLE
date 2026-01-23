@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, getDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, getDay, parse } from 'date-fns';
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Users, DollarSign, Calendar, Pencil, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,6 +62,11 @@ export default function DailyProductionTargets() {
     [currentWeekStart, weekEnd]
   );
 
+  // IMPORTANT: Date-only strings like "2026-01-23" are parsed as UTC by `new Date(str)`.
+  // That causes weekday shifts in many timezones (Mon shows as Sun, etc.).
+  // Always parse target_date as a LOCAL date.
+  const parseLocalYmd = (ymd: string) => parse(ymd, 'yyyy-MM-dd', new Date());
+
   const handlePrevWeek = () => setCurrentWeekStart(prev => subWeeks(prev, 1));
   const handleNextWeek = () => setCurrentWeekStart(prev => addWeeks(prev, 1));
 
@@ -70,16 +75,13 @@ export default function DailyProductionTargets() {
     if (isNaN(target) || target <= 0) return;
 
     // Explicitly filter for Monday(1) through Friday(5) only
-    // Use date-fns getDay which handles timezone correctly
     const weekdayDates = weekDays
       .filter(d => {
         const dayOfWeek = getDay(d); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-        console.log('Day:', format(d, 'EEE yyyy-MM-dd'), 'dayOfWeek:', dayOfWeek);
         return dayOfWeek >= 1 && dayOfWeek <= 5;
       })
       .map(d => format(d, 'yyyy-MM-dd'));
 
-    console.log('Weekday dates to update:', weekdayDates);
     setWeeklyTargets.mutate({ dates: weekdayDates, target_quantity: target });
     setWeeklyDefaultTarget('');
   };
@@ -257,7 +259,7 @@ export default function DailyProductionTargets() {
             </TableHeader>
             <TableBody>
               {dailyBreakdowns.map((breakdown) => {
-                const date = new Date(breakdown.date);
+                const date = parseLocalYmd(breakdown.date);
                 const dayOfWeek = getDay(date);
                 const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
                 
@@ -376,7 +378,7 @@ export default function DailyProductionTargets() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Set Production Target - {editingDay && format(new Date(editingDay.date), 'EEE, MMM d')}
+              Set Production Target - {editingDay && format(parseLocalYmd(editingDay.date), 'EEE, MMM d')}
             </DialogTitle>
             <DialogDescription>
               Set the target quantity and view the cost breakdown
