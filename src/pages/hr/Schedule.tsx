@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useEmployees, useEmployeeShifts } from '@/hooks/useEmployees';
 import { useEmployeeTimeOff } from '@/hooks/useScheduleFeatures';
+import { useScheduleCompliance } from '@/hooks/useScheduleCompliance';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +28,9 @@ import {
   LayoutTemplate,
   Target,
   AlertTriangle,
-  Factory
+  Factory,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
@@ -198,6 +201,14 @@ export default function Schedule() {
     format(dateRange[dateRange.length - 1] || new Date(), 'yyyy-MM-dd')
   );
   const { toast } = useToast();
+
+  // Fetch schedule compliance data
+  const { getComplianceData, isLoading: isComplianceLoading } = useScheduleCompliance(
+    format(dateRange[0] || new Date(), 'yyyy-MM-dd'),
+    format(dateRange[dateRange.length - 1] || new Date(), 'yyyy-MM-dd')
+  );
+  
+  const complianceData = useMemo(() => getComplianceData(), [getComplianceData]);
 
   // Fetch scheduled production for the date range
   const { data: scheduledProduction = [] } = useQuery({
@@ -528,7 +539,41 @@ export default function Schedule() {
       />
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-4">
+        {/* Compliance Card */}
+        <Card className={cn(
+          "border-2",
+          complianceData.overallComplianceStatus === 'compliant' && "border-green-500 bg-green-50 dark:bg-green-950/20",
+          complianceData.overallComplianceStatus === 'warning' && "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
+          complianceData.overallComplianceStatus === 'over_budget' && "border-destructive bg-destructive/10",
+          complianceData.overallComplianceStatus === 'no_targets' && "border-muted"
+        )}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Labor Compliance</CardTitle>
+            {complianceData.overallComplianceStatus === 'compliant' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+            {complianceData.overallComplianceStatus === 'warning' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+            {complianceData.overallComplianceStatus === 'over_budget' && <XCircle className="h-4 w-4 text-destructive" />}
+            {complianceData.overallComplianceStatus === 'no_targets' && <Target className="h-4 w-4 text-muted-foreground" />}
+          </CardHeader>
+          <CardContent>
+            {complianceData.overallComplianceStatus === 'no_targets' ? (
+              <>
+                <div className="text-lg font-bold text-muted-foreground">No Targets Set</div>
+                <p className="text-xs text-muted-foreground">Set targets in Settings → Daily Production Targets</p>
+              </>
+            ) : (
+              <>
+                <div className="text-lg font-bold">
+                  ${complianceData.totalActualHourlyLabor.toFixed(0)} / ${complianceData.totalHourlyLaborBudget.toFixed(0)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Hourly labor vs budget
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
@@ -542,64 +587,28 @@ export default function Schedule() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setBudgetDialogOpen(true)}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Labor Cost</CardTitle>
-            <div className="flex items-center gap-1">
-              <Target className="h-3 w-3 text-muted-foreground" />
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalLaborCost.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Click to set budget
-            </p>
-          </CardContent>
-        </Card>
-
         <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setBreakdownOpen(true)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gallons Target</CardTitle>
-            <div className="flex items-center gap-1">
-              <Info className="h-3 w-3 text-muted-foreground" />
-              <Droplets className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <CardTitle className="text-sm font-medium">Hourly Labor Cost</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{gallonsNeeded.toFixed(0)}</div>
+            <div className="text-2xl font-bold">${payrollData.totalCost.toFixed(0)}</div>
             <p className="text-xs text-muted-foreground">
-              ${laborCostPerGallon}/gal • Click for details
+              Click for breakdown
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled Production</CardTitle>
-            <Factory className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Target Production</CardTitle>
+            <Droplets className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{scheduledProductionData.totalGallons.toFixed(0)} gal</div>
+            <div className="text-2xl font-bold">{complianceData.totalTargetGallons.toLocaleString()} gal</div>
             <p className="text-xs text-muted-foreground">
-              {scheduledProduction.length} work orders
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled Staff</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(shifts?.filter(s => 
-                dateRange.some(d => s.shift_date === format(d, 'yyyy-MM-dd'))
-              ).map(s => s.employee_id)).size}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              of {employees?.length || 0} team members
+              From daily targets
             </p>
           </CardContent>
         </Card>

@@ -33,8 +33,10 @@ export default function DailyProductionTargets() {
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   const [weeklyDefaultTarget, setWeeklyDefaultTarget] = useState('');
+  const [weeklyDefaultHourlyCost, setWeeklyDefaultHourlyCost] = useState('');
   const [editingDay, setEditingDay] = useState<DailyCostBreakdown | null>(null);
   const [editTargetValue, setEditTargetValue] = useState('');
+  const [editHourlyCostValue, setEditHourlyCostValue] = useState('');
   const [editNotes, setEditNotes] = useState('');
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
@@ -72,6 +74,7 @@ export default function DailyProductionTargets() {
 
   const handleSetWeeklyDefault = () => {
     const target = parseFloat(weeklyDefaultTarget);
+    const hourlyCost = parseFloat(weeklyDefaultHourlyCost);
     if (isNaN(target) || target <= 0) return;
 
     // Explicitly filter for Monday(1) through Friday(5) only
@@ -82,8 +85,13 @@ export default function DailyProductionTargets() {
       })
       .map(d => format(d, 'yyyy-MM-dd'));
 
-    setWeeklyTargets.mutate({ dates: weekdayDates, target_quantity: target });
+    setWeeklyTargets.mutate({ 
+      dates: weekdayDates, 
+      target_quantity: target,
+      target_labor_cost: isNaN(hourlyCost) ? undefined : hourlyCost,
+    });
     setWeeklyDefaultTarget('');
+    setWeeklyDefaultHourlyCost('');
   };
 
   const handleCopyLastWeek = () => {
@@ -93,17 +101,20 @@ export default function DailyProductionTargets() {
   const openEditDialog = (breakdown: DailyCostBreakdown) => {
     setEditingDay(breakdown);
     setEditTargetValue(breakdown.targetGallons > 0 ? breakdown.targetGallons.toString() : '');
+    setEditHourlyCostValue(breakdown.targetHourlyCostPerGal > 0 ? breakdown.targetHourlyCostPerGal.toString() : '');
     setEditNotes(breakdown.notes || '');
   };
 
   const handleSaveTarget = () => {
     if (!editingDay) return;
     const target = parseFloat(editTargetValue);
+    const hourlyCost = parseFloat(editHourlyCostValue);
     if (isNaN(target) || target < 0) return;
 
     upsertTarget.mutate({
       target_date: editingDay.date,
       target_quantity: target,
+      target_labor_cost: isNaN(hourlyCost) ? undefined : hourlyCost,
       notes: editNotes || undefined,
     });
     setEditingDay(null);
@@ -131,23 +142,11 @@ export default function DailyProductionTargets() {
   const editBreakdown = useMemo(() => {
     if (!editingDay) return null;
     const target = parseFloat(editTargetValue) || 0;
-    // Use the already-fetched base breakdown and recalculate cost per gallon
-    const baseBreakdown = dailyBreakdowns.find(b => b.date === editingDay.date);
-    if (!baseBreakdown) return null;
+    const hourlyCost = parseFloat(editHourlyCostValue) || 0;
     
-    // Update cost per gallon calculations based on edited target
-    const hourlyCostPerGallon = target > 0 ? baseBreakdown.hourlyLaborCost / target : 0;
-    const overheadCostPerGallon = target > 0 ? baseBreakdown.overheadTotal / target : 0;
-    const totalCostPerGallon = hourlyCostPerGallon + overheadCostPerGallon;
-    
-    return {
-      ...baseBreakdown,
-      targetGallons: target,
-      hourlyCostPerGallon,
-      overheadCostPerGallon,
-      totalCostPerGallon,
-    };
-  }, [editingDay, editTargetValue, dailyBreakdowns]);
+    // Recalculate with current values
+    return calculateDailyCosts(editingDay.date, target, hourlyCost);
+  }, [editingDay, editTargetValue, editHourlyCostValue, calculateDailyCosts]);
 
   if (isLoading) {
     return (
@@ -173,7 +172,7 @@ export default function DailyProductionTargets() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Daily Production Targets</h1>
           <p className="text-muted-foreground">
-            Set minimum production goals and track cost per gallon
+            Set production goals and target cost per gallon for schedule compliance
           </p>
         </div>
       </div>
@@ -249,11 +248,9 @@ export default function DailyProductionTargets() {
               <TableRow>
                 <TableHead className="w-[120px]">Date</TableHead>
                 <TableHead className="text-right">Target (gal)</TableHead>
-                <TableHead className="text-right">Hourly Labor</TableHead>
-                <TableHead className="text-right">Overhead</TableHead>
-                <TableHead className="text-right">Hourly $/Gal</TableHead>
+                <TableHead className="text-right">Target Hourly $/Gal</TableHead>
                 <TableHead className="text-right">Overhead $/Gal</TableHead>
-                <TableHead className="text-right">Total $/Gal</TableHead>
+                <TableHead className="text-right">Combined Target $/Gal</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -274,15 +271,9 @@ export default function DailyProductionTargets() {
                     <TableCell className="text-right">
                       {breakdown.targetGallons > 0 ? breakdown.targetGallons.toLocaleString() : '-'}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {breakdown.hourlyLaborCost > 0 ? formatCurrency(breakdown.hourlyLaborCost) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {breakdown.overheadTotal > 0 ? formatCurrency(breakdown.overheadTotal) : '-'}
-                    </TableCell>
                     <TableCell className="text-right font-mono">
-                      {breakdown.hourlyCostPerGallon > 0 
-                        ? formatCurrencyDecimal(breakdown.hourlyCostPerGallon) 
+                      {breakdown.targetHourlyCostPerGal > 0 
+                        ? formatCurrencyDecimal(breakdown.targetHourlyCostPerGal) 
                         : '-'}
                     </TableCell>
                     <TableCell className="text-right font-mono">
@@ -291,8 +282,8 @@ export default function DailyProductionTargets() {
                         : '-'}
                     </TableCell>
                     <TableCell className="text-right font-mono font-semibold">
-                      {breakdown.totalCostPerGallon > 0 
-                        ? formatCurrencyDecimal(breakdown.totalCostPerGallon) 
+                      {breakdown.combinedTargetCostPerGallon > 0 
+                        ? formatCurrencyDecimal(breakdown.combinedTargetCostPerGallon) 
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -316,29 +307,46 @@ export default function DailyProductionTargets() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Quick Actions</CardTitle>
+          <CardDescription>Set targets for Monday through Friday</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="weekly-default" className="whitespace-nowrap">
-                Set weekday default:
-              </Label>
-              <Input
-                id="weekly-default"
-                type="number"
-                placeholder="e.g. 600"
-                value={weeklyDefaultTarget}
-                onChange={(e) => setWeeklyDefaultTarget(e.target.value)}
-                className="w-32"
-              />
-              <span className="text-sm text-muted-foreground">gal</span>
-              <Button 
-                onClick={handleSetWeeklyDefault}
-                disabled={!weeklyDefaultTarget || setWeeklyTargets.isPending}
-              >
-                Apply
-              </Button>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-1">
+              <Label htmlFor="weekly-default">Target Gallons</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="weekly-default"
+                  type="number"
+                  placeholder="e.g. 600"
+                  value={weeklyDefaultTarget}
+                  onChange={(e) => setWeeklyDefaultTarget(e.target.value)}
+                  className="w-32"
+                />
+                <span className="text-sm text-muted-foreground">gal</span>
+              </div>
             </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="weekly-hourly-cost">Target Hourly $/Gal</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="weekly-hourly-cost"
+                  type="number"
+                  step="0.01"
+                  placeholder="e.g. 0.33"
+                  value={weeklyDefaultHourlyCost}
+                  onChange={(e) => setWeeklyDefaultHourlyCost(e.target.value)}
+                  className="w-32"
+                />
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleSetWeeklyDefault}
+              disabled={!weeklyDefaultTarget || setWeeklyTargets.isPending}
+            >
+              Set Weekday Default
+            </Button>
 
             <Button
               variant="outline"
@@ -346,7 +354,7 @@ export default function DailyProductionTargets() {
               disabled={copyFromLastWeek.isPending}
             >
               <Copy className="h-4 w-4 mr-2" />
-              Copy Last Week's Targets
+              Copy Last Week
             </Button>
           </div>
 
@@ -381,62 +389,53 @@ export default function DailyProductionTargets() {
               Set Production Target - {editingDay && format(parseLocalYmd(editingDay.date), 'EEE, MMM d')}
             </DialogTitle>
             <DialogDescription>
-              Set the target quantity and view the cost breakdown
+              Set the target quantity and hourly labor cost per gallon
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Target Input */}
-            <div className="space-y-2">
-              <Label htmlFor="target-quantity">Target Quantity</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="target-quantity"
-                  type="number"
-                  value={editTargetValue}
-                  onChange={(e) => setEditTargetValue(e.target.value)}
-                  placeholder="e.g. 600"
-                  className="w-40"
-                />
-                <span className="text-sm text-muted-foreground">gallons</span>
+            {/* Target Inputs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="target-quantity">Target Quantity</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="target-quantity"
+                    type="number"
+                    value={editTargetValue}
+                    onChange={(e) => setEditTargetValue(e.target.value)}
+                    placeholder="e.g. 600"
+                    className="w-full"
+                  />
+                  <span className="text-sm text-muted-foreground">gal</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="target-hourly-cost">Target Hourly $/Gal</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="target-hourly-cost"
+                    type="number"
+                    step="0.01"
+                    value={editHourlyCostValue}
+                    onChange={(e) => setEditHourlyCostValue(e.target.value)}
+                    placeholder="e.g. 0.33"
+                    className="w-full"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Budget for hourly labor
+                </p>
               </div>
             </div>
 
             {editBreakdown && (
               <>
-                {/* Hourly Labor Section */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                    Hourly Labor (Variable Cost)
-                  </h4>
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-                    {editBreakdown.hourlyLaborDetails.length > 0 ? (
-                      <>
-                        {editBreakdown.hourlyLaborDetails.map((detail, i) => (
-                          <div key={i} className="flex justify-between text-sm">
-                            <span>{detail.name} ({detail.hours.toFixed(1)}h × {formatCurrencyDecimal(detail.rate)}/hr)</span>
-                            <span>{formatCurrency(detail.total)}</span>
-                          </div>
-                        ))}
-                        <div className="border-t pt-1 mt-2 flex justify-between font-medium">
-                          <span>Subtotal</span>
-                          <span>{formatCurrency(editBreakdown.hourlyLaborCost)}</span>
-                        </div>
-                        <div className="flex justify-between text-primary font-semibold">
-                          <span>HOURLY COST PER GALLON</span>
-                          <span>{formatCurrencyDecimal(editBreakdown.hourlyCostPerGallon)}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No hourly shifts scheduled</p>
-                    )}
-                  </div>
-                </div>
-
                 {/* Overhead Section */}
                 <div className="space-y-2">
                   <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                    Overhead (Fixed Burden)
+                    Overhead (Fixed Burden) - Auto-Calculated
                   </h4>
                   <div className="bg-muted/50 rounded-lg p-3 space-y-3">
                     {/* Salary Employees */}
@@ -481,7 +480,7 @@ export default function DailyProductionTargets() {
                         <span>{formatCurrency(editBreakdown.overheadTotal)}</span>
                       </div>
                       <div className="flex justify-between text-primary font-semibold">
-                        <span>OVERHEAD COST PER GALLON</span>
+                        <span>OVERHEAD $/GALLON</span>
                         <span>{formatCurrencyDecimal(editBreakdown.overheadCostPerGallon)}</span>
                       </div>
                     </div>
@@ -490,13 +489,17 @@ export default function DailyProductionTargets() {
 
                 {/* Combined Total */}
                 <div className="bg-primary/10 rounded-lg p-3 space-y-1">
-                  <div className="flex justify-between font-medium">
-                    <span>COMBINED TOTAL</span>
-                    <span>{formatCurrency(editBreakdown.totalDailyCost)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span>Target Hourly $/Gal</span>
+                    <span>{formatCurrencyDecimal(editBreakdown.targetHourlyCostPerGal)}</span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold text-primary">
-                    <span>TOTAL COST PER GALLON</span>
-                    <span>{formatCurrencyDecimal(editBreakdown.totalCostPerGallon)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span>Overhead $/Gal</span>
+                    <span>{formatCurrencyDecimal(editBreakdown.overheadCostPerGallon)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold text-primary border-t pt-2">
+                    <span>COMBINED TARGET $/GALLON</span>
+                    <span>{formatCurrencyDecimal(editBreakdown.combinedTargetCostPerGallon)}</span>
                   </div>
                 </div>
               </>
