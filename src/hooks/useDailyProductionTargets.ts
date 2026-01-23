@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/types';
 
 export type DailyProductionTarget = Tables<'daily_production_targets'>;
 
@@ -75,6 +75,23 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     },
   });
 
+  // Fetch template targets from the most recent week before the current range (for auto-rollover)
+  const templateTargetsQuery = useQuery({
+    queryKey: ['template-targets-for-rollover', startDate],
+    queryFn: async () => {
+      // Get the most recent 7 days of targets before startDate that have data
+      const { data, error } = await supabase
+        .from('daily_production_targets')
+        .select('*')
+        .lt('target_date', startDate)
+        .order('target_date', { ascending: false })
+        .limit(7);
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch employee shifts for hourly labor calculation
   const shiftsQuery = useQuery({
     queryKey: ['employee-shifts-for-targets', startDate, endDate],
@@ -138,7 +155,23 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     },
   });
 
+  // Fetch auto-rollover setting from company_settings
+  const companySettingsQuery = useQuery({
+    queryKey: ['company-settings-auto-rollover'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('auto_rollover_production_targets')
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const workDaysPerMonth = settingsQuery.data?.setting_value ?? DEFAULT_WORK_DAYS_PER_MONTH;
+  const autoRollover = companySettingsQuery.data?.auto_rollover_production_targets ?? false;
 
   // Calculate costs for a specific date
   const calculateDailyCosts = (date: string, targetGallons: number): DailyCostBreakdown => {
@@ -220,7 +253,25 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
   // Get all daily breakdowns for the date range
   const getDailyBreakdowns = (): DailyCostBreakdown[] => {
     const targets = targetsQuery.data || [];
+    const templateTargets = templateTargetsQuery.data || [];
     const breakdowns: DailyCostBreakdown[] = [];
+    
+    // Check if we should use auto-rollover
+    const hasNoCurrentTargets = targets.length === 0 || targets.every(t => !t.target_quantity);
+    const shouldAutoRoll = autoRollover && hasNoCurrentTargets && templateTargets.length > 0;
+    
+    // Build a map of day-of-week to target quantity from template
+    const templateByDayOfWeek: Record<number, number> = {};
+    if (shouldAutoRoll) {
+      templateTargets.forEach(t => {
+        const date = new Date(t.target_date);
+        const dayOfWeek = date.getDay(); // 0-6
+        // Only use the first (most recent) target for each day of week
+        if (templateByDayOfWeek[dayOfWeek] === undefined && t.target_quantity) {
+          templateByDayOfWeek[dayOfWeek] = t.target_quantity;
+        }
+      });
+    }
     
     // Generate dates in range
     const start = new Date(startDate);
@@ -229,7 +280,14 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
       const existingTarget = targets.find(t => t.target_date === dateStr);
-      const targetGallons = existingTarget?.target_quantity || 0;
+      
+      let targetGallons = existingTarget?.target_quantity || 0;
+      
+      // If no existing target and auto-rollover is enabled, use template
+      if (!targetGallons && shouldAutoRoll) {
+        const dayOfWeek = d.getDay();
+        targetGallons = templateByDayOfWeek[dayOfWeek] || 0;
+      }
       
       breakdowns.push(calculateDailyCosts(dateStr, targetGallons));
     }
@@ -449,11 +507,60 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     },
   });
 
+  // Toggle auto-rollover setting
+  const toggleAutoRollover = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      // First, check if company_settings exists
+      const { data: existing, error: fetchError } = await supabase
+        .from('company_settings')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      
+      if (fetchError) throw fetchError;
+
+      if (existing) {
+        const { error } = await supabase
+          .from('company_settings')
+          .update({ auto_rollover_production_targets: enabled })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('company_settings')
+          .insert({ 
+            company_name: 'My Company', 
+            auto_rollover_production_targets: enabled 
+          });
+        if (error) throw error;
+      }
+      return enabled;
+    },
+    onSuccess: (enabled) => {
+      queryClient.invalidateQueries({ queryKey: ['company-settings-auto-rollover'] });
+      toast({ 
+        title: enabled ? 'Auto-rollover enabled' : 'Auto-rollover disabled',
+        description: enabled 
+          ? 'Weekly targets will now automatically copy to future weeks' 
+          : 'Weekly targets will not auto-copy to future weeks'
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Error updating setting', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
   const isLoading = 
     targetsQuery.isLoading || 
+    templateTargetsQuery.isLoading ||
     shiftsQuery.isLoading || 
     salaryEmployeesQuery.isLoading || 
-    fixedCostsQuery.isLoading;
+    fixedCostsQuery.isLoading ||
+    companySettingsQuery.isLoading;
 
   return {
     targets: targetsQuery.data || [],
@@ -465,5 +572,8 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     setWeeklyTargets,
     copyFromLastWeek,
     workDaysPerMonth,
+    autoRollover,
+    toggleAutoRollover,
+    isAutoRolloverPending: toggleAutoRollover.isPending,
   };
 }

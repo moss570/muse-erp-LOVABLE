@@ -1260,6 +1260,7 @@ export type Database = {
         Row: {
           address_line1: string | null
           address_line2: string | null
+          auto_rollover_production_targets: boolean
           city: string | null
           company_name: string
           company_prefix: string | null
@@ -1280,6 +1281,7 @@ export type Database = {
         Insert: {
           address_line1?: string | null
           address_line2?: string | null
+          auto_rollover_production_targets?: boolean
           city?: string | null
           company_name?: string
           company_prefix?: string | null
@@ -1300,6 +1302,7 @@ export type Database = {
         Update: {
           address_line1?: string | null
           address_line2?: string | null
+          auto_rollover_production_targets?: boolean
           city?: string | null
           company_name?: string
           company_prefix?: string | null
