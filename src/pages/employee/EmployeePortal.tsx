@@ -25,27 +25,38 @@ const EmployeePortal = () => {
   // Fetch tasks
   const { data: myTasks } = useMyTasks();
   
-  // Fetch upcoming schedule using employee_shifts table (now uses profile_id)
+  // First get the employee_id linked to this profile
+  const { data: myEmployee } = useQuery({
+    queryKey: ['my-employee', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('profile_id', user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch upcoming schedule using employee_shifts table
   const { data: schedule } = useQuery({
-    queryKey: ['my-schedule-upcoming', user?.id],
+    queryKey: ['my-schedule-upcoming', myEmployee?.id],
     queryFn: async () => {
       const today = new Date();
       const weekEnd = endOfWeek(today);
 
       const { data } = await supabase
         .from('employee_shifts')
-        .select(`
-          *,
-          location:locations(name)
-        `)
-        .eq('profile_id', user?.id)
+        .select('id, shift_date, start_time, end_time, notes, location_id')
+        .eq('employee_id', myEmployee!.id)
         .gte('shift_date', format(today, 'yyyy-MM-dd'))
         .lte('shift_date', format(weekEnd, 'yyyy-MM-dd'))
         .order('shift_date');
 
-      return data;
+      return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!myEmployee?.id,
   });
   
   // Fetch PTO balance

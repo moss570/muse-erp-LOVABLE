@@ -57,7 +57,7 @@ export default function TeamRoster() {
           job_position:job_positions(*),
           department:departments(*),
           location:locations(*),
-          profile:profiles(id, email, status)
+          profile:profiles!employees_profile_id_fkey(id, email, status)
         `)
         .order('last_name')
         .order('first_name');
