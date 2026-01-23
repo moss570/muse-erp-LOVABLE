@@ -6,14 +6,6 @@ import { addDays, format, getDay, parse } from 'date-fns';
 
 export type DailyProductionTarget = Tables<'daily_production_targets'>;
 
-interface ShiftDetail {
-  employeeId: string;
-  name: string;
-  hours: number;
-  rate: number;
-  total: number;
-}
-
 interface SalaryDetail {
   employeeId: string;
   name: string;
@@ -35,12 +27,10 @@ export interface DailyCostBreakdown {
   targetId?: string;
   notes?: string;
   
-  // Hourly (Variable)
-  hourlyLaborCost: number;
-  hourlyLaborDetails: ShiftDetail[];
-  hourlyCostPerGallon: number;
+  // Target Hourly $/gal (user-entered budget)
+  targetHourlyCostPerGal: number;
   
-  // Overhead (Fixed Burden)
+  // Overhead (Fixed Burden) - calculated from salary + fixed costs
   salaryPortion: number;
   salaryDetails: SalaryDetail[];
   fixedCostPortion: number;
@@ -48,9 +38,8 @@ export interface DailyCostBreakdown {
   overheadTotal: number;
   overheadCostPerGallon: number;
   
-  // Combined
-  totalDailyCost: number;
-  totalCostPerGallon: number;
+  // Combined Target
+  combinedTargetCostPerGallon: number;
 }
 
 const WORK_DAYS_PER_YEAR = 260;
@@ -91,25 +80,6 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
         .lt('target_date', startDate)
         .order('target_date', { ascending: false })
         .limit(7);
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch employee shifts for hourly labor calculation
-  const shiftsQuery = useQuery({
-    queryKey: ['employee-shifts-for-targets', startDate, endDate],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('employee_shifts')
-        .select(`
-          *,
-          employee:employees(id, first_name, last_name, hourly_rate, pay_type)
-        `)
-        .gte('shift_date', startDate)
-        .lte('shift_date', endDate)
-        .order('shift_date');
       
       if (error) throw error;
       return data;
@@ -179,35 +149,13 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
   const autoRollover = companySettingsQuery.data?.auto_rollover_production_targets ?? false;
 
   // Calculate costs for a specific date
-  const calculateDailyCosts = (date: string, targetGallons: number): DailyCostBreakdown => {
-    const shifts = shiftsQuery.data || [];
+  const calculateDailyCosts = (date: string, targetGallons: number, targetHourlyCostPerGal: number = 0): DailyCostBreakdown => {
     const salaryEmployees = salaryEmployeesQuery.data || [];
     const fixedCosts = fixedCostsQuery.data || [];
     const targets = targetsQuery.data || [];
 
     // Find existing target for this date
     const existingTarget = targets.find(t => t.target_date === date);
-
-    // Calculate hourly labor from shifts
-    const dateShifts = shifts.filter(s => s.shift_date === date);
-    const hourlyLaborDetails: ShiftDetail[] = dateShifts
-      .filter(shift => shift.employee?.pay_type === 'hourly')
-      .map(shift => {
-        const startHour = parseInt(shift.start_time?.split(':')[0] || '0');
-        const endHour = parseInt(shift.end_time?.split(':')[0] || '0');
-        const hours = Math.max(0, endHour - startHour - (shift.break_minutes || 0) / 60);
-        const rate = shift.employee?.hourly_rate || 0;
-        return {
-          employeeId: shift.employee_id,
-          name: `${shift.employee?.first_name || ''} ${shift.employee?.last_name || ''}`.trim(),
-          hours,
-          rate,
-          total: hours * rate,
-        };
-      });
-    
-    const hourlyLaborCost = hourlyLaborDetails.reduce((sum, d) => sum + d.total, 0);
-    const hourlyCostPerGallon = targetGallons > 0 ? hourlyLaborCost / targetGallons : 0;
 
     // Calculate salary portion (daily rate = annual / 260)
     const salaryDetails: SalaryDetail[] = salaryEmployees.map(emp => ({
@@ -232,26 +180,22 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     const overheadTotal = salaryPortion + fixedCostPortion;
     const overheadCostPerGallon = targetGallons > 0 ? overheadTotal / targetGallons : 0;
 
-    // Combined totals
-    const totalDailyCost = hourlyLaborCost + overheadTotal;
-    const totalCostPerGallon = hourlyCostPerGallon + overheadCostPerGallon;
+    // Combined target = target hourly + overhead
+    const combinedTargetCostPerGallon = targetHourlyCostPerGal + overheadCostPerGallon;
 
     return {
       date,
       targetGallons,
       targetId: existingTarget?.id,
       notes: existingTarget?.notes || undefined,
-      hourlyLaborCost,
-      hourlyLaborDetails,
-      hourlyCostPerGallon,
+      targetHourlyCostPerGal,
       salaryPortion,
       salaryDetails,
       fixedCostPortion,
       fixedCostDetails,
       overheadTotal,
       overheadCostPerGallon,
-      totalDailyCost,
-      totalCostPerGallon,
+      combinedTargetCostPerGallon,
     };
   };
 
@@ -265,15 +209,18 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     const hasNoCurrentTargets = targets.length === 0 || targets.every(t => !t.target_quantity);
     const shouldAutoRoll = autoRollover && hasNoCurrentTargets && templateTargets.length > 0;
     
-    // Build a map of day-of-week to target quantity from template
-    const templateByDayOfWeek: Record<number, number> = {};
+    // Build a map of day-of-week to target data from template
+    const templateByDayOfWeek: Record<number, { quantity: number; laborCost: number }> = {};
     if (shouldAutoRoll) {
       templateTargets.forEach(t => {
         const date = parseLocalYmd(t.target_date);
         const dayOfWeek = getDay(date); // 0-6 (local)
         // Only use the first (most recent) target for each day of week
         if (templateByDayOfWeek[dayOfWeek] === undefined && t.target_quantity) {
-          templateByDayOfWeek[dayOfWeek] = t.target_quantity;
+          templateByDayOfWeek[dayOfWeek] = {
+            quantity: t.target_quantity,
+            laborCost: t.target_labor_cost || 0,
+          };
         }
       });
     }
@@ -287,14 +234,19 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
       const existingTarget = targets.find(t => t.target_date === dateStr);
       
       let targetGallons = existingTarget?.target_quantity || 0;
+      let targetHourlyCostPerGal = existingTarget?.target_labor_cost || 0;
       
       // If no existing target and auto-rollover is enabled, use template
       if (!targetGallons && shouldAutoRoll) {
         const dayOfWeek = getDay(d);
-        targetGallons = templateByDayOfWeek[dayOfWeek] || 0;
+        const template = templateByDayOfWeek[dayOfWeek];
+        if (template) {
+          targetGallons = template.quantity;
+          targetHourlyCostPerGal = template.laborCost;
+        }
       }
       
-      breakdowns.push(calculateDailyCosts(dateStr, targetGallons));
+      breakdowns.push(calculateDailyCosts(dateStr, targetGallons, targetHourlyCostPerGal));
     }
     
     return breakdowns;
@@ -336,6 +288,7 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     mutationFn: async (data: { 
       target_date: string; 
       target_quantity: number; 
+      target_labor_cost?: number;
       notes?: string;
       production_line_id?: string;
     }) => {
@@ -351,6 +304,7 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
           .from('daily_production_targets')
           .update({
             target_quantity: data.target_quantity,
+            target_labor_cost: data.target_labor_cost,
             notes: data.notes,
           })
           .eq('id', existing.id)
@@ -365,6 +319,7 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
           .insert({
             target_date: data.target_date,
             target_quantity: data.target_quantity,
+            target_labor_cost: data.target_labor_cost,
             notes: data.notes,
             production_line_id: data.production_line_id,
           })
@@ -393,6 +348,7 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
     mutationFn: async (data: { 
       dates: string[]; 
       target_quantity: number;
+      target_labor_cost?: number;
     }) => {
       const results = [];
       for (const date of data.dates) {
@@ -405,7 +361,10 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
         if (existing) {
           const { data: result, error } = await supabase
             .from('daily_production_targets')
-            .update({ target_quantity: data.target_quantity })
+            .update({ 
+              target_quantity: data.target_quantity,
+              target_labor_cost: data.target_labor_cost,
+            })
             .eq('id', existing.id)
             .select()
             .single();
@@ -417,6 +376,7 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
             .insert({
               target_date: date,
               target_quantity: data.target_quantity,
+              target_labor_cost: data.target_labor_cost,
             })
             .select()
             .single();
@@ -474,7 +434,10 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
         if (existing) {
           const { data: result, error } = await supabase
             .from('daily_production_targets')
-            .update({ target_quantity: target.target_quantity })
+            .update({ 
+              target_quantity: target.target_quantity,
+              target_labor_cost: target.target_labor_cost,
+            })
             .eq('id', existing.id)
             .select()
             .single();
@@ -486,6 +449,7 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
             .insert({
               target_date: newDateStr,
               target_quantity: target.target_quantity,
+              target_labor_cost: target.target_labor_cost,
               production_line_id: target.production_line_id,
             })
             .select()
@@ -559,7 +523,6 @@ export function useDailyProductionTargets(startDate: string, endDate: string) {
   const isLoading = 
     targetsQuery.isLoading || 
     templateTargetsQuery.isLoading ||
-    shiftsQuery.isLoading || 
     salaryEmployeesQuery.isLoading || 
     fixedCostsQuery.isLoading ||
     companySettingsQuery.isLoading;
