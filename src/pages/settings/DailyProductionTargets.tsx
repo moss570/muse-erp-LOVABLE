@@ -51,6 +51,7 @@ export default function DailyProductionTargets() {
     autoRollover,
     toggleAutoRollover,
     isAutoRolloverPending,
+    calculateDailyCosts,
   } = useDailyProductionTargets(startDateStr, endDateStr);
 
   const dailyBreakdowns = useMemo(() => getDailyBreakdowns(), [getDailyBreakdowns]);
@@ -125,8 +126,7 @@ export default function DailyProductionTargets() {
   const editBreakdown = useMemo(() => {
     if (!editingDay) return null;
     const target = parseFloat(editTargetValue) || 0;
-    const { calculateDailyCosts } = useDailyProductionTargets(startDateStr, endDateStr);
-    // Recalculate with the current edit value
+    // Use the already-fetched base breakdown and recalculate cost per gallon
     const baseBreakdown = dailyBreakdowns.find(b => b.date === editingDay.date);
     if (!baseBreakdown) return null;
     
@@ -142,7 +142,7 @@ export default function DailyProductionTargets() {
       overheadCostPerGallon,
       totalCostPerGallon,
     };
-  }, [editingDay, editTargetValue, dailyBreakdowns, startDateStr, endDateStr]);
+  }, [editingDay, editTargetValue, dailyBreakdowns]);
 
   if (isLoading) {
     return (
