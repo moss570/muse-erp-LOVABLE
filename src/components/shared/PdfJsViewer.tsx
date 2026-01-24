@@ -107,10 +107,11 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        // Base scale to fit container width, then apply zoom multiplier
+        // Use a fixed base width for scaling calculations (not container width)
+        // so that zoom actually changes the rendered size
         const viewport = page.getViewport({ scale: 1 });
-        const containerWidth = Math.max(320, container.clientWidth - 32); // account for padding
-        const baseScale = containerWidth / viewport.width;
+        const baseWidth = 500; // Fixed base width for consistent zoom behavior
+        const baseScale = baseWidth / viewport.width;
         const finalScale = baseScale * zoom;
         const scaledViewport = page.getViewport({ scale: finalScale });
 
@@ -234,11 +235,11 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         </div>
       </div>
 
-      <div className="flex justify-center overflow-auto p-2">
+      <div className="flex-1 overflow-auto p-2">
         {error ? (
           <div className="p-4 text-sm text-muted-foreground">Unable to render PDF: {error}</div>
         ) : (
-          <canvas ref={canvasRef} className="max-w-full" />
+          <canvas ref={canvasRef} style={{ display: 'block' }} />
         )}
       </div>
     </div>
