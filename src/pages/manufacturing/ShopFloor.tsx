@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { WorkOrderFormDialog, WorkOrder } from "@/components/manufacturing/WorkOrderFormDialog";
 import { ShopFloorPriorityDashboard } from "@/components/manufacturing/ShopFloorPriorityDashboard";
+import { useUnfulfilledSalesOrders, useTodaysAcknowledgment } from "@/hooks/useUnfulfilledSalesOrders";
 import { DeleteWorkOrderDialog } from "@/components/manufacturing/DeleteWorkOrderDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -64,6 +65,12 @@ export default function ShopFloor() {
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrderDisplay | null>(null);
   const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrderDisplay | null>(null);
 
+  // Check unfulfilled orders status
+  const { data: unfulfilledData } = useUnfulfilledSalesOrders();
+  const { data: todaysAck } = useTodaysAcknowledgment();
+  const hasUnfulfilled = (unfulfilledData?.items?.length || 0) > 0;
+  const isAcknowledgedToday = !!todaysAck;
+  const canCreateWorkOrder = !hasUnfulfilled || isAcknowledgedToday;
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -268,10 +275,13 @@ export default function ShopFloor() {
           </h1>
           <p className="text-muted-foreground">Mobile production interface</p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Work Order
-        </Button>
+        {/* Only show Create WO button if no unfulfilled orders OR already acknowledged */}
+        {canCreateWorkOrder && (
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Work Order
+          </Button>
+        )}
       </div>
 
       {/* Priority Dashboard - Unfulfilled Orders */}
