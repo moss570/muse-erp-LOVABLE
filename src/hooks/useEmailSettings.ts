@@ -88,11 +88,12 @@ export function useTestEmail() {
 }
 
 // Helper to get email labels
-export const EMAIL_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
+export const EMAIL_TYPE_LABELS: Record<string, { label: string; icon: string; isInbound?: boolean }> = {
   noreply: { label: 'System Notifications', icon: 'Bell' },
   employee_welcome: { label: 'Employee Welcome', icon: 'UserPlus' },
   invoices: { label: 'Customer Invoices', icon: 'FileText' },
   purchase_orders: { label: 'Purchase Orders', icon: 'ShoppingCart' },
   '3pl_releases': { label: '3PL Releases', icon: 'Warehouse' },
   sales: { label: 'Sales Notifications', icon: 'TrendingUp' },
+  inbound_orders: { label: 'Incoming Customer POs', icon: 'Inbox', isInbound: true },
 };

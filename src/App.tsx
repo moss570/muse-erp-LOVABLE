@@ -24,6 +24,7 @@ import PurchaseOrderDetail from "./pages/purchasing/PurchaseOrderDetail";
 import Receiving from "./pages/purchasing/Receiving";
 import Customers from "./pages/sales/Customers";
 import Orders from "./pages/sales/Orders";
+import PendingOrders from "./pages/sales/PendingOrders";
 import OrderDetail from "./pages/sales/OrderDetail";
 import Invoices from "./pages/sales/Invoices";
 import Payments from "./pages/sales/Payments";
@@ -213,6 +214,7 @@ const App = () => (
             <Route path="/sales/customers" element={<AppLayout><Customers /></AppLayout>} />
             <Route path="/sales/orders" element={<AppLayout><Orders /></AppLayout>} />
             <Route path="/sales/orders/:id" element={<AppLayout><OrderDetail /></AppLayout>} />
+            <Route path="/sales/pending-orders" element={<AppLayout><PendingOrders /></AppLayout>} />
             <Route path="/sales/invoices" element={<AppLayout><Invoices /></AppLayout>} />
             <Route path="/sales/payments" element={<AppLayout><Payments /></AppLayout>} />
             <Route path="/sales/returns" element={<AppLayout><Returns /></AppLayout>} />
