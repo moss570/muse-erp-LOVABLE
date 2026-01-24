@@ -38,7 +38,8 @@ interface WorkOrderDetail {
     planned_quantity: number;
     planned_uom: string;
     actual_quantity: number | null;
-    material?: { id: string; name: string; material_code: string } | null;
+    // Note: `materials` table uses `code` (not `material_code`)
+    material?: { id: string; name: string; code: string } | null;
   }>;
   work_order_stage_progress?: Array<{
     id: string;
@@ -83,7 +84,7 @@ export default function ShopFloorWorkOrder() {
           input_lot:production_lots!work_orders_input_lot_id_fkey(id, lot_number, quantity_available),
           work_order_materials(
             *,
-            material:materials(id, name, material_code)
+            material:materials(id, name, code)
           ),
           work_order_stage_progress(
             *,
