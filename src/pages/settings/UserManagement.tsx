@@ -25,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -49,7 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Users, Shield, ShieldCheck, ShieldAlert, User, KeyRound, LogOut, Loader2, Trash2 } from 'lucide-react';
+import { Pencil, Users, Shield, ShieldCheck, ShieldAlert, User, KeyRound, LogOut, Loader2, Trash2, Lock } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
@@ -104,7 +105,9 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [confirmAction, setConfirmAction] = useState<'reset-password' | 'signout' | 'delete' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'reset-password' | 'signout' | 'delete' | 'set-password' | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -248,6 +251,28 @@ export default function UserManagement() {
     },
   });
 
+  // Set password directly mutation (admin only)
+  const setPasswordMutation = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
+        body: { userId, newPassword: password, forceSignOut: true },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: 'Password updated', description: 'The user\'s password has been changed and they have been signed out.' });
+      setConfirmAction(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error setting password', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const handleOpenDialog = (user: UserWithRole) => {
     setEditingUser(user);
     form.reset({
@@ -261,7 +286,21 @@ export default function UserManagement() {
     setEditingUser(null);
     form.reset();
     setConfirmAction(null);
+    setNewPassword('');
+    setConfirmPassword('');
   };
+
+  const handleSetPassword = () => {
+    if (editingUser && newPassword && newPassword === confirmPassword) {
+      setPasswordMutation.mutate({ userId: editingUser.id, password: newPassword });
+    }
+  };
+
+  const isPasswordValid = newPassword.length >= 8 && 
+    /[A-Z]/.test(newPassword) && 
+    /[a-z]/.test(newPassword) && 
+    /[0-9]/.test(newPassword) &&
+    newPassword === confirmPassword;
 
   const onSubmit = (data: UserRoleFormData) => {
     if (editingUser) {
@@ -559,6 +598,20 @@ export default function UserManagement() {
                   <Button
                     variant="outline"
                     className="justify-start gap-2"
+                    onClick={() => setConfirmAction('set-password')}
+                    disabled={setPasswordMutation.isPending}
+                  >
+                    {setPasswordMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    Set Password Directly
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2"
                     onClick={() => setConfirmAction('reset-password')}
                     disabled={resetPasswordMutation.isPending}
                   >
@@ -621,34 +674,71 @@ export default function UserManagement() {
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
-                {confirmAction === 'reset-password' && (
-                  <p>This will send a password reset email to {editingUser?.email}. The user will need to click the link in the email to set a new password.</p>
-                )}
-                {confirmAction === 'signout' && (
-                  <p>This will sign out {editingUser ? getFullName(editingUser) : 'the user'} from all devices and sessions. They will need to log in again.</p>
-                )}
-                {confirmAction === 'delete' && (
-                  <>
-                    <p className="font-medium text-destructive">This action cannot be undone.</p>
-                    <p>This will permanently delete the user's login credentials and revoke all access for {editingUser ? getFullName(editingUser) : 'this user'}.</p>
-                    <p className="text-muted-foreground">The employee's HR records (shifts, wage history, training) will be preserved in the Team Roster.</p>
-                  </>
-                )}
+              {confirmAction === 'set-password' && (
+                <>
+                  <p className="mb-4">Set a new password for {editingUser ? getFullName(editingUser) : 'this user'}. The user will be signed out of all sessions.</p>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirm-password">Confirm Password</Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 8 characters with uppercase, lowercase, and a number.
+                    </p>
+                    {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                      <p className="text-xs text-destructive">Passwords do not match</p>
+                    )}
+                  </div>
+                </>
+              )}
+              {confirmAction === 'reset-password' && (
+                <p>This will send a password reset email to {editingUser?.email}. The user will need to click the link in the email to set a new password.</p>
+              )}
+              {confirmAction === 'signout' && (
+                <p>This will sign out {editingUser ? getFullName(editingUser) : 'the user'} from all devices and sessions. They will need to log in again.</p>
+              )}
+              {confirmAction === 'delete' && (
+                <>
+                  <p className="font-medium text-destructive">This action cannot be undone.</p>
+                  <p>This will permanently delete the user's login credentials and revoke all access for {editingUser ? getFullName(editingUser) : 'this user'}.</p>
+                  <p className="text-muted-foreground">The employee's HR records (shifts, wage history, training) will be preserved in the Team Roster.</p>
+                </>
+              )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setNewPassword(''); setConfirmPassword(''); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={
-                confirmAction === 'reset-password' 
-                  ? handleResetPassword 
-                  : confirmAction === 'signout' 
-                    ? handleSignoutUser 
-                    : handleDeleteUser
+                confirmAction === 'set-password'
+                  ? handleSetPassword
+                  : confirmAction === 'reset-password' 
+                    ? handleResetPassword 
+                    : confirmAction === 'signout' 
+                      ? handleSignoutUser 
+                      : handleDeleteUser
               }
+              disabled={confirmAction === 'set-password' && !isPasswordValid}
               className={confirmAction === 'signout' || confirmAction === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
+              {confirmAction === 'set-password' && 'Set Password'}
               {confirmAction === 'reset-password' && 'Send Email'}
               {confirmAction === 'signout' && 'Sign Out'}
               {confirmAction === 'delete' && 'Delete Account'}

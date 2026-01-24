@@ -85,6 +85,39 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          justification: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          justification?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          justification?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       alert_settings: {
         Row: {
           alert_type: string
@@ -16088,10 +16121,16 @@ export type Database = {
         Returns: Json
       }
       create_capa_from_nc: { Args: { p_nc_id: string }; Returns: string }
-      delete_work_order_safe: {
-        Args: { p_work_order_id: string }
-        Returns: Json
-      }
+      delete_work_order_safe:
+        | { Args: { p_work_order_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_admin_override?: boolean
+              p_override_reason?: string
+              p_work_order_id: string
+            }
+            Returns: Json
+          }
       evaluate_nc_capa_trigger: { Args: { p_nc_id: string }; Returns: Json }
       generate_capa_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
