@@ -114,6 +114,7 @@ const navItems: NavItem[] = [
       { title: 'Customers', href: '/sales/customers' },
       { title: 'Customer Pricing', href: '/sales/customer-pricing' },
       { title: 'Orders', href: '/sales/orders' },
+      { title: 'Pending Orders', href: '/sales/pending-orders' },
       { title: 'Invoices', href: '/sales/invoices' },
       { title: 'Payments', href: '/sales/payments' },
       { title: 'Returns & RMAs', href: '/sales/returns' },

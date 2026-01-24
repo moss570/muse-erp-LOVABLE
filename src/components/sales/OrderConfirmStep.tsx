@@ -65,7 +65,13 @@ export function OrderConfirmStep({
     onCreatingChange(true);
 
     try {
-      // 1. Get product_id for each mapped product_size
+      // 1. Generate order number
+      const { data: orderNumber, error: numberError } = await supabase
+        .rpc('generate_sales_order_number');
+
+      if (numberError) throw numberError;
+
+      // 2. Get product_id for each mapped product_size
       const productSizeIds = mappedItems
         .map((item) => item.mapped_product_size_id)
         .filter(Boolean) as string[];
@@ -79,10 +85,11 @@ export function OrderConfirmStep({
         productSizes?.map((ps) => [ps.id, ps.product_id]) || []
       );
 
-      // 2. Create the sales order
+      // 3. Create the sales order
       const { data: salesOrder, error: orderError } = await supabase
         .from('sales_orders')
         .insert([{
+          order_number: orderNumber,
           customer_id: selectedCustomerId,
           customer_po_number: extractedData?.po_number || null,
           order_date: extractedData?.po_date || new Date().toISOString().split('T')[0],
@@ -95,7 +102,7 @@ export function OrderConfirmStep({
 
       if (orderError) throw orderError;
 
-      // 3. Create sales order items
+      // 4. Create sales order items
       const orderItems = mappedItems.map((item, index) => ({
         sales_order_id: salesOrder.id,
         product_id: productSizeMap.get(item.mapped_product_size_id!) || '',
@@ -112,7 +119,7 @@ export function OrderConfirmStep({
 
       if (itemsError) throw itemsError;
 
-      // 3. Save item mappings that should be remembered
+      // 5. Save item mappings that should be remembered
       const mappingsToSave = mappedItems.filter(
         (item) => item.remember_mapping && item.mapped_product_size_id
       );
