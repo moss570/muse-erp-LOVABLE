@@ -124,12 +124,14 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
   const [targetStageCode, setTargetStageCode] = useState("");
   const [productSizeId, setProductSizeId] = useState("");
   const [inputLotId, setInputLotId] = useState("");
+  
+  // Track if edit mode data has been initialized
+  const [editDataInitialized, setEditDataInitialized] = useState(false);
 
-  // Pre-populate form when editing
+  // Pre-populate form when editing - set fields that don't depend on queries first
   useEffect(() => {
     if (open && workOrder) {
-      setProductId(workOrder.product_id || "");
-      setRecipeId(workOrder.recipe_id || "");
+      // Set independent fields immediately
       setProductionLineId(workOrder.production_line_id || "");
       setTargetQuantity(workOrder.target_quantity?.toString() || "");
       setTargetUom(workOrder.target_uom || "kg");
@@ -137,11 +139,17 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
       setScheduledDate(workOrder.scheduled_date ? parseISO(workOrder.scheduled_date) : undefined);
       setDueDate(workOrder.due_date ? parseISO(workOrder.due_date) : undefined);
       setSpecialInstructions(workOrder.special_instructions || "");
-      setTargetStageCode(workOrder.target_stage_code || "");
       setProductSizeId(workOrder.product_size_id || "");
       setInputLotId(workOrder.input_lot_id || "");
+      
+      // Set the stage code which triggers the products query
+      setTargetStageCode(workOrder.target_stage_code || "");
+      
+      // Mark that we need to set dependent values once queries load
+      setEditDataInitialized(false);
     } else if (open && !workOrder) {
       resetForm();
+      setEditDataInitialized(true);
     }
   }, [open, workOrder]);
 
@@ -349,6 +357,32 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     enabled: !!productId && open,
   });
 
+  // Set productId once products query loads in edit mode
+  useEffect(() => {
+    if (open && workOrder && !editDataInitialized && products.length > 0 && workOrder.product_id) {
+      // Products are loaded, set the product ID
+      const productExists = products.some(p => p.id === workOrder.product_id);
+      if (productExists || products.length > 0) {
+        setProductId(workOrder.product_id);
+      }
+    }
+  }, [open, workOrder, products, editDataInitialized]);
+
+  // Set recipeId once recipes query loads in edit mode
+  useEffect(() => {
+    if (open && workOrder && !editDataInitialized && productId && recipes.length > 0 && workOrder.recipe_id) {
+      // Recipes are loaded, set the recipe ID
+      const recipeExists = recipes.some(r => r.id === workOrder.recipe_id);
+      if (recipeExists) {
+        setRecipeId(workOrder.recipe_id);
+        setEditDataInitialized(true);
+      }
+    } else if (open && workOrder && !editDataInitialized && productId && recipes.length === 0 && !workOrder.recipe_id) {
+      // No recipe was set, mark as initialized
+      setEditDataInitialized(true);
+    }
+  }, [open, workOrder, productId, recipes, editDataInitialized]);
+
   // Get selected recipe for volume calculation
   const selectedRecipe = useMemo(() => {
     return recipes.find(r => r.id === recipeId);
@@ -538,6 +572,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
     setTargetStageCode("");
     setProductSizeId("");
     setInputLotId("");
+    setEditDataInitialized(true);
   };
 
   const handleStageChange = (val: string) => {
