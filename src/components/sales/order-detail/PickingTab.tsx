@@ -33,9 +33,9 @@ export function PickingTab({ order }: { order: any }) {
   // Fetch pick request if it exists
   const { data: pickRequest } = useQuery({
     queryKey: ['pick-request-for-order', order.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<any> => {
       const { data, error } = await supabase
-        .from('pick_requests')
+        .from('pick_requests' as any)
         .select(`
           *,
           items:pick_request_items(
@@ -54,7 +54,7 @@ export function PickingTab({ order }: { order: any }) {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      return data as any;
     },
     enabled: !!order.id
   });
@@ -77,11 +77,11 @@ export function PickingTab({ order }: { order: any }) {
   // Fetch available lots for a product (FEFO order)
   const { data: availableLots } = useQuery({
     queryKey: ['available-lots-for-product', selectedOrderItem?.product_id],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       if (!selectedOrderItem?.product_id) return [];
 
       const { data, error } = await supabase
-        .from('pallets')
+        .from('pallets' as any)
         .select(`
           id, pallet_number, current_cases, status,
           production_lot:production_lots(
@@ -96,7 +96,7 @@ export function PickingTab({ order }: { order: any }) {
         .order('production_lot(expiry_date)', { ascending: true, nullsFirst: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: !!selectedOrderItem?.product_id && selectedSourceType === 'internal'
   });
@@ -207,9 +207,9 @@ export function PickingTab({ order }: { order: any }) {
             pallet_id: selection.pallet_id,
             quantity_picked: selection.quantity,
             cases_picked: selection.cases,
-            expiry_date: lot.production_lot.expiry_date,
+            expiry_date: lot.production_lot?.expiry_date,
             picked_by: userId
-          });
+          } as any);
 
         // Update pallet quantity
         await supabase
@@ -223,13 +223,11 @@ export function PickingTab({ order }: { order: any }) {
         await supabase
           .from('lot_consumption')
           .insert({
-            production_lot_id: selection.lotId,
+            consumed_lot_id: selection.lotId,
             consumption_type: 'sales',
             quantity_consumed: selection.cases,
-            sales_order_id: order.id,
-            customer_id: order.customer_id,
             consumed_by: userId
-          });
+          } as any);
       }
 
       // Update pick request item

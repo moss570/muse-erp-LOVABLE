@@ -10,6 +10,7 @@ interface AutoSaveInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   onValueChange?: (value: string) => void;
   label?: string;
   showIndicator?: boolean;
+  transformValue?: (value: string) => string;
 }
 
 /**
@@ -21,6 +22,7 @@ export function AutoSaveInput({
   onValueChange,
   label,
   showIndicator = true,
+  transformValue,
   className,
   ...props
 }: AutoSaveInputProps) {
@@ -40,9 +42,10 @@ export function AutoSaveInput({
 
   const handleBlur = useCallback(() => {
     if (localValue !== value) {
-      queueSave(name, localValue || null);
+      const valueToSave = transformValue ? transformValue(localValue) : localValue;
+      queueSave(name, valueToSave || null);
     }
-  }, [localValue, value, name, queueSave]);
+  }, [localValue, value, name, queueSave, transformValue]);
 
   const isSaving = savingFields.has(name);
   const isSaved = savedFields.has(name);
