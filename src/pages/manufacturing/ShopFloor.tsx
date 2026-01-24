@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { WorkOrderFormDialog, WorkOrder } from "@/components/manufacturing/WorkOrderFormDialog";
 import { ShopFloorPriorityDashboard } from "@/components/manufacturing/ShopFloorPriorityDashboard";
-import { useUnfulfilledSalesOrders, useTodaysAcknowledgment } from "@/hooks/useUnfulfilledSalesOrders";
+import { useUnfulfilledSalesOrders } from "@/hooks/useUnfulfilledSalesOrders";
 import { DeleteWorkOrderDialog } from "@/components/manufacturing/DeleteWorkOrderDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -64,13 +64,15 @@ export default function ShopFloor() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrderDisplay | null>(null);
   const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrderDisplay | null>(null);
+  
+  // Per-visit acknowledgment state (resets every time user visits this page)
+  const [hasAcknowledgedThisVisit, setHasAcknowledgedThisVisit] = useState(false);
 
   // Check unfulfilled orders status
   const { data: unfulfilledData } = useUnfulfilledSalesOrders();
-  const { data: todaysAck } = useTodaysAcknowledgment();
   const hasUnfulfilled = (unfulfilledData?.items?.length || 0) > 0;
-  const isAcknowledgedToday = !!todaysAck;
-  const canCreateWorkOrder = !hasUnfulfilled || isAcknowledgedToday;
+  // Work order creation is locked until user acknowledges THIS VISIT
+  const canCreateWorkOrder = !hasUnfulfilled || hasAcknowledgedThisVisit;
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -285,7 +287,11 @@ export default function ShopFloor() {
       </div>
 
       {/* Priority Dashboard - Unfulfilled Orders */}
-      <ShopFloorPriorityDashboard onCreateWorkOrder={() => setIsCreateDialogOpen(true)} />
+      <ShopFloorPriorityDashboard 
+        onCreateWorkOrder={() => setIsCreateDialogOpen(true)} 
+        hasAcknowledgedThisVisit={hasAcknowledgedThisVisit}
+        onAcknowledged={() => setHasAcknowledgedThisVisit(true)}
+      />
 
       {/* Clock Status Card */}
       <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
