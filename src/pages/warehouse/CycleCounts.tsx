@@ -199,14 +199,14 @@ const CycleCounts = () => {
               <div>
                 <Label>Category Filter (optional)</Label>
                 <Select
-                  value={newCount.categoryFilter}
-                  onValueChange={(v) => setNewCount({ ...newCount, categoryFilter: v })}
+                  value={newCount.categoryFilter || "all"}
+                  onValueChange={(v) => setNewCount({ ...newCount, categoryFilter: v === "all" ? "" : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="Dairy">Dairy</SelectItem>
                     <SelectItem value="Flavoring">Flavoring</SelectItem>
                     <SelectItem value="Packaging">Packaging</SelectItem>
