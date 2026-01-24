@@ -98,6 +98,7 @@ import SupplierScoringSettings from "./pages/settings/SupplierScoringSettings";
 import ComplaintSettings from "./pages/settings/ComplaintSettings";
 import AuditSettings from "./pages/settings/AuditSettings";
 import ReceivingInspections from "./pages/qa/ReceivingInspections";
+import UnfulfilledAcknowledgments from "./pages/reports/UnfulfilledAcknowledgments";
 import ReceivingInspection from "./pages/qa/ReceivingInspection";
 import Putaway from "./pages/warehouse/Putaway";
 import PutawayTask from "./pages/warehouse/PutawayTask";
@@ -319,6 +320,7 @@ const App = () => (
             <Route path="/employees/directory" element={<AppLayout><TeamRoster /></AppLayout>} />
             <Route path="/employees/*" element={<AppLayout><TeamRoster /></AppLayout>} />
             <Route path="/reports/profit-loss" element={<AppLayout><ProfitLoss /></AppLayout>} />
+            <Route path="/reports/unfulfilled-acknowledgments" element={<AppLayout><UnfulfilledAcknowledgments /></AppLayout>} />
             <Route
               path="/reports/*"
               element={
