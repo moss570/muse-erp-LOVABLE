@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Mail, Printer, FileText } from 'lucide-react';
+import { Eye, Mail, Printer, FileText, Loader2 } from 'lucide-react';
 import { DataTableHeader } from '@/components/ui/data-table-header';
 import {
   Table,
@@ -34,8 +35,11 @@ interface SalesInvoice {
 
 export default function Invoices() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [emailingInvoiceId, setEmailingInvoiceId] = useState<string | null>(null);
 
   // Fetch invoices
   const { data: invoices, isLoading } = useQuery({
@@ -75,6 +79,41 @@ export default function Invoices() {
       })) as SalesInvoice[];
     },
   });
+
+  // Email invoice mutation
+  const emailInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+        body: { invoice_id: invoiceId }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data, invoiceId) => {
+      queryClient.invalidateQueries({ queryKey: ['sales-invoices'] });
+      const invoice = invoices?.find(inv => inv.id === invoiceId);
+      toast({
+        title: 'Invoice Emailed',
+        description: `Invoice ${invoice?.invoice_number} sent successfully`,
+      });
+      setEmailingInvoiceId(null);
+    },
+    onError: (error: any, invoiceId) => {
+      const invoice = invoices?.find(inv => inv.id === invoiceId);
+      toast({
+        title: 'Email Failed',
+        description: error.message || `Failed to send invoice ${invoice?.invoice_number}`,
+        variant: 'destructive',
+      });
+      setEmailingInvoiceId(null);
+    },
+  });
+
+  const handleEmailInvoice = (invoiceId: string) => {
+    setEmailingInvoiceId(invoiceId);
+    emailInvoiceMutation.mutate(invoiceId);
+  };
 
   const filteredInvoices = invoices?.filter(invoice =>
     invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -264,11 +303,16 @@ export default function Invoices() {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Email invoice
+                            handleEmailInvoice(invoice.id);
                           }}
+                          disabled={emailingInvoiceId === invoice.id}
                           title="Email Invoice"
                         >
-                          <Mail className="h-4 w-4" />
+                          {emailingInvoiceId === invoice.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mail className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           size="sm"
