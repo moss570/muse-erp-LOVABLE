@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, Package, TruckIcon, FileText, Pencil } from 'lucide-react';
+import { Plus, Eye, Package, TruckIcon, FileText, Pencil, Trash2 } from 'lucide-react';
 import { DataTableHeader } from '@/components/ui/data-table';
 import {
   Table,
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { CreateOrderDialog } from '@/components/sales/CreateOrderDialog';
 import { EditOrderDialog } from '@/components/sales/EditOrderDialog';
+import { DeleteSalesOrderDialog } from '@/components/sales/DeleteSalesOrderDialog';
 
 interface SalesOrder {
   id: string;
@@ -38,6 +39,7 @@ export default function Orders() {
   const navigate = useNavigate();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [deletingOrder, setDeletingOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -303,6 +305,17 @@ export default function Orders() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingOrder(order);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -327,6 +340,13 @@ export default function Orders() {
           order={editingOrder}
         />
       )}
+
+      {/* Delete Order Dialog */}
+      <DeleteSalesOrderDialog
+        open={!!deletingOrder}
+        onOpenChange={(open) => !open && setDeletingOrder(null)}
+        order={deletingOrder}
+      />
     </div>
   );
 }

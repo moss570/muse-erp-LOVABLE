@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrderTab } from '@/components/sales/order-detail/OrderTab';
 import { PickingTab } from '@/components/sales/order-detail/PickingTab';
@@ -12,12 +12,14 @@ import { PackingTab } from '@/components/sales/order-detail/PackingTab';
 import { ShippingTab } from '@/components/sales/order-detail/ShippingTab';
 import { InvoicingTab } from '@/components/sales/order-detail/InvoicingTab';
 import { EditOrderDialog } from '@/components/sales/EditOrderDialog';
+import { DeleteSalesOrderDialog } from '@/components/sales/DeleteSalesOrderDialog';
 
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('order');
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Fetch sales order with all related data
   const { data: order, isLoading, error } = useQuery({
@@ -113,10 +115,21 @@ export default function OrderDetail() {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
-          <Pencil className="h-4 w-4 mr-2" />
-          Edit Order
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit Order
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowDeleteDialog(true)}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -163,6 +176,14 @@ export default function OrderDetail() {
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         order={order}
+      />
+
+      {/* Delete Order Dialog */}
+      <DeleteSalesOrderDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        order={{ ...order, customer: order.customers }}
+        onDeleted={() => navigate('/sales/orders')}
       />
     </div>
   );
