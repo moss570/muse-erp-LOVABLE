@@ -21,6 +21,27 @@ interface ResendInboundEmail {
   headers?: Record<string, string>;
 }
 
+// Helper to decode both standard and URL-safe base64 from Resend
+function base64ToUint8Array(base64: string): Uint8Array {
+  // Convert URL-safe base64 to standard base64
+  let standardBase64 = base64
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  
+  // Add padding if needed
+  while (standardBase64.length % 4) {
+    standardBase64 += '=';
+  }
+  
+  // Decode using standard atob
+  const binaryString = atob(standardBase64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   console.log("inbound-po-webhook function called");
 
@@ -85,8 +106,8 @@ const handler = async (req: Request): Promise<Response> => {
         const sanitizedFilename = attachment.filename.replace(/[^a-zA-Z0-9.-]/g, "_");
         const storagePath = `${timestamp}_${sanitizedFilename}`;
 
-        // Decode base64 and upload to storage
-        const pdfBytes = Uint8Array.from(atob(attachment.content), (c) => c.charCodeAt(0));
+        // Decode base64 (handles both standard and URL-safe base64 from Resend)
+        const pdfBytes = base64ToUint8Array(attachment.content);
         
         const { error: uploadError } = await supabase.storage
           .from("incoming-purchase-orders")
