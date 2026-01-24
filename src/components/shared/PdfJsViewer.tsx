@@ -24,8 +24,8 @@ const MAX_ZOOM = 3;
 export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const renderSeq = useRef(0);
+  const [pdfDoc, setPdfDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isRendering, setIsRendering] = useState(false);
@@ -49,12 +49,12 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
     const load = async () => {
       setIsRendering(true);
       setError(null);
-      pdfDocRef.current = null;
+      setPdfDoc(null);
 
       try {
         const doc = await pdfjs.getDocument({ data: bytes }).promise;
         if (cancelled) return;
-        pdfDocRef.current = doc;
+        setPdfDoc(doc);
         setNumPages(doc.numPages);
       } catch (e: unknown) {
         if (cancelled) return;
@@ -69,17 +69,24 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
 
     return () => {
       cancelled = true;
-      try {
-        pdfDocRef.current?.destroy();
-      } catch {
-        // ignore
-      }
-      pdfDocRef.current = null;
     };
   }, [bytes]);
 
+  // Cleanup PDF document on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        pdfDoc?.destroy();
+      } catch {
+        // ignore
+      }
+    };
+  }, [pdfDoc]);
+
   // Render current page (and re-render on resize or zoom change)
   useEffect(() => {
+    if (!pdfDoc) return; // Wait for document to load
+
     let cancelled = false;
     let renderTask: ReturnType<pdfjs.PDFPageProxy["render"]> | null = null;
     let raf = 0;
@@ -90,10 +97,7 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
       setError(null);
 
       try {
-        const doc = pdfDocRef.current;
-        if (!doc) return;
-
-        const page = await doc.getPage(pageNumber);
+        const page = await pdfDoc.getPage(pageNumber);
         if (cancelled || seq !== renderSeq.current) return;
 
         const canvas = canvasRef.current;
@@ -120,6 +124,8 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         await renderTask.promise;
       } catch (e: unknown) {
         if (cancelled) return;
+        // Ignore cancelled render errors
+        if (e instanceof Error && e.message.includes('cancelled')) return;
         const message = e instanceof Error ? e.message : "Unknown error";
         setError(message);
       } finally {
@@ -149,7 +155,7 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         // ignore
       }
     };
-  }, [pageNumber, numPages, zoom]);
+  }, [pdfDoc, pageNumber, zoom]);
 
   const canPrev = pageNumber > 1;
   const canNext = numPages ? pageNumber < numPages : false;
