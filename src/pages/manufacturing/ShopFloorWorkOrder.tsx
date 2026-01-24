@@ -62,7 +62,7 @@ interface StagedMaterial {
 }
 
 export default function ShopFloorWorkOrder() {
-  const { id } = useParams();
+  const { workOrderId: id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [scanInput, setScanInput] = useState("");
@@ -92,7 +92,7 @@ export default function ShopFloorWorkOrder() {
           )
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as unknown as WorkOrderDetail;
