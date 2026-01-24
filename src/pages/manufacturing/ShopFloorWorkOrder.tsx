@@ -87,7 +87,7 @@ export default function ShopFloorWorkOrder() {
           ),
           work_order_stage_progress(
             *,
-            wip_lot:production_lots(id, lot_number),
+            wip_lot:manufacturing_lots!work_order_stage_progress_wip_lot_id_fkey(id, lot_number),
             stage:production_stages_master(id, stage_code, stage_name, sequence_order, creates_intermediate_lot)
           )
         `)
