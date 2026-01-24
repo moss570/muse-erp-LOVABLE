@@ -29,6 +29,7 @@ import {
 import { CustomerMatchStep } from './CustomerMatchStep';
 import { ItemMappingStep } from './ItemMappingStep';
 import { OrderConfirmStep } from './OrderConfirmStep';
+import { PdfJsViewer } from '@/components/shared/PdfJsViewer';
 
 interface POReviewWizardProps {
   open: boolean;
@@ -52,7 +53,7 @@ interface MappedItem {
 export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWizardProps) {
   const [activeStep, setActiveStep] = useState<WizardStep>('pdf');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   
   // State for wizard data
@@ -65,28 +66,23 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
   const updatePendingOrder = useUpdatePendingOrder();
   const rejectPendingOrder = useRejectPendingOrder();
 
-  // Load PDF URL and fetch as blob for embedding
+  // Load PDF URL and fetch bytes for PDF.js rendering (avoids Chrome's native PDF embed restrictions)
   useEffect(() => {
-    let blobUrl: string | null = null;
-    
     const loadPdf = async () => {
       if (pendingOrder.pdf_storage_path) {
         setLoadingPdf(true);
         try {
           const signedUrl = await getSignedPdfUrl(pendingOrder.pdf_storage_path);
           setPdfUrl(signedUrl);
-          
-          // Fetch as blob to avoid Chrome cross-origin blocking
+
           const response = await fetch(signedUrl);
-          if (response.ok) {
-            const blob = await response.blob();
-            // Ensure correct MIME type for PDF
-            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-            blobUrl = URL.createObjectURL(pdfBlob);
-            setPdfBlobUrl(blobUrl);
-          } else {
+          if (!response.ok) {
             console.error('Failed to fetch PDF:', response.status, response.statusText);
+            return;
           }
+
+          const buf = await response.arrayBuffer();
+          setPdfData(buf);
         } catch (error) {
           console.error('Failed to load PDF:', error);
           toast.error('Failed to load PDF');
@@ -100,12 +96,8 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
       loadPdf();
     }
     
-    // Cleanup blob URL on unmount or when dialog closes
     return () => {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
-      setPdfBlobUrl(null);
+      setPdfData(null);
     };
   }, [open, pendingOrder.pdf_storage_path]);
 
@@ -247,12 +239,10 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
                     <div className="flex items-center justify-center h-full">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ) : pdfBlobUrl ? (
-                    <iframe
-                      src={pdfBlobUrl + '#toolbar=1&navpanes=0'}
-                      className="w-full h-full min-h-[400px]"
-                      title="Purchase Order PDF"
-                      style={{ border: 'none' }}
+                  ) : pdfData ? (
+                    <PdfJsViewer
+                      data={pdfData}
+                      className="h-full min-h-[400px] w-full"
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
