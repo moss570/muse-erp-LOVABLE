@@ -59,6 +59,8 @@ interface RecipeFormDialogProps {
 export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }: RecipeFormDialogProps) {
   const queryClient = useQueryClient();
   const isEditing = !!recipe;
+  // SECURITY: Fields are disabled if editing existing recipe without permission
+  const isFieldsDisabled = isEditing && !canEdit;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -221,7 +223,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                   <FormItem>
                     <FormLabel>Recipe Code *</FormLabel>
                     <FormControl>
-                      <Input placeholder="RCP-001" {...field} />
+                      <Input placeholder="RCP-001" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -234,7 +236,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                   <FormItem>
                     <FormLabel>Version</FormLabel>
                     <FormControl>
-                      <Input placeholder="1.0" {...field} />
+                      <Input placeholder="1.0" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -249,7 +251,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                 <FormItem>
                   <FormLabel>Recipe Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Vanilla Ice Cream Base" {...field} />
+                    <Input placeholder="Vanilla Ice Cream Base" {...field} disabled={isFieldsDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -262,7 +264,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Product (Output)</FormLabel>
-                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <Select value={field.value || ""} onValueChange={field.onChange} disabled={isFieldsDisabled}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select product..." />
@@ -294,6 +296,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                         step="0.01"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        disabled={isFieldsDisabled}
                       />
                     </FormControl>
                     <FormMessage />
@@ -306,7 +309,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit of Measure</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isFieldsDisabled}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -350,6 +353,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                           placeholder="e.g. 2.75"
                           value={field.value ?? ""}
                           onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                          disabled={isFieldsDisabled}
                         />
                       </FormControl>
                       <FormMessage />
@@ -362,7 +366,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Volume Unit</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={isFieldsDisabled}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
@@ -393,12 +397,13 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                 <FormItem>
                   <FormLabel>Standard Labor Hours</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        disabled={isFieldsDisabled}
+                      />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -411,7 +416,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={isFieldsDisabled}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
@@ -436,7 +441,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Recipe notes..." {...field} />
+                    <Textarea placeholder="Recipe notes..." {...field} disabled={isFieldsDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -447,7 +452,7 @@ export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isFieldsDisabled}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {isEditing ? "Update" : "Create"}
               </Button>

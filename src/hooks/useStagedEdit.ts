@@ -70,7 +70,7 @@ export function useStagedEdit<T extends FieldValues>({
   initialData,
   enabled = true,
   resourceName = 'record',
-  canEdit: canEditProp = true,
+  canEdit: canEditProp = false,
   onSaveSuccess,
   onDataRefresh,
 }: UseStagedEditOptions<T>): UseStagedEditReturn {

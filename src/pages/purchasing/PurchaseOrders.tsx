@@ -369,6 +369,7 @@ export default function PurchaseOrders() {
           else setIsDialogOpen(true);
         }}
         purchaseOrder={editingPO}
+        canEdit={canEdit}
       />
     </div>
   );

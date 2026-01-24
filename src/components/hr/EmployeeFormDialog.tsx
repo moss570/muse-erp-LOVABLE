@@ -83,6 +83,9 @@ export function EmployeeFormDialog({
   const queryClient = useQueryClient();
   const { createEmployee, updateEmployee } = useEmployees();
   const isEditing = !!employee;
+  // SECURITY: Fields disabled if editing existing employee without permission
+  const isFieldsDisabled = isEditing && !canEdit;
+  
   const [newPositionName, setNewPositionName] = useState('');
   const [showNewPosition, setShowNewPosition] = useState(false);
 
@@ -256,7 +259,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>First Name *</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -269,7 +272,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>Last Name *</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -283,9 +286,9 @@ export function EmployeeFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Preferred Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Nickname or preferred name" />
-                      </FormControl>
+                        <FormControl>
+                          <Input {...field} placeholder="Nickname or preferred name" disabled={isFieldsDisabled} />
+                        </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -299,7 +302,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input {...field} type="email" />
+                          <Input {...field} type="email" disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -312,7 +315,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>Phone</FormLabel>
                         <FormControl>
-                          <Input {...field} type="tel" />
+                          <Input {...field} type="tel" disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -326,9 +329,9 @@ export function EmployeeFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Mobile Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="tel" />
-                      </FormControl>
+                        <FormControl>
+                          <Input {...field} type="tel" disabled={isFieldsDisabled} />
+                        </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -350,6 +353,7 @@ export function EmployeeFormDialog({
                               onChange={(e) => setNewPositionName(e.target.value)}
                               placeholder="New position name"
                               className="flex-1"
+                              disabled={isFieldsDisabled}
                             />
                             <Button
                               type="button"
@@ -359,7 +363,7 @@ export function EmployeeFormDialog({
                                   createPositionMutation.mutate(newPositionName.trim());
                                 }
                               }}
-                              disabled={!newPositionName.trim() || createPositionMutation.isPending}
+                              disabled={isFieldsDisabled || !newPositionName.trim() || createPositionMutation.isPending}
                             >
                               Add
                             </Button>
@@ -377,7 +381,7 @@ export function EmployeeFormDialog({
                           </div>
                         ) : (
                           <div className="flex gap-2">
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <Select onValueChange={field.onChange} value={field.value || ''} disabled={isFieldsDisabled}>
                               <FormControl>
                                 <SelectTrigger className="flex-1">
                                   <SelectValue placeholder="Select position" />
@@ -397,6 +401,7 @@ export function EmployeeFormDialog({
                               variant="outline"
                               onClick={() => setShowNewPosition(true)}
                               title="Add new position"
+                              disabled={isFieldsDisabled}
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -412,7 +417,7 @@ export function EmployeeFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Department</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select department" />
@@ -440,7 +445,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>Hire Date</FormLabel>
                         <FormControl>
-                          <Input {...field} type="date" />
+                          <Input {...field} type="date" disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -455,7 +460,7 @@ export function EmployeeFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Employment Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -479,7 +484,7 @@ export function EmployeeFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -508,7 +513,7 @@ export function EmployeeFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Pay Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -532,7 +537,7 @@ export function EmployeeFormDialog({
                         <FormItem>
                           <FormLabel>Hourly Rate ($)</FormLabel>
                           <FormControl>
-                            <Input {...field} type="number" step="0.01" min="0" />
+                          <Input {...field} type="number" step="0.01" min="0" disabled={isFieldsDisabled} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -546,7 +551,7 @@ export function EmployeeFormDialog({
                         <FormItem>
                           <FormLabel>Annual Salary ($)</FormLabel>
                           <FormControl>
-                            <Input {...field} type="number" step="0.01" min="0" />
+                            <Input {...field} type="number" step="0.01" min="0" disabled={isFieldsDisabled} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -562,7 +567,7 @@ export function EmployeeFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Pay Frequency</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -586,7 +591,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>Payroll ID</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="External payroll system ID" />
+                          <Input {...field} placeholder="External payroll system ID" disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -602,9 +607,9 @@ export function EmployeeFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Date of Birth</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
+                        <FormControl>
+                          <Input {...field} type="date" disabled={isFieldsDisabled} />
+                        </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -616,9 +621,9 @@ export function EmployeeFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Street address" />
-                      </FormControl>
+                        <FormControl>
+                          <Input {...field} placeholder="Street address" disabled={isFieldsDisabled} />
+                        </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -629,9 +634,9 @@ export function EmployeeFormDialog({
                   name="address_line2"
                   render={({ field }) => (
                     <FormItem>
-                      <FormControl>
-                        <Input {...field} placeholder="Apt, suite, etc. (optional)" />
-                      </FormControl>
+                        <FormControl>
+                          <Input {...field} placeholder="Apt, suite, etc. (optional)" disabled={isFieldsDisabled} />
+                        </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -645,7 +650,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>City</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -658,7 +663,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>State</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -671,7 +676,7 @@ export function EmployeeFormDialog({
                       <FormItem>
                         <FormLabel>ZIP</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -689,7 +694,7 @@ export function EmployeeFormDialog({
                         <FormItem>
                           <FormLabel>Name</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} disabled={isFieldsDisabled} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -702,7 +707,7 @@ export function EmployeeFormDialog({
                         <FormItem>
                           <FormLabel>Phone</FormLabel>
                           <FormControl>
-                            <Input {...field} type="tel" />
+                            <Input {...field} type="tel" disabled={isFieldsDisabled} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -716,7 +721,7 @@ export function EmployeeFormDialog({
                       <FormItem className="mt-4">
                         <FormLabel>Relationship</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="e.g., Spouse, Parent, Sibling" />
+                          <Input {...field} placeholder="e.g., Spouse, Parent, Sibling" disabled={isFieldsDisabled} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -732,7 +737,7 @@ export function EmployeeFormDialog({
               </Button>
               <Button 
                 type="submit" 
-                disabled={createEmployee.isPending || updateEmployee.isPending}
+                disabled={isFieldsDisabled || createEmployee.isPending || updateEmployee.isPending}
               >
                 {isEditing ? 'Save Changes' : 'Add Team Member'}
               </Button>

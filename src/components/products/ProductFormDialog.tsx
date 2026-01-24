@@ -73,9 +73,10 @@ export function ProductFormDialog({
   const [isEditMode, setIsEditMode] = useState(false);
   const isExistingProduct = !!product?.id;
   
-  // For existing products, start in view mode. For new products, start in edit mode (if allowed)
-  // canEdit controls whether editing is allowed at all
-  const isFieldsDisabled = isExistingProduct ? !isEditMode : !canEdit;
+  // SECURITY: Fields are disabled if user doesn't have permission OR not in edit mode (for existing)
+  // For new products: disabled if no permission
+  // For existing products: disabled if no permission OR not in edit mode
+  const isFieldsDisabled = !canEdit || (isExistingProduct && !isEditMode);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
