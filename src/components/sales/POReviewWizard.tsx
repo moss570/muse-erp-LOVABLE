@@ -52,6 +52,7 @@ interface MappedItem {
 export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWizardProps) {
   const [activeStep, setActiveStep] = useState<WizardStep>('pdf');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   
   // State for wizard data
@@ -64,16 +65,26 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
   const updatePendingOrder = useUpdatePendingOrder();
   const rejectPendingOrder = useRejectPendingOrder();
 
-  // Load PDF URL
+  // Load PDF URL and fetch as blob for embedding
   useEffect(() => {
-    const loadPdfUrl = async () => {
+    let blobUrl: string | null = null;
+    
+    const loadPdf = async () => {
       if (pendingOrder.pdf_storage_path) {
         setLoadingPdf(true);
         try {
-          const url = await getSignedPdfUrl(pendingOrder.pdf_storage_path);
-          setPdfUrl(url);
+          const signedUrl = await getSignedPdfUrl(pendingOrder.pdf_storage_path);
+          setPdfUrl(signedUrl);
+          
+          // Fetch as blob to avoid Chrome cross-origin blocking
+          const response = await fetch(signedUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            blobUrl = URL.createObjectURL(blob);
+            setPdfBlobUrl(blobUrl);
+          }
         } catch (error) {
-          console.error('Failed to load PDF URL:', error);
+          console.error('Failed to load PDF:', error);
           toast.error('Failed to load PDF');
         } finally {
           setLoadingPdf(false);
@@ -82,8 +93,16 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
     };
     
     if (open) {
-      loadPdfUrl();
+      loadPdf();
     }
+    
+    // Cleanup blob URL on unmount or when dialog closes
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      setPdfBlobUrl(null);
+    };
   }, [open, pendingOrder.pdf_storage_path]);
 
   // Initialize mapped items from extracted data
@@ -224,12 +243,20 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
                     <div className="flex items-center justify-center h-full">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ) : pdfUrl ? (
-                    <iframe
-                      src={pdfUrl}
+                  ) : pdfBlobUrl ? (
+                    <object
+                      data={pdfBlobUrl}
+                      type="application/pdf"
                       className="w-full h-full min-h-[400px]"
                       title="Purchase Order PDF"
-                    />
+                    >
+                      <p className="p-4 text-center text-muted-foreground">
+                        Unable to display PDF.{' '}
+                        <a href={pdfUrl || '#'} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                          Open in new tab
+                        </a>
+                      </p>
+                    </object>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
                       <FileText className="h-12 w-12" />
