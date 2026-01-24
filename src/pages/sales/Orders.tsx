@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, Package, TruckIcon, FileText } from 'lucide-react';
-import { DataTableHeader } from '@/components/ui/data-table-header';
+import { DataTableHeader } from '@/components/ui/data-table';
 import {
   Table,
   TableBody,
