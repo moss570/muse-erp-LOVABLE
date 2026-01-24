@@ -123,6 +123,17 @@ serve(async (req) => {
 
     const companyName = companySettings?.company_name || 'Muse ERP';
 
+    // Get email settings for the noreply email type
+    const { data: emailSettings } = await supabaseAdmin
+      .from('email_settings')
+      .select('from_email, from_name, reply_to')
+      .eq('email_type', 'noreply')
+      .eq('is_active', true)
+      .single();
+
+    const fromEmail = emailSettings?.from_email || 'noreply@musescoop.com';
+    const fromName = emailSettings?.from_name || companyName;
+
     // Send email via Resend
     const emailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -131,7 +142,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Muse ERP <noreply@musegelato.com>',
+        from: `${fromName} <${fromEmail}>`,
         to: [email],
         subject: 'Password Reset Request',
         html: `
