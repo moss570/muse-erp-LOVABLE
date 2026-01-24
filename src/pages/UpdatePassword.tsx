@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,14 +15,49 @@ export default function UpdatePassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
-  // Check if user has a valid session (came from recovery link)
+  // Handle token exchange from recovery link and session check
   useEffect(() => {
-    const checkSession = async () => {
+    const handleTokenExchange = async () => {
+      setIsVerifying(true);
+      
+      // Check if we have hash params (from email link)
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (accessToken && refreshToken && type === 'recovery') {
+        // Exchange the tokens from the URL to establish a session
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
+        if (error) {
+          console.error('Token exchange error:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Invalid or expired link',
+            description: 'Please request a new password reset email.',
+          });
+          navigate('/auth');
+          return;
+        }
+        
+        // Clear the hash from URL for security
+        window.history.replaceState(null, '', location.pathname);
+        setIsVerifying(false);
+        return;
+      }
+      
+      // No hash params, check for existing session (e.g., from AuthContext PASSWORD_RECOVERY event)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
@@ -31,10 +66,14 @@ export default function UpdatePassword() {
           description: 'Please request a new password setup email.',
         });
         navigate('/auth');
+        return;
       }
+      
+      setIsVerifying(false);
     };
-    checkSession();
-  }, [navigate, toast]);
+    
+    handleTokenExchange();
+  }, [navigate, toast, location.hash, location.pathname]);
 
   const validateForm = () => {
     const newErrors: { password?: string; confirmPassword?: string } = {};
@@ -82,6 +121,27 @@ export default function UpdatePassword() {
   };
 
   const passwordsMatch = password.length > 0 && confirmPassword.length > 0 && password === confirmPassword;
+
+  // Show loading while verifying token
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <Card className="w-full max-w-md shadow-xl">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">Verifying...</CardTitle>
+            <CardDescription>
+              Please wait while we verify your reset link.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (
