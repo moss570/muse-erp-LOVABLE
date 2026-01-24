@@ -27,11 +27,16 @@ serve(async (req) => {
       throw new Error('pick_request_id is required')
     }
 
-    // Fetch pick request with sales order details
+    // Fetch pick request with sales order details and 3PL warehouse location
     const { data: pickRequest, error: pickError } = await supabaseClient
       .from('pick_requests')
       .select(`
         *,
+        third_party_warehouse:locations!third_party_warehouse_id(
+          id,
+          name,
+          contact_email
+        ),
         sales_order:sales_orders(
           *,
           customer:customers(id, code, name, email),
@@ -48,8 +53,12 @@ serve(async (req) => {
       throw new Error(`Pick request not found: ${pickError?.message}`)
     }
 
-    // Get 3PL warehouse email from company settings or environment
-    const tplEmail = Deno.env.get('TPL_WAREHOUSE_EMAIL') || 'warehouse@3pl.example.com'
+    // Get 3PL warehouse email from the location record
+    const tplEmail = pickRequest.third_party_warehouse?.contact_email
+    
+    if (!tplEmail) {
+      throw new Error(`3PL warehouse email not configured. Please set the warehouse email in the Location settings for "${pickRequest.third_party_warehouse?.name || 'this 3PL location'}"`)
+    }
 
     // Get company settings for sender info
     const { data: companySettings } = await supabaseClient

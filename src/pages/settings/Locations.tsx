@@ -40,7 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Trash2, MapPin, Thermometer, Snowflake } from 'lucide-react';
+import { Pencil, Trash2, MapPin, Thermometer, Snowflake, Mail } from 'lucide-react';
 import { RequireRole } from '@/components/auth/RequireRole';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
@@ -81,7 +81,7 @@ const locationSchema = z.object({
   country: z.string().optional(),
   contact_name: z.string().optional(),
   contact_phone: z.string().optional(),
-  contact_email: z.string().email().optional().or(z.literal('')),
+  contact_email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
 }).refine(
   (data) => {
     if (data.temperature_controlled) {
@@ -98,6 +98,15 @@ const locationSchema = z.object({
     return true;
   },
   { message: 'Min temperature must be less than or equal to max', path: ['target_temperature_min'] }
+).refine(
+  (data) => {
+    // Require email for 3PL locations
+    if (data.location_type === '3pl' && (!data.contact_email || data.contact_email === '')) {
+      return false;
+    }
+    return true;
+  },
+  { message: 'Warehouse email is required for 3PL locations to receive pick release notifications', path: ['contact_email'] }
 );
 
 type LocationFormData = z.infer<typeof locationSchema>;
@@ -691,10 +700,46 @@ function LocationsContent() {
                 </div>
               </div>
 
+              {/* 3PL Warehouse Email - Special Section for 3PL locations */}
+              {locationType === '3pl' && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                    <h4 className="text-sm font-medium mb-1 flex items-center gap-2 text-primary">
+                      <Mail className="h-4 w-4" />
+                      3PL Warehouse Email
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Pick release notifications will be sent to this email address
+                    </p>
+                    <FormField
+                      control={form.control}
+                      name="contact_email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Warehouse Email *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email" 
+                              placeholder="receiving@3pl-partner.com" 
+                              {...field} 
+                              className="bg-background"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            This email will receive pick release requests for orders fulfilled from this location
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Contact Section */}
               <div className="border-t pt-4 mt-4">
                 <h4 className="text-sm font-medium mb-3">Contact Information</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className={locationType === '3pl' ? "grid grid-cols-2 gap-4" : "grid grid-cols-3 gap-4"}>
                   <FormField
                     control={form.control}
                     name="contact_name"
@@ -721,19 +766,22 @@ function LocationsContent() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="contact_email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="contact@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Only show email in regular contact section for non-3PL locations */}
+                  {locationType !== '3pl' && (
+                    <FormField
+                      control={form.control}
+                      name="contact_email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="contact@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
 
