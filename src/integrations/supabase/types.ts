@@ -13165,6 +13165,7 @@ export type Database = {
           line_total: number | null
           notes: string | null
           product_id: string
+          product_size_id: string | null
           quantity_invoiced: number | null
           quantity_ordered: number
           quantity_packed: number | null
@@ -13180,6 +13181,7 @@ export type Database = {
           line_total?: number | null
           notes?: string | null
           product_id: string
+          product_size_id?: string | null
           quantity_invoiced?: number | null
           quantity_ordered?: number
           quantity_packed?: number | null
@@ -13195,6 +13197,7 @@ export type Database = {
           line_total?: number | null
           notes?: string | null
           product_id?: string
+          product_size_id?: string | null
           quantity_invoiced?: number | null
           quantity_ordered?: number
           quantity_packed?: number | null
@@ -13210,6 +13213,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_items_product_size_id_fkey"
+            columns: ["product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
             referencedColumns: ["id"]
           },
           {

@@ -42,6 +42,12 @@ export default function OrderDetail() {
               id,
               sku,
               name
+            ),
+            product_sizes (
+              id,
+              sku,
+              size_name,
+              size_type
             )
           )
         `)
