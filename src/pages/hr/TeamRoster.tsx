@@ -20,6 +20,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
@@ -129,18 +135,38 @@ export default function TeamRoster() {
 
   const getUserAccountBadge = (emp: EmployeeWithRelations) => {
     if (emp.profile_id) {
+      // Check if there's a profile - we'll show as "Active" or "Pending" based on invitation status
+      // For now, just show Active since we can't easily check invitations in the list view
       return (
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Active
-        </Badge>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Active
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>User account is active</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
     return (
-      <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-        <XCircle className="h-3 w-3 mr-1" />
-        No Account
-      </Badge>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+              <XCircle className="h-3 w-3 mr-1" />
+              No Account
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>No user account created yet</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   };
 

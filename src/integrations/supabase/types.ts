@@ -3070,6 +3070,67 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_account_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          email_error: string | null
+          email_sent: boolean
+          employee_id: string
+          id: string
+          invitation_type: string
+          invited_at: string
+          invited_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          email_error?: string | null
+          email_sent?: boolean
+          employee_id: string
+          id?: string
+          invitation_type?: string
+          invited_at?: string
+          invited_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          email_error?: string | null
+          email_sent?: boolean
+          employee_id?: string
+          id?: string
+          invitation_type?: string
+          invited_at?: string
+          invited_by?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_account_invitations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_account_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_account_invitations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_availability: {
         Row: {
           created_at: string
