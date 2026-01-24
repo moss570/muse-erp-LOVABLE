@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.admin-set-user-password]
 verify_jwt = false
+
+[functions.extract-po-pdf]
+verify_jwt = false
+
+[functions.inbound-po-webhook]
+verify_jwt = false
