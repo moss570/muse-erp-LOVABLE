@@ -212,7 +212,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
 
   // Fetch products - filtered by stage/category using product_categories.code
   const { data: products = [] } = useQuery({
-    queryKey: ["products-for-wo", targetStageCode, allowedCategories],
+    queryKey: ["products-for-wo", targetStageCode, allowedCategories, isEditMode ? workOrder?.product_id : null],
     queryFn: async (): Promise<{ id: string; name: string; sku: string; category_code: string | null; is_family_head: boolean }[]> => {
       // First, get products with their category codes
       const { data, error } = await supabase
@@ -239,19 +239,33 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrder
       }));
 
       // Filter by stage
+      let filteredProducts: typeof productsWithCategory;
       if (targetStageCode === "BASE_PREP") {
-        return productsWithCategory.filter(p => p.category_code === "BASE");
+        filteredProducts = productsWithCategory.filter(p => p.category_code === "BASE");
       } else if (targetStageCode === "FLAVOR" && allowedCategories.length > 0) {
-        return productsWithCategory.filter(p => 
+        filteredProducts = productsWithCategory.filter(p => 
           allowedCategories.includes(p.category_code || "") && p.is_family_head
         );
       } else if ((targetStageCode === "FREEZE" || targetStageCode === "CASE_PACK") && allowedCategories.length > 0) {
-        return productsWithCategory.filter(p => 
+        filteredProducts = productsWithCategory.filter(p => 
           allowedCategories.includes(p.category_code || "")
         );
+      } else {
+        filteredProducts = productsWithCategory;
       }
       
-      return productsWithCategory;
+      // In edit mode, ensure the current product is always included in the list
+      if (isEditMode && workOrder?.product_id) {
+        const currentProductExists = filteredProducts.some(p => p.id === workOrder.product_id);
+        if (!currentProductExists) {
+          const currentProduct = productsWithCategory.find(p => p.id === workOrder.product_id);
+          if (currentProduct) {
+            filteredProducts = [currentProduct, ...filteredProducts];
+          }
+        }
+      }
+      
+      return filteredProducts;
     },
     enabled: open && !!targetStageCode,
   });
