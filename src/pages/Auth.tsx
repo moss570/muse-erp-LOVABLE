@@ -21,15 +21,19 @@ export default function Auth() {
   const [lastName, setLastName] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, signUp, user, isLoading: authLoading } = useAuth();
+  const { signIn, signUp, user, isLoading: authLoading, needsPasswordUpdate } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    if (needsPasswordUpdate) {
+      navigate('/update-password');
+      return;
+    }
     if (user && !authLoading) {
       navigate('/');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, needsPasswordUpdate, navigate]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
