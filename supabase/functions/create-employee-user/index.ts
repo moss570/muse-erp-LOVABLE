@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,8 +25,11 @@ serve(async (req) => {
   try {
     // Get the authorization header from the request
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Create Supabase client with user's token to verify permissions
@@ -40,21 +43,24 @@ serve(async (req) => {
       }
     );
 
-    // Verify the requesting user is an admin or manager
-    const {
-      data: { user: requestingUser },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
+    // Verify the requesting user using getClaims (works with signing-keys)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseClient.auth.getClaims(token);
 
-    if (authError || !requestingUser) {
-      throw new Error('Unauthorized');
+    if (authError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    const requestingUserId = claimsData.claims.sub as string;
 
     // Check if user has admin or manager role
     const { data: userRoles, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', requestingUser.id);
+      .eq('user_id', requestingUserId);
 
     if (roleError) {
       throw new Error('Failed to verify user permissions');
@@ -127,7 +133,7 @@ serve(async (req) => {
       .insert({
         user_id: newUser.user.id,
         role: role,
-        assigned_by: requestingUser.id,
+        assigned_by: requestingUserId,
       });
 
     if (roleAssignError) {
