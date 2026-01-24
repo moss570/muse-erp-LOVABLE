@@ -94,6 +94,8 @@ export function EditProductSizeDialog({
   // Par level tracking state
   const [caseParLevelInputs, setCaseParLevelInputs] = useState<ParLevelInput[]>([]);
   const [palletParLevelInputs, setPalletParLevelInputs] = useState<ParLevelInput[]>([]);
+  const [distributorPrice, setDistributorPrice] = useState<number | null>(null);
+  const [directPrice, setDirectPrice] = useState<number | null>(null);
 
   // Get available parent tub sizes (unit sizes for this product)
   const parentTubSizes = useMemo(() => {
@@ -285,6 +287,8 @@ export function EditProductSizeDialog({
         setPalletType((size as any).pallet_type || 'US_STANDARD');
         setCustomPalletLengthIn((size as any).custom_pallet_length_in || null);
         setCustomPalletWidthIn((size as any).custom_pallet_width_in || null);
+        setDistributorPrice((size as any).distributor_price || null);
+        setDirectPrice((size as any).direct_price || null);
       } else {
         // Reset to defaults for new size
         setSizeType('case');
@@ -307,6 +311,8 @@ export function EditProductSizeDialog({
         setPalletType('US_STANDARD');
         setCustomPalletLengthIn(null);
         setCustomPalletWidthIn(null);
+        setDistributorPrice(null);
+        setDirectPrice(null);
         // Reset par level inputs for new size
         setCaseParLevelInputs([]);
         setPalletParLevelInputs([]);
@@ -486,6 +492,8 @@ export function EditProductSizeDialog({
         pallet_type: sizeType === 'case' ? palletType : null,
         custom_pallet_length_in: (sizeType === 'case' && palletType === 'CUSTOM') ? customPalletLengthIn : null,
         custom_pallet_width_in: (sizeType === 'case' && palletType === 'CUSTOM') ? customPalletWidthIn : null,
+        distributor_price: distributorPrice,
+        direct_price: directPrice,
       };
 
       let savedSizeId: string;
@@ -720,6 +728,53 @@ export function EditProductSizeDialog({
               </div>
             </div>
           )}
+
+          {/* Default Pricing */}
+          <div className="grid grid-cols-2 gap-4 p-3 border rounded-lg bg-muted/30">
+            <div className="space-y-2">
+              <Label htmlFor="distributor-price">
+                Distributor Price
+                <span className="text-xs text-muted-foreground ml-1">(default tier pricing)</span>
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+                <Input
+                  id="distributor-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={distributorPrice ?? ""}
+                  onChange={(e) => setDistributorPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                  disabled={isFieldsDisabled}
+                  className="pl-7"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="direct-price">
+                Direct Price
+                <span className="text-xs text-muted-foreground ml-1">(default tier pricing)</span>
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+                <Input
+                  id="direct-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={directPrice ?? ""}
+                  onChange={(e) => setDirectPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                  disabled={isFieldsDisabled}
+                  className="pl-7"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground col-span-2">
+              These are the default prices for this SKU. Customer-specific pricing can override these values.
+            </p>
+          </div>
 
           {/* Weight Specifications - Collapsible */}
            <Collapsible open={weightSectionOpen} onOpenChange={(next) => !isFieldsDisabled && setWeightSectionOpen(next)}>

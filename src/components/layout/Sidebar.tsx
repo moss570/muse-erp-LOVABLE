@@ -112,6 +112,7 @@ const navItems: NavItem[] = [
     icon: Truck,
     children: [
       { title: 'Customers', href: '/sales/customers' },
+      { title: 'Customer Pricing', href: '/sales/customer-pricing' },
       { title: 'Orders', href: '/sales/orders' },
       { title: 'Invoices', href: '/sales/invoices' },
       { title: 'Payments', href: '/sales/payments' },
@@ -204,6 +205,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Settings Hub', href: '/settings' },
       { title: 'Company Settings', href: '/settings/company' },
+      { title: 'Price Sheets', href: '/settings/price-sheets' },
       { title: 'Production Lines', href: '/settings/production-lines' },
       { title: 'Production Stages', href: '/settings/production-stages' },
       { title: 'Task Templates', href: '/settings/task-templates' },
