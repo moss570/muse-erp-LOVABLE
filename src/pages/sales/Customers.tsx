@@ -171,9 +171,9 @@ function CustomerFormDialog({
   // Fetch master companies for parent dropdown
   const { data: masterCompanies } = useQuery({
     queryKey: ['master-companies'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
+    queryFn: async (): Promise<any> => {
+      const { data, error } = await (supabase
+        .from('customers') as any)
         .select('id, code, name')
         .eq('is_master_company', true)
         .eq('is_active', true)

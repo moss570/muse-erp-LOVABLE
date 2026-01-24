@@ -2109,8 +2109,11 @@ export type Database = {
           fax: string | null
           id: string
           is_active: boolean | null
+          is_master_company: boolean | null
+          location_name: string | null
           name: string
           notes: string | null
+          parent_company_id: string | null
           payment_terms: string | null
           phone: string | null
           state: string | null
@@ -2137,8 +2140,11 @@ export type Database = {
           fax?: string | null
           id?: string
           is_active?: boolean | null
+          is_master_company?: boolean | null
+          location_name?: string | null
           name: string
           notes?: string | null
+          parent_company_id?: string | null
           payment_terms?: string | null
           phone?: string | null
           state?: string | null
@@ -2165,8 +2171,11 @@ export type Database = {
           fax?: string | null
           id?: string
           is_active?: boolean | null
+          is_master_company?: boolean | null
+          location_name?: string | null
           name?: string
           notes?: string | null
+          parent_company_id?: string | null
           payment_terms?: string | null
           phone?: string | null
           state?: string | null
@@ -2176,7 +2185,15 @@ export type Database = {
           website?: string | null
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_parent_company_id_fkey"
+            columns: ["parent_company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cycle_count_items: {
         Row: {
