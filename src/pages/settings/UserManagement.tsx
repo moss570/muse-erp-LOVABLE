@@ -49,7 +49,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Users, Shield, ShieldCheck, ShieldAlert, User, KeyRound, LogOut, Loader2 } from 'lucide-react';
+import { Pencil, Users, Shield, ShieldCheck, ShieldAlert, User, KeyRound, LogOut, Loader2, Trash2 } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
@@ -104,7 +104,7 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [confirmAction, setConfirmAction] = useState<'reset-password' | 'signout' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'reset-password' | 'signout' | 'delete' | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -226,6 +226,28 @@ export default function UserManagement() {
     },
   });
 
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast({ title: 'User deleted', description: 'The user account has been permanently deleted.' });
+      handleCloseDialog();
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error deleting user', description: error.message, variant: 'destructive' });
+      setConfirmAction(null);
+    },
+  });
+
   const handleOpenDialog = (user: UserWithRole) => {
     setEditingUser(user);
     form.reset({
@@ -256,6 +278,12 @@ export default function UserManagement() {
   const handleSignoutUser = () => {
     if (editingUser) {
       signoutUserMutation.mutate(editingUser.id);
+    }
+  };
+
+  const handleDeleteUser = () => {
+    if (editingUser) {
+      deleteUserMutation.mutate(editingUser.id);
     }
   };
 
@@ -555,6 +583,20 @@ export default function UserManagement() {
                     )}
                     Sign Out All Sessions
                   </Button>
+                  
+                  <Button
+                    variant="destructive"
+                    className="justify-start gap-2"
+                    onClick={() => setConfirmAction('delete')}
+                    disabled={deleteUserMutation.isPending}
+                  >
+                    {deleteUserMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    Delete User Account
+                  </Button>
                 </div>
               </div>
 
@@ -573,22 +615,43 @@ export default function UserManagement() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'reset-password' ? 'Send Password Reset Email?' : 'Sign Out User?'}
+              {confirmAction === 'reset-password' && 'Send Password Reset Email?'}
+              {confirmAction === 'signout' && 'Sign Out User?'}
+              {confirmAction === 'delete' && 'Delete User Account?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction === 'reset-password' 
-                ? `This will send a password reset email to ${editingUser?.email}. The user will need to click the link in the email to set a new password.`
-                : `This will sign out ${editingUser ? getFullName(editingUser) : 'the user'} from all devices and sessions. They will need to log in again.`
-              }
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {confirmAction === 'reset-password' && (
+                  <p>This will send a password reset email to {editingUser?.email}. The user will need to click the link in the email to set a new password.</p>
+                )}
+                {confirmAction === 'signout' && (
+                  <p>This will sign out {editingUser ? getFullName(editingUser) : 'the user'} from all devices and sessions. They will need to log in again.</p>
+                )}
+                {confirmAction === 'delete' && (
+                  <>
+                    <p className="font-medium text-destructive">This action cannot be undone.</p>
+                    <p>This will permanently delete the user's login credentials and revoke all access for {editingUser ? getFullName(editingUser) : 'this user'}.</p>
+                    <p className="text-muted-foreground">The employee's HR records (shifts, wage history, training) will be preserved in the Team Roster.</p>
+                  </>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={confirmAction === 'reset-password' ? handleResetPassword : handleSignoutUser}
-              className={confirmAction === 'signout' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+              onClick={
+                confirmAction === 'reset-password' 
+                  ? handleResetPassword 
+                  : confirmAction === 'signout' 
+                    ? handleSignoutUser 
+                    : handleDeleteUser
+              }
+              className={confirmAction === 'signout' || confirmAction === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
-              {confirmAction === 'reset-password' ? 'Send Email' : 'Sign Out'}
+              {confirmAction === 'reset-password' && 'Send Email'}
+              {confirmAction === 'signout' && 'Sign Out'}
+              {confirmAction === 'delete' && 'Delete Account'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
