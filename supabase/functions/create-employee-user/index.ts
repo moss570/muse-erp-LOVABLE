@@ -141,6 +141,22 @@ serve(async (req) => {
       // Don't throw - user was created, role can be assigned later
     }
 
+    // Record initial invitation
+    const { error: inviteRecordError } = await supabaseAdmin
+      .from('employee_account_invitations')
+      .insert({
+        employee_id: employeeId,
+        user_id: newUser.user.id,
+        email: email,
+        invited_by: requestingUserId,
+        invitation_type: 'initial',
+        email_sent: sendPasswordResetEmail || false,
+      });
+
+    if (inviteRecordError) {
+      console.error('Failed to record invitation:', inviteRecordError);
+    }
+
     // Send password reset email if requested
     if (sendPasswordResetEmail) {
       const { error: resetError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
