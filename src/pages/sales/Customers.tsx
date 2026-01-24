@@ -344,6 +344,9 @@ function CustomerFormDialog({
           tax_exempt: rest.tax_exempt,
           tax_id: rest.tax_id || null,
           notes: rest.notes || null,
+          parent_company_id: rest.parent_company_id || null,
+          is_master_company: rest.is_master_company,
+          location_name: rest.location_name || null,
         })
         .eq('id', id);
       if (error) throw error;
