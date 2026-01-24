@@ -38,6 +38,7 @@ export function OrderTab({ order }: { order: any }) {
   const [shippingCharge, setShippingCharge] = useState(order.shipping_charge || '0.00');
 
   const [newItem, setNewItem] = useState({
+    product_size_id: '',
     product_id: '',
     quantity: '1',
     unit_price: '',
@@ -45,16 +46,16 @@ export function OrderTab({ order }: { order: any }) {
 
   const isDraft = order.status === 'draft';
 
-  // Fetch products - exclude family heads (they are not sellable)
-  const { data: products } = useQuery({
-    queryKey: ['products-for-orders'],
+  // Fetch sellable product sizes (tubs and cases only)
+  const { data: productSizes } = useQuery({
+    queryKey: ['product-sizes-for-orders'],
     queryFn: async (): Promise<any> => {
-      const { data, error } = await (supabase
-        .from('products') as any)
-        .select('id, sku, name')
+      const { data, error } = await supabase
+        .from('product_sizes')
+        .select('id, sku, size_name, size_type, product_id, products(name, sku)')
         .eq('is_active', true)
-        .eq('is_family_head', false)
-        .order('name');
+        .in('size_type', ['unit', 'case'])
+        .order('sku');
 
       if (error) throw error;
       return data;
@@ -78,9 +79,12 @@ export function OrderTab({ order }: { order: any }) {
     return data;
   };
 
-  // Auto-populate price when product/quantity changes
-  const handleProductChange = async (productId: string) => {
-    setNewItem({ ...newItem, product_id: productId });
+  // Auto-populate price when product size selected
+  const handleProductSizeChange = async (productSizeId: string) => {
+    const selectedSize = productSizes?.find((ps: any) => ps.id === productSizeId);
+    const productId = selectedSize?.product_id || '';
+    
+    setNewItem({ ...newItem, product_size_id: productSizeId, product_id: productId });
 
     if (productId && newItem.quantity) {
       const price = await getPriceForProduct(productId, parseInt(newItem.quantity));
@@ -96,6 +100,7 @@ export function OrderTab({ order }: { order: any }) {
       const { error } = await supabase.from('sales_order_items').insert({
         sales_order_id: order.id,
         product_id: newItem.product_id,
+        product_size_id: newItem.product_size_id,
         quantity_ordered: parseInt(newItem.quantity),
         unit_price: parseFloat(newItem.unit_price),
       });
@@ -106,7 +111,7 @@ export function OrderTab({ order }: { order: any }) {
       queryClient.invalidateQueries({ queryKey: ['sales-order', order.id] });
       toast({ title: 'Success', description: 'Product added to order' });
       setShowAddItemDialog(false);
-      setNewItem({ product_id: '', quantity: '1', unit_price: '' });
+      setNewItem({ product_size_id: '', product_id: '', quantity: '1', unit_price: '' });
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -276,8 +281,15 @@ export function OrderTab({ order }: { order: any }) {
               ) : (
                 order.sales_order_items?.map((item: any) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.products.sku}</TableCell>
-                    <TableCell>{item.products.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {item.product_sizes?.sku || item.products?.sku}
+                    </TableCell>
+                    <TableCell>
+                      {item.products?.name}
+                      {item.product_sizes?.size_name && (
+                        <span className="text-muted-foreground ml-1">({item.product_sizes.size_name})</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">{item.quantity_ordered}</TableCell>
                     <TableCell className="text-right">${item.unit_price.toFixed(2)}</TableCell>
                     <TableCell className="text-right font-medium">
@@ -370,16 +382,16 @@ export function OrderTab({ order }: { order: any }) {
             <div className="space-y-2">
               <Label>Product *</Label>
               <Select
-                value={newItem.product_id}
-                onValueChange={handleProductChange}
+                value={newItem.product_size_id}
+                onValueChange={handleProductSizeChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a product" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products?.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.sku} - {product.name}
+                  {productSizes?.map((ps: any) => (
+                    <SelectItem key={ps.id} value={ps.id}>
+                      {ps.sku} - {ps.products?.name} ({ps.size_name})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -387,7 +399,7 @@ export function OrderTab({ order }: { order: any }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Quantity (cases) *</Label>
+              <Label>Quantity *</Label>
               <Input
                 type="number"
                 min="1"
@@ -404,7 +416,7 @@ export function OrderTab({ order }: { order: any }) {
                 min="0"
                 value={newItem.unit_price}
                 onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
-                placeholder="Price per case"
+                placeholder="Price per unit"
               />
               <p className="text-xs text-muted-foreground">
                 Price auto-populated from customer pricing if available
@@ -418,7 +430,7 @@ export function OrderTab({ order }: { order: any }) {
             </Button>
             <Button
               onClick={() => addItemMutation.mutate()}
-              disabled={!newItem.product_id || !newItem.quantity || !newItem.unit_price}
+              disabled={!newItem.product_size_id || !newItem.quantity || !newItem.unit_price}
             >
               Add to Order
             </Button>
