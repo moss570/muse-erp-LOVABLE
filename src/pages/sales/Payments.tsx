@@ -124,9 +124,8 @@ export default function Payments() {
       // Apply payment to outstanding invoices
       const { error: applyError } = await supabase
         .rpc('apply_payment_to_invoices', {
-          p_payment_receipt_id: payment.id,
-          p_customer_id: selectedCustomerId,
-          p_amount: amount + earlyPayDiscount
+          p_receipt_id: payment.id,
+          p_applications: JSON.stringify([])
         });
 
       if (applyError) throw applyError;

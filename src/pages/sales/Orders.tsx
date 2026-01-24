@@ -201,6 +201,8 @@ export default function Orders() {
         </CardHeader>
         <CardContent>
           <DataTableHeader
+            title=""
+            searchValue={searchQuery}
             searchPlaceholder="Search orders..."
             onSearchChange={setSearchQuery}
           />

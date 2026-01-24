@@ -323,6 +323,8 @@ export default function PriceSheets() {
         </CardHeader>
         <CardContent>
           <DataTableHeader
+            title=""
+            searchValue=""
             searchPlaceholder="Search price sheets..."
             onSearchChange={() => {}}
           />
