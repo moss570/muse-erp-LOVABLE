@@ -13227,6 +13227,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string
+          customer_po_number: string | null
           has_backorders: boolean | null
           id: string
           is_partially_shipped: boolean | null
@@ -13256,6 +13257,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id: string
+          customer_po_number?: string | null
           has_backorders?: boolean | null
           id?: string
           is_partially_shipped?: boolean | null
@@ -13285,6 +13287,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string
+          customer_po_number?: string | null
           has_backorders?: boolean | null
           id?: string
           is_partially_shipped?: boolean | null

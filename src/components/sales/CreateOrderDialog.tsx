@@ -34,6 +34,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
   const queryClient = useQueryClient();
 
   const [customerId, setCustomerId] = useState('');
+  const [customerPoNumber, setCustomerPoNumber] = useState('');
   const [requestedDeliveryDate, setRequestedDeliveryDate] = useState('');
   const [shipToName, setShipToName] = useState('');
   const [shipToAddress, setShipToAddress] = useState('');
@@ -110,6 +111,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
         .insert({
           order_number: orderNumber,
           customer_id: customerId,
+          customer_po_number: customerPoNumber || null,
           order_date: new Date().toISOString().split('T')[0],
           requested_delivery_date: requestedDeliveryDate || null,
           ship_to_name: shipToName,
@@ -152,6 +154,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
 
   const resetForm = () => {
     setCustomerId('');
+    setCustomerPoNumber('');
     setRequestedDeliveryDate('');
     setShipToName('');
     setShipToAddress('');
@@ -187,6 +190,17 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Customer PO Number */}
+          <div className="space-y-2">
+            <Label htmlFor="customer_po_number">Customer PO Number</Label>
+            <Input
+              id="customer_po_number"
+              placeholder="Customer's purchase order number"
+              value={customerPoNumber}
+              onChange={(e) => setCustomerPoNumber(e.target.value)}
+            />
           </div>
 
           {/* Requested Delivery Date */}
