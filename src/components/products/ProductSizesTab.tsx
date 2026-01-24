@@ -42,6 +42,8 @@ export function ProductSizesTab({
     size_unit_id: "",
     units_per_case: "1",
     case_weight_kg: "",
+    distributor_price: "",
+    direct_price: "",
   });
 
   // Fetch units of measure
@@ -71,6 +73,8 @@ export function ProductSizesTab({
       size_unit_id: newSize.size_unit_id || null,
       units_per_case: parseInt(newSize.units_per_case) || 1,
       case_weight_kg: newSize.case_weight_kg ? parseFloat(newSize.case_weight_kg) : null,
+      distributor_price: newSize.distributor_price ? parseFloat(newSize.distributor_price) : null,
+      direct_price: newSize.direct_price ? parseFloat(newSize.direct_price) : null,
       is_default: sizes.length === 0, // First size is default
     });
 
@@ -80,6 +84,8 @@ export function ProductSizesTab({
       size_unit_id: "",
       units_per_case: "1",
       case_weight_kg: "",
+      distributor_price: "",
+      direct_price: "",
     });
     setIsAddingSize(false);
   };
@@ -160,8 +166,10 @@ export function ProductSizesTab({
                 <TableHead>Value</TableHead>
                 <TableHead>Units/Case</TableHead>
                 <TableHead>SKU</TableHead>
-                <TableHead>Tub UPC (12-digit)</TableHead>
-                <TableHead>Case UPC (GTIN-14)</TableHead>
+                <TableHead>Dist. Price</TableHead>
+                <TableHead>Direct Price</TableHead>
+                <TableHead>Tub UPC</TableHead>
+                <TableHead>Case UPC</TableHead>
                 <TableHead>Default</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -179,6 +187,20 @@ export function ProductSizesTab({
                       <code className="text-xs bg-muted px-1 py-0.5 rounded">
                         {(size as any).sku}
                       </code>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {(size as any).distributor_price ? (
+                      <span className="text-sm">${parseFloat((size as any).distributor_price).toFixed(2)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {(size as any).direct_price ? (
+                      <span className="text-sm">${parseFloat((size as any).direct_price).toFixed(2)}</span>
                     ) : (
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
@@ -255,7 +277,7 @@ export function ProductSizesTab({
 
               {sizes.length === 0 && !isAddingSize && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     No sizes configured. Add a size to get started.
                   </TableCell>
                 </TableRow>
@@ -308,6 +330,26 @@ export function ProductSizesTab({
                   </TableCell>
                   <TableCell>
                     <span className="text-muted-foreground text-sm">Auto-generated</span>
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="w-24"
+                      value={newSize.distributor_price}
+                      onChange={(e) => setNewSize({ ...newSize, distributor_price: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="w-24"
+                      value={newSize.direct_price}
+                      onChange={(e) => setNewSize({ ...newSize, direct_price: e.target.value })}
+                    />
                   </TableCell>
                   <TableCell colSpan={2}>
                     <span className="text-muted-foreground text-sm">Generate after saving</span>
