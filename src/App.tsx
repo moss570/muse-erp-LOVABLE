@@ -23,6 +23,8 @@ import Customers from "./pages/sales/Customers";
 import Orders from "./pages/sales/Orders";
 import OrderDetail from "./pages/sales/OrderDetail";
 import Invoices from "./pages/sales/Invoices";
+import Payments from "./pages/sales/Payments";
+import Returns from "./pages/sales/Returns";
 import DeliveryDriver from "./pages/sales/DeliveryDriver";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
@@ -199,6 +201,8 @@ const App = () => (
             <Route path="/sales/orders" element={<AppLayout><Orders /></AppLayout>} />
             <Route path="/sales/orders/:id" element={<AppLayout><OrderDetail /></AppLayout>} />
             <Route path="/sales/invoices" element={<AppLayout><Invoices /></AppLayout>} />
+            <Route path="/sales/payments" element={<AppLayout><Payments /></AppLayout>} />
+            <Route path="/sales/returns" element={<AppLayout><Returns /></AppLayout>} />
             <Route
               path="/sales/*"
               element={
