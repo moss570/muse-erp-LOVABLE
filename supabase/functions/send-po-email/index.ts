@@ -121,6 +121,16 @@ const handler = async (req: Request): Promise<Response> => {
       zip: "",
     };
 
+    // Fetch email settings for purchase orders
+    const { data: emailSettings } = await supabase
+      .from("email_settings")
+      .select("from_name, from_email, reply_to, is_active")
+      .eq("email_type", "purchase_orders")
+      .single();
+
+    const fromName = emailSettings?.from_name || company.company_name || "Company";
+    const fromEmail = emailSettings?.from_email || "purchasing@musescoop.com";
+
     // Fetch PO details with location address
     const { data: po, error: poError } = await supabase
       .from("purchase_orders")
@@ -415,10 +425,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: `${company.company_name} <onboarding@resend.dev>`,
+      from: `${fromName} <${fromEmail}>`,
       to: toEmails,
       cc: ccEmails && ccEmails.length > 0 ? ccEmails : undefined,
       bcc: finalBcc.length > 0 ? finalBcc : undefined,
+      reply_to: emailSettings?.reply_to || undefined,
       subject: emailSubject,
       html: emailHtml,
     });

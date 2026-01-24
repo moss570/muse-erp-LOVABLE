@@ -66,8 +66,18 @@ serve(async (req) => {
       .select('company_name, email, phone')
       .single()
 
+    // Fetch email settings for 3PL releases
+    const { data: emailSettings } = await supabaseClient
+      .from('email_settings')
+      .select('from_name, from_email, reply_to, is_active')
+      .eq('email_type', '3pl_releases')
+      .single()
+
     const companyName = companySettings?.company_name || 'Your Company'
     const companyEmail = companySettings?.email || 'orders@yourcompany.com'
+
+    const fromName = emailSettings?.from_name || companyName
+    const fromEmail = emailSettings?.from_email || 'warehouse@musescoop.com'
 
     // Build email HTML
     const orderItems = pickRequest.sales_order.sales_order_items
@@ -174,8 +184,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: companyEmail,
+        from: `${fromName} <${fromEmail}>`,
         to: [tplEmail],
+        reply_to: emailSettings?.reply_to || undefined,
         subject: `Pick Release Request ${pickRequest.request_number} - Order ${pickRequest.sales_order.order_number}`,
         html: emailHtml,
       }),

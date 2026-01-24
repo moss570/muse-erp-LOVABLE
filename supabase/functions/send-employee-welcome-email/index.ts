@@ -129,8 +129,18 @@ serve(async (req) => {
       .limit(1)
       .single();
 
+    // Fetch email settings for employee welcome emails
+    const { data: emailSettings } = await supabaseAdmin
+      .from('email_settings')
+      .select('from_name, from_email, reply_to, is_active')
+      .eq('email_type', 'employee_welcome')
+      .single();
+
     const companyName = companySettings?.company_name || 'Our Company';
     const supportEmail = companySettings?.email || 'support@example.com';
+
+    const fromName = emailSettings?.from_name || companyName;
+    const fromEmail = emailSettings?.from_email || 'noreply@musescoop.com';
 
     // Send email via Resend
     const resend = new Resend(resendApiKey);
@@ -140,8 +150,9 @@ serve(async (req) => {
       : `Welcome to ${companyName} - Set Up Your Account`;
 
     const emailResponse = await resend.emails.send({
-      from: `${companyName} <noreply@musescoop.com>`,
+      from: `${fromName} <${fromEmail}>`,
       to: [email],
+      reply_to: emailSettings?.reply_to || supportEmail,
       subject: emailSubject,
       html: `
         <!DOCTYPE html>

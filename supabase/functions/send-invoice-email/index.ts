@@ -60,6 +60,13 @@ serve(async (req) => {
       .select('*')
       .single()
 
+    // Fetch email settings for invoices
+    const { data: emailSettings } = await supabaseClient
+      .from('email_settings')
+      .select('from_name, from_email, reply_to, is_active')
+      .eq('email_type', 'invoices')
+      .single()
+
     const companyName = companySettings?.company_name || 'Your Company'
     const companyEmail = companySettings?.email || 'billing@yourcompany.com'
     const companyAddress = companySettings?.address || ''
@@ -67,6 +74,9 @@ serve(async (req) => {
     const companyState = companySettings?.state || ''
     const companyZip = companySettings?.zip || ''
     const companyPhone = companySettings?.phone || ''
+
+    const fromName = emailSettings?.from_name || companyName
+    const fromEmail = emailSettings?.from_email || 'invoices@musescoop.com'
 
     // Determine recipient email
     const recipientEmail = send_to_email || invoice.customer.email
@@ -246,8 +256,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: companyEmail,
+        from: `${fromName} <${fromEmail}>`,
         to: [recipientEmail],
+        reply_to: emailSettings?.reply_to || undefined,
         subject: `Invoice ${invoice.invoice_number} from ${companyName}`,
         html: emailHtml,
       }),

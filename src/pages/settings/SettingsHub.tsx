@@ -29,6 +29,7 @@ import {
   Link2,
   Barcode,
   FolderTree,
+  Mail,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -266,6 +267,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Import and export data from CSV files',
         href: '/settings/import-export',
         icon: Upload,
+        status: 'active',
+      },
+      {
+        title: 'Email Settings',
+        description: 'Configure Resend email addresses and sender names',
+        href: '/settings/email',
+        icon: Mail,
         status: 'active',
       },
     ],
