@@ -32,6 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { EmployeeFormDialog } from '@/components/hr/EmployeeFormDialog';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Search,
   Plus,
@@ -52,12 +53,15 @@ import type { EmployeeWithRelations } from '@/hooks/useEmployees';
 export default function TeamRoster() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAdmin, isManager } = useAuth();
   const [search, setSearch] = useState('');
   const [showTerminated, setShowTerminated] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [resendingEmployeeId, setResendingEmployeeId] = useState<string | null>(null);
+  
+  const canEditEmployee = isAdmin || isManager;
 
   const { data: employees, isLoading, refetch } = useQuery({
     queryKey: ['employees', showTerminated],
@@ -437,6 +441,7 @@ export default function TeamRoster() {
       <EmployeeFormDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
+        canEdit={canEditEmployee}
         onSuccess={() => {
           refetch();
           setIsDialogOpen(false);

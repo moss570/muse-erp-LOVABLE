@@ -349,6 +349,7 @@ export default function Products() {
         product={editingProduct}
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        canEdit={canEdit}
       />
     </div>
   );

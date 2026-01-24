@@ -53,9 +53,10 @@ interface RecipeFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recipe?: any;
+  canEdit?: boolean;
 }
 
-export function RecipeFormDialog({ open, onOpenChange, recipe }: RecipeFormDialogProps) {
+export function RecipeFormDialog({ open, onOpenChange, recipe, canEdit = false }: RecipeFormDialogProps) {
   const queryClient = useQueryClient();
   const isEditing = !!recipe;
 

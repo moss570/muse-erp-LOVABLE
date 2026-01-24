@@ -416,6 +416,7 @@ export default function ShopFloor() {
       <WorkOrderFormDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        canEdit={isManager || isAdmin}
       />
 
       {/* Edit Work Order Dialog */}
@@ -426,6 +427,7 @@ export default function ShopFloor() {
           if (!open) setSelectedWorkOrder(null);
         }}
         workOrder={selectedWorkOrder as WorkOrder | null}
+        canEdit={isManager || isAdmin}
       />
 
       {/* Delete Work Order Dialog */}
