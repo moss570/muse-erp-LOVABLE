@@ -94,7 +94,7 @@ export function OrderConfirmStep({
           customer_po_number: extractedData?.po_number || null,
           order_date: extractedData?.po_date || new Date().toISOString().split('T')[0],
           requested_delivery_date: extractedData?.requested_delivery_date || null,
-          status: 'pending',
+          status: 'draft',
           notes: `Imported from customer PO. Original file: ${pendingOrder.pdf_filename}`,
         }])
         .select('id, order_number')
