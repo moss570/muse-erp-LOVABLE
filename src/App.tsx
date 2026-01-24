@@ -36,6 +36,7 @@ import Locations from "./pages/settings/Locations";
 import SubCategories from "./pages/settings/SubCategories";
 import DocumentRequirements from "./pages/settings/DocumentRequirements";
 import SettingsHub from "./pages/settings/SettingsHub";
+import Profile from "./pages/settings/Profile";
 import UnitsOfMeasure from "./pages/settings/UnitsOfMeasure";
 import Departments from "./pages/settings/Departments";
 import ListedMaterialNames from "./pages/settings/ListedMaterialNames";
@@ -165,6 +166,8 @@ const App = () => (
             <Route path="/purchasing/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Purchasing Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
             {/* Settings routes - restricted to admin, manager, supervisor, hr */}
+            {/* Profile route is accessible to ALL authenticated users */}
+            <Route path="/settings/profile" element={<AppLayout><Profile /></AppLayout>} />
             <Route path="/settings" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SettingsHub /></RequireRole></AppLayout>} />
             <Route path="/settings/machines" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><Machines /></RequireRole></AppLayout>} />
             <Route path="/settings/locations" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><Locations /></RequireRole></AppLayout>} />
