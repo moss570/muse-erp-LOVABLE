@@ -43,6 +43,7 @@ import RolePermissions from "./pages/settings/RolePermissions";
 import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 import CompanySettings from "./pages/settings/CompanySettings";
 import LabelTemplates from "./pages/settings/LabelTemplates";
+import EmailSettings from "./pages/settings/EmailSettings";
 import PriceSheets from "./pages/settings/PriceSheets";
 import PriceSheetDetail from "./pages/settings/PriceSheetDetail";
 import TeamRoster from "./pages/hr/TeamRoster";
@@ -175,6 +176,7 @@ const App = () => (
             <Route path="/settings/templates" element={<AppLayout><DocumentTemplatesPage /></AppLayout>} />
             <Route path="/settings/labels" element={<AppLayout><LabelTemplates /></AppLayout>} />
             <Route path="/settings/company" element={<AppLayout><CompanySettings /></AppLayout>} />
+            <Route path="/settings/email" element={<AppLayout><EmailSettings /></AppLayout>} />
             <Route path="/settings/fixed-costs" element={<AppLayout><FixedCosts /></AppLayout>} />
             <Route path="/settings/gl-accounts" element={<AppLayout><GLAccounts /></AppLayout>} />
             <Route path="/settings/period-close" element={<AppLayout><PeriodClose /></AppLayout>} />

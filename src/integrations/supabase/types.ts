@@ -3070,6 +3070,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          email_type: string
+          from_email: string
+          from_name: string
+          id: string
+          is_active: boolean
+          reply_to: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          email_type: string
+          from_email: string
+          from_name: string
+          id?: string
+          is_active?: boolean
+          reply_to?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          email_type?: string
+          from_email?: string
+          from_name?: string
+          id?: string
+          is_active?: boolean
+          reply_to?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_account_invitations: {
         Row: {
           created_at: string
