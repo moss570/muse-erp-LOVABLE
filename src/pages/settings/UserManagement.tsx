@@ -32,13 +32,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Users, Shield, ShieldCheck, ShieldAlert, User } from 'lucide-react';
+import { Pencil, Users, Shield, ShieldCheck, ShieldAlert, User, KeyRound, LogOut, Loader2 } from 'lucide-react';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
@@ -93,6 +104,7 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [confirmAction, setConfirmAction] = useState<'reset-password' | 'signout' | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -161,10 +173,56 @@ export default function UserManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({ title: 'User role updated successfully' });
-      // Form stays open - user closes explicitly
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating user role', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (user: UserWithRole) => {
+      const { data, error } = await supabase.functions.invoke('admin-reset-user-password', {
+        body: {
+          userId: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: 'Password reset email sent', description: 'The user will receive an email with instructions to reset their password.' });
+      setConfirmAction(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error sending password reset', description: error.message, variant: 'destructive' });
+      setConfirmAction(null);
+    },
+  });
+
+  // Sign out user mutation
+  const signoutUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('admin-signout-user', {
+        body: { userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: 'User signed out', description: 'The user has been signed out from all sessions.' });
+      setConfirmAction(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error signing out user', description: error.message, variant: 'destructive' });
+      setConfirmAction(null);
     },
   });
 
@@ -180,11 +238,24 @@ export default function UserManagement() {
     setIsDialogOpen(false);
     setEditingUser(null);
     form.reset();
+    setConfirmAction(null);
   };
 
   const onSubmit = (data: UserRoleFormData) => {
     if (editingUser) {
       updateRoleMutation.mutate({ userId: editingUser.id, role: data.role });
+    }
+  };
+
+  const handleResetPassword = () => {
+    if (editingUser) {
+      resetPasswordMutation.mutate(editingUser);
+    }
+  };
+
+  const handleSignoutUser = () => {
+    if (editingUser) {
+      signoutUserMutation.mutate(editingUser.id);
     }
   };
 
@@ -386,7 +457,7 @@ export default function UserManagement() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogTitle>Manage User</DialogTitle>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4">
@@ -435,20 +506,93 @@ export default function UserManagement() {
                     )}
                   />
 
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                      Cancel
-                    </Button>
+                  <div className="flex justify-end gap-2">
                     <Button type="submit" disabled={updateRoleMutation.isPending}>
-                      Update Role
+                      {updateRoleMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Role'
+                      )}
                     </Button>
                   </div>
                 </form>
               </Form>
+
+              <Separator />
+              
+              {/* Account Actions */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground">Account Actions</h4>
+                
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2"
+                    onClick={() => setConfirmAction('reset-password')}
+                    disabled={resetPasswordMutation.isPending}
+                  >
+                    {resetPasswordMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <KeyRound className="h-4 w-4" />
+                    )}
+                    Send Password Reset Email
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2 text-destructive hover:text-destructive"
+                    onClick={() => setConfirmAction('signout')}
+                    disabled={signoutUserMutation.isPending}
+                  >
+                    {signoutUserMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <LogOut className="h-4 w-4" />
+                    )}
+                    Sign Out All Sessions
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                  Close
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmAction !== null} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction === 'reset-password' ? 'Send Password Reset Email?' : 'Sign Out User?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction === 'reset-password' 
+                ? `This will send a password reset email to ${editingUser?.email}. The user will need to click the link in the email to set a new password.`
+                : `This will sign out ${editingUser ? getFullName(editingUser) : 'the user'} from all devices and sessions. They will need to log in again.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmAction === 'reset-password' ? handleResetPassword : handleSignoutUser}
+              className={confirmAction === 'signout' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {confirmAction === 'reset-password' ? 'Send Email' : 'Sign Out'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
