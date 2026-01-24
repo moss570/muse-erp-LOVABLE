@@ -74,6 +74,7 @@ import ProductionScheduler from "./pages/manufacturing/ProductionScheduler";
 import ShopFloorWorkOrder from "./pages/manufacturing/ShopFloorWorkOrder";
 import ProductionLinesSettings from "./pages/settings/ProductionLinesSettings";
 import DailyProductionTargets from "./pages/settings/DailyProductionTargets";
+import ManufacturingPreferences from "./components/settings/ManufacturingPreferences";
 import ProductionStagesSettings from "./pages/settings/ProductionStagesSettings";
 import QADashboard from "./pages/quality/QADashboard";
 import CloseDay from "./pages/operations/CloseDay";
@@ -206,6 +207,7 @@ const App = () => (
             <Route path="/settings/production-lines" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductionLinesSettings /></RequireRole></AppLayout>} />
             <Route path="/settings/production-stages" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductionStagesSettings /></RequireRole></AppLayout>} />
             <Route path="/settings/daily-production-targets" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><DailyProductionTargets /></RequireRole></AppLayout>} />
+            <Route path="/settings/manufacturing-preferences" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ManufacturingPreferences /></RequireRole></AppLayout>} />
             <Route path="/settings/price-sheets" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PriceSheets /></RequireRole></AppLayout>} />
             <Route path="/settings/price-sheets/:id" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PriceSheetDetail /></RequireRole></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SettingsHub /></RequireRole></AppLayout>} />
