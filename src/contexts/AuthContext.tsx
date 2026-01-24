@@ -15,10 +15,12 @@ interface AuthContextType {
   isAdmin: boolean;
   isManager: boolean;
   isSupervisor: boolean;
+  needsPasswordUpdate: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  clearPasswordUpdateFlag: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [needsPasswordUpdate, setNeedsPasswordUpdate] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const { data: profileData } = await supabase
@@ -63,6 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Handle password recovery event - user clicked password reset link
+        if (event === 'PASSWORD_RECOVERY') {
+          setNeedsPasswordUpdate(true);
+        }
         
         // Defer profile fetch with setTimeout to avoid deadlock
         if (session?.user) {
@@ -121,6 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRole(null);
+    setNeedsPasswordUpdate(false);
+  };
+
+  const clearPasswordUpdateFlag = () => {
+    setNeedsPasswordUpdate(false);
   };
 
   const isAdmin = role === 'admin';
@@ -138,10 +151,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isManager,
         isSupervisor,
+        needsPasswordUpdate,
         signIn,
         signUp,
         signOut,
         refreshProfile,
+        clearPasswordUpdateFlag,
       }}
     >
       {children}
