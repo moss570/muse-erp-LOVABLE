@@ -22,6 +22,8 @@ import Receiving from "./pages/purchasing/Receiving";
 import Customers from "./pages/sales/Customers";
 import Orders from "./pages/sales/Orders";
 import OrderDetail from "./pages/sales/OrderDetail";
+import Invoices from "./pages/sales/Invoices";
+import DeliveryDriver from "./pages/sales/DeliveryDriver";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
 import SubCategories from "./pages/settings/SubCategories";
@@ -196,6 +198,7 @@ const App = () => (
             <Route path="/sales/customers" element={<AppLayout><Customers /></AppLayout>} />
             <Route path="/sales/orders" element={<AppLayout><Orders /></AppLayout>} />
             <Route path="/sales/orders/:id" element={<AppLayout><OrderDetail /></AppLayout>} />
+            <Route path="/sales/invoices" element={<AppLayout><Invoices /></AppLayout>} />
             <Route
               path="/sales/*"
               element={
@@ -318,6 +321,7 @@ const App = () => (
               }
             />
             <Route path="/kiosk/timeclock" element={<TimeClockKiosk />} />
+            <Route path="/kiosk/delivery" element={<DeliveryDriver />} />
             <Route path="/hr/payroll" element={<AppLayout><PayrollExport /></AppLayout>} />
             
             {/* Chat route */}
