@@ -45,14 +45,15 @@ export function OrderTab({ order }: { order: any }) {
 
   const isDraft = order.status === 'draft';
 
-  // Fetch products
+  // Fetch products - exclude family heads (they are not sellable)
   const { data: products } = useQuery({
     queryKey: ['products-for-orders'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
+    queryFn: async (): Promise<any> => {
+      const { data, error } = await (supabase
+        .from('products') as any)
         .select('id, sku, name')
         .eq('is_active', true)
+        .eq('is_family_head', false)
         .order('name');
 
       if (error) throw error;
@@ -190,6 +191,12 @@ export function OrderTab({ order }: { order: any }) {
               <p className="text-sm">{order.customers.email || '-'}</p>
               <p className="text-sm">{order.customers.phone || '-'}</p>
             </div>
+            {order.customer_po_number && (
+              <div>
+                <Label className="text-muted-foreground">Customer PO #</Label>
+                <p className="text-sm font-medium">{order.customer_po_number}</p>
+              </div>
+            )}
             <div>
               <Label className="text-muted-foreground">Payment Terms</Label>
               <p className="text-sm">{order.payment_terms || 'N/A'}</p>
