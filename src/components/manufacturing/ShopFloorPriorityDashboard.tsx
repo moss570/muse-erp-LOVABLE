@@ -25,27 +25,28 @@ import { PriorityBadge, getPriorityRowClass } from "./PriorityBadge";
 import { AcknowledgmentModal } from "./AcknowledgmentModal";
 import {
   useUnfulfilledSalesOrders,
-  useTodaysAcknowledgment,
   UnfulfilledItem,
 } from "@/hooks/useUnfulfilledSalesOrders";
 import { cn } from "@/lib/utils";
 
 interface ShopFloorPriorityDashboardProps {
   onCreateWorkOrder?: () => void;
+  hasAcknowledgedThisVisit: boolean;
+  onAcknowledged: () => void;
 }
 
 export function ShopFloorPriorityDashboard({
   onCreateWorkOrder,
+  hasAcknowledgedThisVisit,
+  onAcknowledged,
 }: ShopFloorPriorityDashboardProps) {
   const navigate = useNavigate();
   const { data, isLoading, refetch, dataUpdatedAt } = useUnfulfilledSalesOrders();
-  const { data: todaysAck } = useTodaysAcknowledgment();
   const [showAckModal, setShowAckModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
   const items = data?.items || [];
   const hasUnfulfilled = items.length > 0;
-  const isAcknowledgedToday = !!todaysAck;
   const displayItems = showAll ? items : items.slice(0, 10);
 
   const handlePrint = () => {
@@ -107,11 +108,12 @@ export function ShopFloorPriorityDashboard({
   };
 
   const handleAcknowledged = () => {
+    onAcknowledged();
     onCreateWorkOrder?.();
   };
 
   const handleCreateWOClick = () => {
-    if (hasUnfulfilled && !isAcknowledgedToday) {
+    if (hasUnfulfilled && !hasAcknowledgedThisVisit) {
       setShowAckModal(true);
     } else {
       onCreateWorkOrder?.();
@@ -265,12 +267,12 @@ export function ShopFloorPriorityDashboard({
           onClick={handleCreateWOClick}
           className={cn(
             "w-full gap-2 mt-4",
-            !isAcknowledgedToday &&
+            !hasAcknowledgedThisVisit &&
               "bg-amber-600 hover:bg-amber-700 text-white"
           )}
           size="lg"
         >
-          {!isAcknowledgedToday ? (
+          {!hasAcknowledgedThisVisit ? (
             <>
               <AlertTriangle className="h-5 w-5" />
               ⚠️ Review Unfulfilled Orders First ({items.length} items)
