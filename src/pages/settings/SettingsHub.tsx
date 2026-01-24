@@ -184,6 +184,13 @@ const settingsCategories: SettingCategory[] = [
     color: 'bg-emerald-500/10 text-emerald-500',
     items: [
       {
+        title: 'Price Sheets',
+        description: 'Manage distributor and direct pricing with approval workflow',
+        href: '/settings/price-sheets',
+        icon: Tag,
+        status: 'active',
+      },
+      {
         title: 'Fixed Costs',
         description: 'Manage recurring costs and overhead rates',
         href: '/settings/fixed-costs',

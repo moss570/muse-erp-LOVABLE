@@ -35,6 +35,8 @@ import RolePermissions from "./pages/settings/RolePermissions";
 import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 import CompanySettings from "./pages/settings/CompanySettings";
 import LabelTemplates from "./pages/settings/LabelTemplates";
+import PriceSheets from "./pages/settings/PriceSheets";
+import PriceSheetDetail from "./pages/settings/PriceSheetDetail";
 import TeamRoster from "./pages/hr/TeamRoster";
 import EmployeeDetail from "./pages/hr/EmployeeDetail";
 import Schedule from "./pages/hr/Schedule";
@@ -183,6 +185,8 @@ const App = () => (
             <Route path="/settings/production-lines" element={<AppLayout><ProductionLinesSettings /></AppLayout>} />
             <Route path="/settings/production-stages" element={<AppLayout><ProductionStagesSettings /></AppLayout>} />
             <Route path="/settings/daily-production-targets" element={<AppLayout><DailyProductionTargets /></AppLayout>} />
+            <Route path="/settings/price-sheets" element={<AppLayout><PriceSheets /></AppLayout>} />
+            <Route path="/settings/price-sheets/:id" element={<AppLayout><PriceSheetDetail /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
