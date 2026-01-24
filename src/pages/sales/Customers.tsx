@@ -353,6 +353,7 @@ function CustomerFormDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       toast({ title: 'Customer updated successfully' });
       stagedEdit.cancelEdit();
     },
