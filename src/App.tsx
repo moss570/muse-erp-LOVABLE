@@ -20,6 +20,8 @@ import PurchaseOrders from "./pages/purchasing/PurchaseOrders";
 import PurchaseOrderDetail from "./pages/purchasing/PurchaseOrderDetail";
 import Receiving from "./pages/purchasing/Receiving";
 import Customers from "./pages/sales/Customers";
+import Orders from "./pages/sales/Orders";
+import OrderDetail from "./pages/sales/OrderDetail";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
 import SubCategories from "./pages/settings/SubCategories";
@@ -192,6 +194,8 @@ const App = () => (
             {/* Other placeholder routes */}
             {/* Sales routes */}
             <Route path="/sales/customers" element={<AppLayout><Customers /></AppLayout>} />
+            <Route path="/sales/orders" element={<AppLayout><Orders /></AppLayout>} />
+            <Route path="/sales/orders/:id" element={<AppLayout><OrderDetail /></AppLayout>} />
             <Route
               path="/sales/*"
               element={
