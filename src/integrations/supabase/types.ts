@@ -15991,6 +15991,10 @@ export type Database = {
         Returns: Json
       }
       create_capa_from_nc: { Args: { p_nc_id: string }; Returns: string }
+      delete_work_order_safe: {
+        Args: { p_work_order_id: string }
+        Returns: Json
+      }
       evaluate_nc_capa_trigger: { Args: { p_nc_id: string }; Returns: Json }
       generate_capa_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }

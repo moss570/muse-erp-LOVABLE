@@ -4,11 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, PlayCircle, StopCircle, Package, Factory, Loader2, Plus, Pencil } from "lucide-react";
+import { Clock, PlayCircle, StopCircle, Package, Factory, Loader2, Plus, Pencil, Trash2, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { WorkOrderFormDialog, WorkOrder } from "@/components/manufacturing/WorkOrderFormDialog";
+import { DeleteWorkOrderDialog } from "@/components/manufacturing/DeleteWorkOrderDialog";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface ScheduleInfo {
+  id: string;
+  schedule_date: string;
+  schedule_status: string;
+}
 
 interface WorkOrderDisplay {
   id: string;
@@ -30,6 +38,7 @@ interface WorkOrderDisplay {
   actual_total_cost: number | null;
   product?: { id: string; name: string; sku: string } | null;
   production_line?: { id: string; line_name: string } | null;
+  schedule?: ScheduleInfo[] | null;
 }
 
 interface ClockEntry {
@@ -45,11 +54,14 @@ interface ClockEntry {
 export default function ShopFloor() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isManager, isAdmin } = useAuth();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeClock, setActiveClock] = useState<ClockEntry | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrderDisplay | null>(null);
+  const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrderDisplay | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -83,7 +95,7 @@ export default function ShopFloor() {
     setActiveClock(clockStatus as ClockEntry | null);
   }, [clockStatus]);
 
-  // Get active work orders
+  // Get active work orders with schedule info
   const { data: activeWorkOrders = [], isLoading: loadingWOs } = useQuery({
     queryKey: ["active-work-orders"],
     queryFn: async () => {
@@ -92,7 +104,10 @@ export default function ShopFloor() {
         .select(`
           *,
           product:products!work_orders_product_id_fkey(id, name, sku),
-          production_line:production_lines(id, line_name)
+          production_line:production_lines(id, line_name),
+          schedule:production_schedule!production_schedule_work_order_id_fkey(
+            id, schedule_date, schedule_status
+          )
         `)
         .in("wo_status", ["Released", "In Progress", "Created"])
         .order("priority", { ascending: false });
@@ -195,6 +210,32 @@ export default function ShopFloor() {
     setIsEditDialogOpen(true);
   };
 
+  const handleDeleteWorkOrder = (wo: WorkOrderDisplay) => {
+    setWorkOrderToDelete(wo);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const canDeleteWorkOrders = isManager || isAdmin;
+
+  // Helper to get schedule info for a work order
+  const getScheduleBadge = (wo: WorkOrderDisplay) => {
+    const activeSchedule = wo.schedule?.find(s => s.schedule_status !== "Cancelled");
+    if (activeSchedule) {
+      return (
+        <Badge className="gap-1 bg-primary text-primary-foreground">
+          <Calendar className="h-3 w-3" />
+          Scheduled: {format(new Date(activeSchedule.schedule_date), "MMM d")}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="gap-1 text-muted-foreground">
+        <Calendar className="h-3 w-3" />
+        Not Scheduled
+      </Badge>
+    );
+  };
+
   const getPriorityBadge = (priority: string) => {
     if (priority === "Rush") return <Badge variant="destructive">Rush</Badge>;
     if (priority === "High") return <Badge variant="default">High</Badge>;
@@ -293,10 +334,11 @@ export default function ShopFloor() {
                 <div key={wo.id} className="p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-mono font-bold">{wo.wo_number}</span>
                         {getPriorityBadge(wo.priority)}
                         {getStatusBadge(wo.wo_status)}
+                        {getScheduleBadge(wo)}
                       </div>
                       <p className="font-medium">{wo.product?.name || "—"}</p>
                       <p className="text-sm text-muted-foreground">
@@ -327,6 +369,18 @@ export default function ShopFloor() {
                         >
                           <Pencil className="h-4 w-4" />
                           Edit
+                        </Button>
+                      )}
+                      {/* Delete button - only visible to managers/admins */}
+                      {canDeleteWorkOrders && wo.wo_status !== "Completed" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteWorkOrder(wo)}
+                          className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
                         </Button>
                       )}
                       {!activeClock && (
@@ -372,6 +426,16 @@ export default function ShopFloor() {
           if (!open) setSelectedWorkOrder(null);
         }}
         workOrder={selectedWorkOrder as WorkOrder | null}
+      />
+
+      {/* Delete Work Order Dialog */}
+      <DeleteWorkOrderDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if (!open) setWorkOrderToDelete(null);
+        }}
+        workOrder={workOrderToDelete}
       />
     </div>
   );
