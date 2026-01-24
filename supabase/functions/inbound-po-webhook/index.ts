@@ -15,7 +15,8 @@ interface ResendInboundEmail {
   html?: string;
   attachments?: Array<{
     filename: string;
-    content: string; // base64 encoded
+    content?: string; // base64 encoded (some Resend versions)
+    data?: string; // base64 encoded (newer Resend versions)
     content_type: string;
   }>;
   headers?: Record<string, string>;
@@ -100,6 +101,16 @@ const handler = async (req: Request): Promise<Response> => {
       // Process each PDF attachment
       for (const attachment of pdfAttachments) {
         console.log("Processing PDF:", attachment.filename);
+        
+        // Resend may use 'content' or 'data' for the base64 payload
+        const base64Content = attachment.content || attachment.data;
+        
+        if (!base64Content) {
+          console.error("No base64 content found in attachment. Keys:", Object.keys(attachment));
+          continue;
+        }
+        
+        console.log("Attachment content length:", base64Content.length);
 
         // Generate a unique filename
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -107,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
         const storagePath = `${timestamp}_${sanitizedFilename}`;
 
         // Decode base64 (handles both standard and URL-safe base64 from Resend)
-        const pdfBytes = base64ToUint8Array(attachment.content);
+        const pdfBytes = base64ToUint8Array(base64Content);
         
         const { error: uploadError } = await supabase.storage
           .from("incoming-purchase-orders")
@@ -156,7 +167,7 @@ const handler = async (req: Request): Promise<Response> => {
                 "Authorization": `Bearer ${supabaseServiceKey}`,
               },
               body: JSON.stringify({
-                pdfBase64: attachment.content,
+                pdfBase64: base64Content,
                 mimeType: "application/pdf",
               }),
             }
