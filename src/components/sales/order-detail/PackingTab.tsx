@@ -29,9 +29,9 @@ export function PackingTab({ order }: { order: any }) {
   // Fetch pick request to see what's been picked
   const { data: pickRequest } = useQuery({
     queryKey: ['pick-request-for-order', order.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<any> => {
       const { data, error } = await supabase
-        .from('pick_requests')
+        .from('pick_requests' as any)
         .select(`
           *,
           items:pick_request_items(
@@ -48,7 +48,7 @@ export function PackingTab({ order }: { order: any }) {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      return data as any;
     },
     enabled: !!order.id
   });

@@ -19,6 +19,10 @@ export interface CompanySettings {
   country: string | null;
   logo_path: string | null;
   logo_url: string | null;
+  remittance_email: string | null;
+  sales_notification_email: string | null;
+  threeppl_release_email: string | null;
+  default_tax_rate: number | null;
   created_at: string;
   updated_at: string;
 }
