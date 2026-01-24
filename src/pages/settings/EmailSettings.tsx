@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -21,7 +21,7 @@ import {
   Loader2,
   ExternalLink,
 } from 'lucide-react';
-import { useEmailSettings, useUpdateEmailSetting, EmailSetting, EMAIL_TYPE_LABELS } from '@/hooks/useEmailSettings';
+import { useEmailSettings, useUpdateEmailSetting, useTestEmail, EmailSetting, EMAIL_TYPE_LABELS } from '@/hooks/useEmailSettings';
 
 const EMAIL_TYPE_ICONS: Record<string, React.ElementType> = {
   noreply: Bell,
@@ -44,6 +44,8 @@ function EmailSettingCard({
   const [localFromName, setLocalFromName] = useState(setting.from_name);
   const [localFromEmail, setLocalFromEmail] = useState(setting.from_email);
   const [localReplyTo, setLocalReplyTo] = useState(setting.reply_to || '');
+  
+  const testEmailMutation = useTestEmail();
 
   const Icon = EMAIL_TYPE_ICONS[setting.email_type] || Mail;
   const typeLabel = EMAIL_TYPE_LABELS[setting.email_type]?.label || setting.email_type;
@@ -60,6 +62,10 @@ function EmailSettingCard({
 
   const handleToggleActive = (checked: boolean) => {
     onUpdate(setting.id, { is_active: checked });
+  };
+
+  const handleSendTest = () => {
+    testEmailMutation.mutate({ emailType: setting.email_type });
   };
 
   const isValidEmail = (email: string) => {
@@ -149,6 +155,22 @@ function EmailSettingCard({
           />
         </div>
       </CardContent>
+      <CardFooter className="border-t pt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSendTest}
+          disabled={!setting.is_active || testEmailMutation.isPending}
+          className="gap-2"
+        >
+          {testEmailMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          Send Test Email
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
@@ -160,6 +182,9 @@ export default function EmailSettings() {
   const handleUpdate = (id: string, updates: Partial<EmailSetting>) => {
     updateMutation.mutate({ id, updates });
   };
+
+  // Extract domain from first email setting for display
+  const configuredDomain = emailSettings?.[0]?.from_email?.split('@')[1] || 'musescoop.com';
 
   if (error) {
     return (
@@ -209,7 +234,7 @@ export default function EmailSettings() {
               <div className="flex items-center gap-2 mt-3">
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  musescoop.com verified
+                  {configuredDomain} verified
                 </Badge>
               </div>
             </div>
@@ -255,7 +280,8 @@ export default function EmailSettings() {
         <AlertTitle>Email Configuration</AlertTitle>
         <AlertDescription>
           All emails must be sent from verified domains. The "From Email" must match your verified domain 
-          (e.g., @musescoop.com). Changes are saved automatically when you move to the next field.
+          (e.g., @{configuredDomain}). Changes are saved automatically when you move to the next field. 
+          Use "Send Test Email" to verify your configuration is working.
         </AlertDescription>
       </Alert>
     </div>

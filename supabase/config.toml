@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.send-employee-welcome-email]
 verify_jwt = false
+
+[functions.test-email]
+verify_jwt = false

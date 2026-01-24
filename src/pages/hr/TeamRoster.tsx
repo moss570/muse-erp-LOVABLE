@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -30,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { EmployeeFormDialog } from '@/components/hr/EmployeeFormDialog';
+import { toast } from 'sonner';
 import {
   Search,
   Plus,
@@ -42,16 +44,20 @@ import {
   Phone,
   CheckCircle,
   XCircle,
+  Send,
+  Loader2,
 } from 'lucide-react';
 import type { EmployeeWithRelations } from '@/hooks/useEmployees';
 
 export default function TeamRoster() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showTerminated, setShowTerminated] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [resendingEmployeeId, setResendingEmployeeId] = useState<string | null>(null);
 
   const { data: employees, isLoading, refetch } = useQuery({
     queryKey: ['employees', showTerminated],
@@ -77,6 +83,49 @@ export default function TeamRoster() {
       return data as EmployeeWithRelations[];
     },
   });
+
+  // Resend welcome email mutation
+  const resendEmailMutation = useMutation({
+    mutationFn: async (employee: EmployeeWithRelations) => {
+      if (!employee.email) {
+        throw new Error('Employee does not have an email address');
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-employee-welcome-email', {
+        body: {
+          employeeId: employee.id,
+          email: employee.email,
+          firstName: employee.first_name,
+          lastName: employee.last_name,
+          isResend: true,
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, employee) => {
+      toast.success(`Setup email resent to ${employee.first_name} ${employee.last_name}`);
+      queryClient.invalidateQueries({ queryKey: ['employee-invitation'] });
+    },
+    onError: (error) => {
+      console.error('Failed to resend email:', error);
+      toast.error('Failed to resend setup email');
+    },
+    onSettled: () => {
+      setResendingEmployeeId(null);
+    },
+  });
+
+  const handleResendEmail = (employee: EmployeeWithRelations, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!employee.email) {
+      toast.error('Employee does not have an email address');
+      return;
+    }
+    setResendingEmployeeId(employee.id);
+    resendEmailMutation.mutate(employee);
+  };
 
   const filteredEmployees = employees?.filter((emp) => {
     const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
@@ -135,8 +184,6 @@ export default function TeamRoster() {
 
   const getUserAccountBadge = (emp: EmployeeWithRelations) => {
     if (emp.profile_id) {
-      // Check if there's a profile - we'll show as "Active" or "Pending" based on invitation status
-      // For now, just show Active since we can't easily check invitations in the list view
       return (
         <TooltipProvider>
           <Tooltip>
@@ -172,6 +219,11 @@ export default function TeamRoster() {
 
   const handleRowClick = (emp: EmployeeWithRelations) => {
     navigate(`/hr/team/${emp.id}`);
+  };
+
+  // Check if employee can receive resend email (has profile_id but may need account setup)
+  const canResendSetupEmail = (emp: EmployeeWithRelations) => {
+    return emp.profile_id && emp.email;
   };
 
   return (
@@ -331,6 +383,28 @@ export default function TeamRoster() {
                             </DropdownMenuItem>
                             <DropdownMenuItem>Edit</DropdownMenuItem>
                             <DropdownMenuItem>Message</DropdownMenuItem>
+                            {canResendSetupEmail(emp) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={(e) => handleResendEmail(emp, e as any)}
+                                  disabled={resendingEmployeeId === emp.id}
+                                >
+                                  {resendingEmployeeId === emp.id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Sending...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="h-4 w-4 mr-2" />
+                                      Resend Setup Email
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive">
                               Terminate
                             </DropdownMenuItem>
