@@ -80,8 +80,12 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
           const response = await fetch(signedUrl);
           if (response.ok) {
             const blob = await response.blob();
-            blobUrl = URL.createObjectURL(blob);
+            // Ensure correct MIME type for PDF
+            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+            blobUrl = URL.createObjectURL(pdfBlob);
             setPdfBlobUrl(blobUrl);
+          } else {
+            console.error('Failed to fetch PDF:', response.status, response.statusText);
           }
         } catch (error) {
           console.error('Failed to load PDF:', error);
@@ -244,19 +248,12 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                   ) : pdfBlobUrl ? (
-                    <object
-                      data={pdfBlobUrl}
-                      type="application/pdf"
+                    <iframe
+                      src={pdfBlobUrl + '#toolbar=1&navpanes=0'}
                       className="w-full h-full min-h-[400px]"
                       title="Purchase Order PDF"
-                    >
-                      <p className="p-4 text-center text-muted-foreground">
-                        Unable to display PDF.{' '}
-                        <a href={pdfUrl || '#'} target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                          Open in new tab
-                        </a>
-                      </p>
-                    </object>
+                      style={{ border: 'none' }}
+                    />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
                       <FileText className="h-12 w-12" />
