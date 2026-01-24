@@ -8394,6 +8394,94 @@ export type Database = {
           },
         ]
       }
+      pending_purchase_orders: {
+        Row: {
+          created_at: string
+          created_sales_order_id: string | null
+          customer_confidence: number | null
+          email_from: string | null
+          email_message_id: string | null
+          email_subject: string | null
+          extraction_error: string | null
+          extraction_status: string | null
+          id: string
+          matched_customer_id: string | null
+          notes: string | null
+          pdf_filename: string | null
+          pdf_storage_path: string | null
+          raw_extracted_data: Json | null
+          received_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_sales_order_id?: string | null
+          customer_confidence?: number | null
+          email_from?: string | null
+          email_message_id?: string | null
+          email_subject?: string | null
+          extraction_error?: string | null
+          extraction_status?: string | null
+          id?: string
+          matched_customer_id?: string | null
+          notes?: string | null
+          pdf_filename?: string | null
+          pdf_storage_path?: string | null
+          raw_extracted_data?: Json | null
+          received_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_sales_order_id?: string | null
+          customer_confidence?: number | null
+          email_from?: string | null
+          email_message_id?: string | null
+          email_subject?: string | null
+          extraction_error?: string | null
+          extraction_status?: string | null
+          id?: string
+          matched_customer_id?: string | null
+          notes?: string | null
+          pdf_filename?: string | null
+          pdf_storage_path?: string | null
+          raw_extracted_data?: Json | null
+          received_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_purchase_orders_created_sales_order_id_fkey"
+            columns: ["created_sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_purchase_orders_matched_customer_id_fkey"
+            columns: ["matched_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_purchase_orders_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       period_close_items: {
         Row: {
           created_at: string
