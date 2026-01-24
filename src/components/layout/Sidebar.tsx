@@ -117,6 +117,8 @@ const navItems: NavItem[] = [
       { title: 'Invoices', href: '/sales/invoices' },
       { title: 'Payments', href: '/sales/payments' },
       { title: 'Returns & RMAs', href: '/sales/returns' },
+      { title: 'Fulfillment Reports', href: '/sales/fulfillment-reports' },
+      { title: 'Delivery Driver', href: '/kiosk/delivery' },
     ],
   },
   {

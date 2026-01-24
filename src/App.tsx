@@ -26,6 +26,7 @@ import Invoices from "./pages/sales/Invoices";
 import Payments from "./pages/sales/Payments";
 import Returns from "./pages/sales/Returns";
 import CustomerPricing from "./pages/sales/CustomerPricing";
+import OrderFulfillmentReports from "./pages/sales/OrderFulfillmentReports";
 import DeliveryDriver from "./pages/sales/DeliveryDriver";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
@@ -205,6 +206,7 @@ const App = () => (
             <Route path="/sales/payments" element={<AppLayout><Payments /></AppLayout>} />
             <Route path="/sales/returns" element={<AppLayout><Returns /></AppLayout>} />
             <Route path="/sales/customer-pricing" element={<AppLayout><CustomerPricing /></AppLayout>} />
+            <Route path="/sales/fulfillment-reports" element={<AppLayout><OrderFulfillmentReports /></AppLayout>} />
             <Route
               path="/sales/*"
               element={
