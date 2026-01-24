@@ -2091,6 +2091,69 @@ export type Database = {
           },
         ]
       }
+      customer_product_pricing: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          customer_item_number: string | null
+          effective_date: string
+          expiration_date: string | null
+          id: string
+          is_active: boolean | null
+          min_quantity: number | null
+          notes: string | null
+          product_size_id: string
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          customer_item_number?: string | null
+          effective_date?: string
+          expiration_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_quantity?: number | null
+          notes?: string | null
+          product_size_id: string
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          customer_item_number?: string | null
+          effective_date?: string
+          expiration_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_quantity?: number | null
+          notes?: string | null
+          product_size_id?: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_product_pricing_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_product_pricing_product_size_id_fkey"
+            columns: ["product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -9418,6 +9481,8 @@ export type Database = {
           created_at: string | null
           custom_pallet_length_in: number | null
           custom_pallet_width_in: number | null
+          direct_price: number | null
+          distributor_price: number | null
           hi_count: number | null
           id: string
           is_active: boolean | null
@@ -9450,6 +9515,8 @@ export type Database = {
           created_at?: string | null
           custom_pallet_length_in?: number | null
           custom_pallet_width_in?: number | null
+          direct_price?: number | null
+          distributor_price?: number | null
           hi_count?: number | null
           id?: string
           is_active?: boolean | null
@@ -9482,6 +9549,8 @@ export type Database = {
           created_at?: string | null
           custom_pallet_length_in?: number | null
           custom_pallet_width_in?: number | null
+          direct_price?: number | null
+          distributor_price?: number | null
           hi_count?: number | null
           id?: string
           is_active?: boolean | null

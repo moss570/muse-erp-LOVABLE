@@ -63,6 +63,8 @@ interface ProductSizeInput {
   is_default?: boolean;
   is_active?: boolean;
   sort_order?: number;
+  distributor_price?: number | null;
+  direct_price?: number | null;
 }
 
 export function useProductSizes(productId: string | null) {
