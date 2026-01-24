@@ -311,11 +311,14 @@ function CustomerFormDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       toast({ title: 'Customer created successfully' });
+      stagedEdit.setIsSaving(false);
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating customer', description: error.message, variant: 'destructive' });
+      stagedEdit.setIsSaving(false);
     },
   });
 
@@ -355,6 +358,7 @@ function CustomerFormDialog({
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       toast({ title: 'Customer updated successfully' });
+      stagedEdit.setIsSaving(false);
       stagedEdit.cancelEdit();
     },
     onError: (error: Error) => {
