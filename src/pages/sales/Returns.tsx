@@ -388,14 +388,14 @@ export default function Returns() {
               <div className="space-y-2">
                 <Label>Related Invoice (Optional)</Label>
                 <Select
-                  value={rmaDetails.invoice_id}
-                  onValueChange={(v) => setRmaDetails(prev => ({ ...prev, invoice_id: v }))}
+                  value={rmaDetails.invoice_id || "none"}
+                  onValueChange={(v) => setRmaDetails(prev => ({ ...prev, invoice_id: v === "none" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select invoice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {customerInvoices?.map((invoice) => (
                       <SelectItem key={invoice.id} value={invoice.id}>
                         {invoice.invoice_number} - {format(new Date(invoice.invoice_date), 'PP')} - ${invoice.total_amount.toFixed(2)}

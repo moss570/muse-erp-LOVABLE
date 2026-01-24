@@ -467,14 +467,14 @@ export function RejectLotDialog({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Assign To</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <Select onValueChange={(v) => field.onChange(v === "unassigned" ? "" : v)} value={field.value || 'unassigned'}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select assignee" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">Unassigned</SelectItem>
+                                <SelectItem value="unassigned">Unassigned</SelectItem>
                                 {profiles?.map((profile) => (
                                   <SelectItem key={profile.id} value={profile.id}>
                                     {profile.first_name} {profile.last_name}
