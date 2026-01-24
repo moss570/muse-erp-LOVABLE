@@ -17,7 +17,10 @@ interface ResendInboundEmail {
     filename: string;
     content?: string; // base64 encoded (some Resend versions)
     data?: string; // base64 encoded (newer Resend versions)
+    id?: string; // attachment id (when only metadata is provided)
     content_type: string;
+    content_disposition?: string;
+    content_id?: string;
   }>;
   headers?: Record<string, string>;
 }
@@ -43,6 +46,72 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  // Convert bytes to base64 in chunks to avoid call stack limits
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+async function fetchResendAttachment(options: {
+  emailId: string;
+  attachmentId: string;
+  apiKey: string;
+}): Promise<{ bytes: Uint8Array; base64: string } | null> {
+  const { emailId, attachmentId, apiKey } = options;
+
+  // Resend endpoint (see: https://resend.com/docs/api-reference/emails/retrieve-received-email-attachment)
+  const url = `https://api.resend.com/emails/receiving/${emailId}/attachments/${attachmentId}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    console.error("Failed to fetch Resend attachment:", res.status, text);
+    return null;
+  }
+
+  // The response may include a temporary download_url OR base64 content.
+  let json: any;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    console.error("Resend attachment response was not JSON");
+    return null;
+  }
+
+  const downloadUrl: string | undefined =
+    json?.download_url || json?.data?.download_url;
+  const base64: string | undefined = json?.content || json?.data?.content;
+
+  if (downloadUrl) {
+    const fileRes = await fetch(downloadUrl);
+    if (!fileRes.ok) {
+      console.error("Failed to download attachment from download_url:", fileRes.status);
+      await fileRes.text();
+      return null;
+    }
+    const buf = new Uint8Array(await fileRes.arrayBuffer());
+    return { bytes: buf, base64: uint8ToBase64(buf) };
+  }
+
+  if (base64) {
+    const bytes = base64ToUint8Array(base64);
+    return { bytes, base64 };
+  }
+
+  console.error("Resend attachment response missing download_url/content");
+  return null;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   console.log("inbound-po-webhook function called");
 
@@ -55,6 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     // Optional: Verify webhook signature if secret is configured
     if (webhookSecret) {
@@ -78,6 +148,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Handle Resend inbound email webhook
     if (payload.type === "email.received") {
       const email: ResendInboundEmail = payload.data;
+
+      const emailId: string | null =
+        payload?.data?.id || payload?.data?.email_id || payload?.data?.message_id || null;
       
       console.log("Processing inbound email:", {
         from: email.from,
@@ -104,21 +177,55 @@ const handler = async (req: Request): Promise<Response> => {
         
         // Resend may use 'content' or 'data' for the base64 payload
         const base64Content = attachment.content || attachment.data;
+        const attachmentId = attachment.id;
         
-        if (!base64Content) {
-          console.error("No base64 content found in attachment. Keys:", Object.keys(attachment));
-          continue;
+        let resolvedBytes: Uint8Array | null = null;
+        let resolvedBase64: string | null = null;
+
+        if (base64Content) {
+          console.log("Attachment content length:", base64Content.length);
+          resolvedBase64 = base64Content;
+          resolvedBytes = base64ToUint8Array(base64Content);
+        } else {
+          console.warn(
+            "Attachment content not included in webhook payload; attempting to fetch from Resend API. Keys:",
+            Object.keys(attachment)
+          );
+
+          if (!resendApiKey) {
+            console.error("RESEND_API_KEY not configured; cannot fetch attachment content");
+            continue;
+          }
+          if (!emailId) {
+            console.error("Missing email id in webhook payload; cannot fetch attachment content");
+            continue;
+          }
+          if (!attachmentId) {
+            console.error("Missing attachment id in webhook payload; cannot fetch attachment content");
+            continue;
+          }
+
+          const fetched = await fetchResendAttachment({
+            emailId,
+            attachmentId,
+            apiKey: resendApiKey,
+          });
+          if (!fetched) continue;
+
+          resolvedBytes = fetched.bytes;
+          resolvedBase64 = fetched.base64;
         }
-        
-        console.log("Attachment content length:", base64Content.length);
 
         // Generate a unique filename
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const sanitizedFilename = attachment.filename.replace(/[^a-zA-Z0-9.-]/g, "_");
         const storagePath = `${timestamp}_${sanitizedFilename}`;
 
-        // Decode base64 (handles both standard and URL-safe base64 from Resend)
-        const pdfBytes = base64ToUint8Array(base64Content);
+        if (!resolvedBytes || !resolvedBase64) {
+          console.error("Failed to resolve attachment bytes/base64");
+          continue;
+        }
+        const pdfBytes = resolvedBytes;
         
         const { error: uploadError } = await supabase.storage
           .from("incoming-purchase-orders")
@@ -167,7 +274,7 @@ const handler = async (req: Request): Promise<Response> => {
                 "Authorization": `Bearer ${supabaseServiceKey}`,
               },
               body: JSON.stringify({
-                pdfBase64: base64Content,
+                pdfBase64: resolvedBase64,
                 mimeType: "application/pdf",
               }),
             }
