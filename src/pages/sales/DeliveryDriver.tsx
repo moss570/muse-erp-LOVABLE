@@ -78,9 +78,7 @@ export default function DeliveryDriver() {
       const { error } = await supabase.rpc('record_delivery_signature', {
         p_shipment_id: selectedShipment.shipment_id,
         p_signature_data: signatureData,
-        p_signature_name: signerName,
-        p_latitude: gpsCoords?.lat || null,
-        p_longitude: gpsCoords?.lng || null,
+        p_signer_name: signerName,
         p_delivery_notes: deliveryNotes || null,
       });
 

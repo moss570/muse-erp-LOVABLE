@@ -189,6 +189,8 @@ export default function Invoices() {
         </CardHeader>
         <CardContent>
           <DataTableHeader
+            title=""
+            searchValue={searchQuery}
             searchPlaceholder="Search invoices..."
             onSearchChange={setSearchQuery}
           />
