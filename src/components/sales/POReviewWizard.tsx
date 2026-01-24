@@ -53,7 +53,8 @@ interface MappedItem {
 export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWizardProps) {
   const [activeStep, setActiveStep] = useState<WizardStep>('pdf');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  // Store as Uint8Array to avoid "detached ArrayBuffer" issues when PDF.js transfers the buffer to its worker
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   
   // State for wizard data
@@ -82,7 +83,8 @@ export function POReviewWizard({ open, onOpenChange, pendingOrder }: POReviewWiz
           }
 
           const buf = await response.arrayBuffer();
-          setPdfData(buf);
+          // Store as Uint8Array so we can safely copy it later without detachment issues
+          setPdfData(new Uint8Array(buf));
         } catch (error) {
           console.error('Failed to load PDF:', error);
           toast.error('Failed to load PDF');
