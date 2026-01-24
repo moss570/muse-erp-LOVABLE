@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Building2, Globe, Phone, Mail, MapPin } from 'lucide-react';
+import { Building2, Globe, Phone, Mail, MapPin, Send, Percent } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
-import { 
-  AutoSaveProvider, 
-  AutoSaveInput, 
-  FormSaveStatus 
+import {
+  AutoSaveProvider,
+  AutoSaveInput,
+  FormSaveStatus
 } from '@/components/ui/auto-save';
 
 export default function CompanySettings() {
@@ -28,6 +28,10 @@ export default function CompanySettings() {
     zip: '',
     country: 'USA',
     gs1_company_prefix: '',
+    remittance_email: '',
+    sales_notification_email: '',
+    threeppl_release_email: '',
+    default_tax_rate: '7.00',
   });
 
   // Sync form values when settings load
@@ -46,6 +50,10 @@ export default function CompanySettings() {
         zip: settings.zip || '',
         country: settings.country || 'USA',
         gs1_company_prefix: settings.gs1_company_prefix || '',
+        remittance_email: settings.remittance_email || '',
+        sales_notification_email: settings.sales_notification_email || '',
+        threeppl_release_email: settings.threeppl_release_email || '',
+        default_tax_rate: settings.default_tax_rate ? (settings.default_tax_rate * 100).toFixed(2) : '7.00',
       });
     }
   }, [settings]);
@@ -274,6 +282,113 @@ export default function CompanySettings() {
                     placeholder="USA"
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Email Configuration Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Send className="h-5 w-5 text-primary" />
+                <CardTitle>Email Configuration</CardTitle>
+              </div>
+              <CardDescription>
+                Email addresses for automated notifications and integrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sales_notification_email">
+                  <Mail className="h-3.5 w-3.5 inline mr-1" />
+                  Sales Notifications
+                </Label>
+                <AutoSaveInput
+                  id="sales_notification_email"
+                  name="sales_notification_email"
+                  type="email"
+                  value={formValues.sales_notification_email}
+                  onValueChange={(v) => updateValue('sales_notification_email', v)}
+                  placeholder="sales@company.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Order confirmations and shipping notifications
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="remittance_email">
+                  <Mail className="h-3.5 w-3.5 inline mr-1" />
+                  Remittance Processing
+                </Label>
+                <AutoSaveInput
+                  id="remittance_email"
+                  name="remittance_email"
+                  type="email"
+                  value={formValues.remittance_email}
+                  onValueChange={(v) => updateValue('remittance_email', v)}
+                  placeholder="payments@company.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Where customers send payment remittances (AI processed)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="threeppl_release_email">
+                  <Mail className="h-3.5 w-3.5 inline mr-1" />
+                  3PL Warehouse Releases
+                </Label>
+                <AutoSaveInput
+                  id="threeppl_release_email"
+                  name="threeppl_release_email"
+                  type="email"
+                  value={formValues.threeppl_release_email}
+                  onValueChange={(v) => updateValue('threeppl_release_email', v)}
+                  placeholder="warehouse@3plpartner.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Third-party warehouse for release requests
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tax Settings Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Percent className="h-5 w-5 text-primary" />
+                <CardTitle>Tax Settings</CardTitle>
+              </div>
+              <CardDescription>
+                Default tax rate for taxable customers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="default_tax_rate">Default Tax Rate (%)</Label>
+                <AutoSaveInput
+                  id="default_tax_rate"
+                  name="default_tax_rate"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={formValues.default_tax_rate}
+                  onValueChange={(v) => {
+                    updateValue('default_tax_rate', v);
+                  }}
+                  placeholder="7.00"
+                  transformValue={(v) => {
+                    // Convert percentage to decimal for storage (7.00 -> 0.07)
+                    const num = parseFloat(v);
+                    return isNaN(num) ? '0' : (num / 100).toString();
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Applied to customers not marked as tax exempt
+                </p>
               </div>
             </CardContent>
           </Card>

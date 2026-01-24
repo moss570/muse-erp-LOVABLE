@@ -20,6 +20,12 @@ import PurchaseOrders from "./pages/purchasing/PurchaseOrders";
 import PurchaseOrderDetail from "./pages/purchasing/PurchaseOrderDetail";
 import Receiving from "./pages/purchasing/Receiving";
 import Customers from "./pages/sales/Customers";
+import Orders from "./pages/sales/Orders";
+import OrderDetail from "./pages/sales/OrderDetail";
+import Invoices from "./pages/sales/Invoices";
+import Payments from "./pages/sales/Payments";
+import Returns from "./pages/sales/Returns";
+import DeliveryDriver from "./pages/sales/DeliveryDriver";
 import Machines from "./pages/settings/Machines";
 import Locations from "./pages/settings/Locations";
 import SubCategories from "./pages/settings/SubCategories";
@@ -35,6 +41,8 @@ import RolePermissions from "./pages/settings/RolePermissions";
 import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 import CompanySettings from "./pages/settings/CompanySettings";
 import LabelTemplates from "./pages/settings/LabelTemplates";
+import PriceSheets from "./pages/settings/PriceSheets";
+import PriceSheetDetail from "./pages/settings/PriceSheetDetail";
 import TeamRoster from "./pages/hr/TeamRoster";
 import EmployeeDetail from "./pages/hr/EmployeeDetail";
 import Schedule from "./pages/hr/Schedule";
@@ -183,11 +191,18 @@ const App = () => (
             <Route path="/settings/production-lines" element={<AppLayout><ProductionLinesSettings /></AppLayout>} />
             <Route path="/settings/production-stages" element={<AppLayout><ProductionStagesSettings /></AppLayout>} />
             <Route path="/settings/daily-production-targets" element={<AppLayout><DailyProductionTargets /></AppLayout>} />
+            <Route path="/settings/price-sheets" element={<AppLayout><PriceSheets /></AppLayout>} />
+            <Route path="/settings/price-sheets/:id" element={<AppLayout><PriceSheetDetail /></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
             
             {/* Other placeholder routes */}
             {/* Sales routes */}
             <Route path="/sales/customers" element={<AppLayout><Customers /></AppLayout>} />
+            <Route path="/sales/orders" element={<AppLayout><Orders /></AppLayout>} />
+            <Route path="/sales/orders/:id" element={<AppLayout><OrderDetail /></AppLayout>} />
+            <Route path="/sales/invoices" element={<AppLayout><Invoices /></AppLayout>} />
+            <Route path="/sales/payments" element={<AppLayout><Payments /></AppLayout>} />
+            <Route path="/sales/returns" element={<AppLayout><Returns /></AppLayout>} />
             <Route
               path="/sales/*"
               element={
@@ -310,6 +325,7 @@ const App = () => (
               }
             />
             <Route path="/kiosk/timeclock" element={<TimeClockKiosk />} />
+            <Route path="/kiosk/delivery" element={<DeliveryDriver />} />
             <Route path="/hr/payroll" element={<AppLayout><PayrollExport /></AppLayout>} />
             
             {/* Chat route */}
