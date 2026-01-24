@@ -60,6 +60,7 @@ interface TaskTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateId?: string | null;
+  canEdit?: boolean;
 }
 
 const DAYS_OF_WEEK = [
@@ -72,9 +73,10 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Sat' },
 ];
 
-const TaskTemplateDialog = ({ open, onOpenChange, templateId }: TaskTemplateDialogProps) => {
+const TaskTemplateDialog = ({ open, onOpenChange, templateId, canEdit = true }: TaskTemplateDialogProps) => {
   const [activeTab, setActiveTab] = useState('basic');
   const isEdit = !!templateId;
+  const isFieldsDisabled = !canEdit;
   
   const { data: template, isLoading: templateLoading } = useTaskTemplate(templateId || undefined);
   const createTemplate = useCreateTaskTemplate();

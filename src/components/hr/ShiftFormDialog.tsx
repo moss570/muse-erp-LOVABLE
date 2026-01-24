@@ -50,6 +50,7 @@ interface ShiftFormDialogProps {
   onOpenChange: (open: boolean) => void;
   shift?: any;
   defaultDate?: Date | null;
+  canEdit?: boolean;
 }
 
 const colorOptions = [
@@ -61,10 +62,11 @@ const colorOptions = [
   { value: '#06b6d4', label: 'Cyan' },
 ];
 
-export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: ShiftFormDialogProps) {
+export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate, canEdit = true }: ShiftFormDialogProps) {
   const { employees } = useEmployees();
   const { createShift, updateShift, deleteShift } = useEmployeeShifts();
   const isEditing = !!shift;
+  const isFieldsDisabled = !canEdit;
 
   const form = useForm<ShiftFormValues>({
     resolver: zodResolver(shiftFormSchema),
@@ -206,7 +208,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Employee</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select employee" />
@@ -232,7 +234,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                 <FormItem>
                   <FormLabel>Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} disabled={isFieldsDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -247,7 +249,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                   <FormItem>
                     <FormLabel>Start Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input type="time" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -261,7 +263,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                   <FormItem>
                     <FormLabel>End Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input type="time" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -276,7 +278,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                 <FormItem>
                   <FormLabel>Break (minutes)</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" step="5" {...field} />
+                    <Input type="number" min="0" step="5" {...field} disabled={isFieldsDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -293,7 +295,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Color</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue>
@@ -333,7 +335,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Optional notes..." {...field} />
+                    <Textarea placeholder="Optional notes..." {...field} disabled={isFieldsDisabled} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -348,7 +350,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                       type="button"
                       variant="destructive"
                       onClick={handleDelete}
-                      disabled={deleteShift.isPending}
+                      disabled={deleteShift.isPending || isFieldsDisabled}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
@@ -357,7 +359,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                       type="button"
                       variant="secondary"
                       onClick={handleDuplicateNextDay}
-                      disabled={createShift.isPending}
+                      disabled={createShift.isPending || isFieldsDisabled}
                     >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy to Next Day
@@ -369,7 +371,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift, defaultDate }: Shif
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createShift.isPending || updateShift.isPending}>
+                <Button type="submit" disabled={createShift.isPending || updateShift.isPending || isFieldsDisabled}>
                   {isEditing ? 'Update' : 'Create'} Shift
                 </Button>
               </div>

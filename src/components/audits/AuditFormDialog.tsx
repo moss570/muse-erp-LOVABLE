@@ -32,11 +32,13 @@ import type { AuditType } from '@/types/audits';
 interface AuditFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canEdit?: boolean;
 }
 
-export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
+export function AuditFormDialog({ open, onOpenChange, canEdit = true }: AuditFormDialogProps) {
   const { data: profiles } = useProfiles();
   const createAudit = useCreateAudit();
+  const isFieldsDisabled = !canEdit;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -109,6 +111,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                 value={formData.title}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
                 placeholder="e.g., Q1 2025 Internal Food Safety Audit"
+                disabled={isFieldsDisabled}
               />
             </div>
 
@@ -117,6 +120,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
               <Select
                 value={formData.audit_type || 'none'}
                 onValueChange={(v) => handleFieldChange('audit_type', v === 'none' ? '' : v)}
+                disabled={isFieldsDisabled}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
@@ -141,6 +145,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                 type="date"
                 value={formData.scheduled_date}
                 onChange={(e) => handleFieldChange('scheduled_date', e.target.value)}
+                disabled={isFieldsDisabled}
               />
             </div>
 
@@ -151,6 +156,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                 value={formData.end_date}
                 onChange={(e) => handleFieldChange('end_date', e.target.value)}
                 min={formData.scheduled_date}
+                disabled={isFieldsDisabled}
               />
             </div>
           </div>
@@ -165,16 +171,17 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                 value={formData.auditor_type}
                 onValueChange={(v) => handleFieldChange('auditor_type', v)}
                 className="flex gap-4"
+                disabled={isFieldsDisabled}
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="internal" id="internal" />
+                  <RadioGroupItem value="internal" id="internal" disabled={isFieldsDisabled} />
                   <Label htmlFor="internal" className="flex items-center gap-1 cursor-pointer">
                     <User className="h-4 w-4" />
                     Internal Auditor
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="external" id="external" />
+                  <RadioGroupItem value="external" id="external" disabled={isFieldsDisabled} />
                   <Label htmlFor="external" className="flex items-center gap-1 cursor-pointer">
                     <Building className="h-4 w-4" />
                     External Auditor
@@ -188,6 +195,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                   <Select
                     value={formData.lead_auditor_id || 'unassigned'}
                     onValueChange={(v) => handleFieldChange('lead_auditor_id', v === 'unassigned' ? '' : v)}
+                    disabled={isFieldsDisabled}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select auditor" />
@@ -210,6 +218,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                       value={formData.external_auditor_name}
                       onChange={(e) => handleFieldChange('external_auditor_name', e.target.value)}
                       placeholder="Auditor's full name"
+                      disabled={isFieldsDisabled}
                     />
                   </div>
                   <div className="space-y-2">
@@ -218,6 +227,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
                       value={formData.external_auditor_org}
                       onChange={(e) => handleFieldChange('external_auditor_org', e.target.value)}
                       placeholder="Auditing organization"
+                      disabled={isFieldsDisabled}
                     />
                   </div>
                 </div>
@@ -233,6 +243,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
               onChange={(e) => handleFieldChange('scope', e.target.value)}
               placeholder="Define the scope of this audit (areas, processes, departments to be audited)..."
               rows={3}
+              disabled={isFieldsDisabled}
             />
           </div>
 
@@ -243,6 +254,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
               onChange={(e) => handleFieldChange('description', e.target.value)}
               placeholder="Any additional information or preparation notes..."
               rows={2}
+              disabled={isFieldsDisabled}
             />
           </div>
         </div>
@@ -253,7 +265,7 @@ export function AuditFormDialog({ open, onOpenChange }: AuditFormDialogProps) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={createAudit.isPending || !formData.title || !formData.audit_type}
+            disabled={createAudit.isPending || !formData.title || !formData.audit_type || isFieldsDisabled}
           >
             {createAudit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <Calendar className="h-4 w-4 mr-2" />

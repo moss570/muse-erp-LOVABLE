@@ -51,10 +51,12 @@ type FormValues = z.infer<typeof formSchema>;
 interface CapaFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canEdit?: boolean;
 }
 
-export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
+export function CapaFormDialog({ open, onOpenChange, canEdit = true }: CapaFormDialogProps) {
   const createCapa = useCreateCapa();
+  const isFieldsDisabled = !canEdit;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -115,7 +117,7 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
@@ -140,7 +142,7 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Severity *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select severity" />
@@ -167,11 +169,11 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
               control={form.control}
               name="title"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Brief description of the issue" {...field} />
-                  </FormControl>
+                  <FormItem>
+                    <FormLabel>Title *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Brief description of the issue" {...field} disabled={isFieldsDisabled} />
+                    </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -181,14 +183,15 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description *</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Detailed description of the problem, including what happened, who was involved, what was affected..."
-                      className="min-h-[100px]"
-                      {...field} 
-                    />
+                  <FormItem>
+                    <FormLabel>Description *</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Detailed description of the problem, including what happened, who was involved, what was affected..."
+                        className="min-h-[100px]"
+                        {...field} 
+                        disabled={isFieldsDisabled}
+                      />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -203,7 +206,7 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
                   <FormItem>
                     <FormLabel>Occurrence Date *</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormDescription>When did the issue occur?</FormDescription>
                     <FormMessage />
@@ -218,7 +221,7 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
                   <FormItem>
                     <FormLabel>Discovery Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormDescription>When was it discovered?</FormDescription>
                     <FormMessage />
@@ -231,13 +234,14 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
               control={form.control}
               name="immediate_action"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Immediate/Containment Action</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="What immediate steps were taken to contain the issue?"
-                      {...field} 
-                    />
+                  <FormItem>
+                    <FormLabel>Immediate/Containment Action</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="What immediate steps were taken to contain the issue?"
+                        {...field} 
+                        disabled={isFieldsDisabled}
+                      />
                   </FormControl>
                   <FormDescription>
                     Optional: Document any containment actions already taken
@@ -251,7 +255,7 @@ export function CapaFormDialog({ open, onOpenChange }: CapaFormDialogProps) {
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createCapa.isPending}>
+              <Button type="submit" disabled={createCapa.isPending || isFieldsDisabled}>
                 {createCapa.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Create CAPA
               </Button>

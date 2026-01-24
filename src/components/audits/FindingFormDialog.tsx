@@ -67,6 +67,7 @@ interface FindingFormDialogProps {
   auditId: string;
   auditNumber: string;
   finding?: AuditFinding | null;
+  canEdit?: boolean;
 }
 
 export function FindingFormDialog({
@@ -75,6 +76,7 @@ export function FindingFormDialog({
   auditId,
   auditNumber,
   finding,
+  canEdit = true,
 }: FindingFormDialogProps) {
   const { data: profiles } = useProfiles();
   const createFinding = useCreateFinding();
@@ -82,7 +84,7 @@ export function FindingFormDialog({
   const createCapa = useCreateCapaFromFinding();
 
   const isEditMode = !!finding;
-
+  const isFieldsDisabled = !canEdit;
   const [activeTab, setActiveTab] = useState('details');
   const [formData, setFormData] = useState({
     finding_type: 'non_conformance' as FindingType,
@@ -229,7 +231,7 @@ export function FindingFormDialog({
                     <Select
                       value={formData.finding_type}
                       onValueChange={(v) => handleFieldChange('finding_type', v)}
-                      disabled={isEditMode}
+                      disabled={isEditMode || isFieldsDisabled}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -253,6 +255,7 @@ export function FindingFormDialog({
                       <Select
                         value={formData.severity || 'none'}
                         onValueChange={(v) => handleFieldChange('severity', v === 'none' ? '' : v)}
+                        disabled={isFieldsDisabled}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select severity" />
@@ -277,6 +280,7 @@ export function FindingFormDialog({
                     <Select
                       value={formData.category}
                       onValueChange={(v) => handleFieldChange('category', v)}
+                      disabled={isFieldsDisabled}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -299,6 +303,7 @@ export function FindingFormDialog({
                     value={formData.title}
                     onChange={(e) => handleFieldChange('title', e.target.value)}
                     placeholder="Brief description of the finding"
+                    disabled={isFieldsDisabled}
                   />
                 </div>
 
@@ -309,6 +314,7 @@ export function FindingFormDialog({
                     onChange={(e) => handleFieldChange('description', e.target.value)}
                     placeholder="Detailed description of what was observed..."
                     rows={4}
+                    disabled={isFieldsDisabled}
                   />
                 </div>
 
@@ -319,6 +325,7 @@ export function FindingFormDialog({
                       value={formData.location}
                       onChange={(e) => handleFieldChange('location', e.target.value)}
                       placeholder="Where was this observed?"
+                      disabled={isFieldsDisabled}
                     />
                   </div>
                   <div className="space-y-2">
@@ -327,6 +334,7 @@ export function FindingFormDialog({
                       value={formData.requirement}
                       onChange={(e) => handleFieldChange('requirement', e.target.value)}
                       placeholder="e.g., SQF 2.5.1, 21 CFR 110"
+                      disabled={isFieldsDisabled}
                     />
                   </div>
                 </div>
@@ -338,6 +346,7 @@ export function FindingFormDialog({
                     onChange={(e) => handleFieldChange('evidence', e.target.value)}
                     placeholder="Document the evidence supporting this finding..."
                     rows={3}
+                    disabled={isFieldsDisabled}
                   />
                 </div>
 
@@ -346,6 +355,7 @@ export function FindingFormDialog({
                   <Select
                     value={formData.assigned_to || 'unassigned'}
                     onValueChange={(v) => handleFieldChange('assigned_to', v === 'unassigned' ? '' : v)}
+                    disabled={isFieldsDisabled}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Assign responsibility" />
@@ -385,13 +395,14 @@ export function FindingFormDialog({
                           onChange={(e) => handleFieldChange('response', e.target.value)}
                           placeholder="Describe the corrective actions taken..."
                           rows={4}
+                          disabled={isFieldsDisabled}
                         />
                       </div>
                       {finding.status === 'open' && (
                         <Button
                           variant="outline"
                           onClick={() => handleStatusChange('response_submitted')}
-                          disabled={!formData.response}
+                          disabled={!formData.response || isFieldsDisabled}
                         >
                           Submit Response
                         </Button>
@@ -412,12 +423,13 @@ export function FindingFormDialog({
                             onChange={(e) => handleFieldChange('verification_notes', e.target.value)}
                             placeholder="Document verification of corrective actions..."
                             rows={3}
+                            disabled={isFieldsDisabled}
                           />
                         </div>
                         <div className="flex gap-2">
                           <Button
                             onClick={() => handleStatusChange('verified')}
-                            disabled={!formData.verification_notes}
+                            disabled={!formData.verification_notes || isFieldsDisabled}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-1" />
                             Verify & Accept
@@ -467,7 +479,8 @@ export function FindingFormDialog({
               isSubmitting ||
               !formData.title ||
               !formData.description ||
-              (requiresSeverity && !formData.severity)
+              (requiresSeverity && !formData.severity) ||
+              isFieldsDisabled
             }
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
