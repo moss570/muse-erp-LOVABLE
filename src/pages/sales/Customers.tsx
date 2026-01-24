@@ -52,10 +52,6 @@ import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { usePermissions } from '@/hooks/usePermission';
 import { 
-  StagedEditProvider, 
-  StagedFormField, 
-  StagedEditActionBar, 
-  EditButton,
   UnsavedChangesDialog,
   ViewModeValue,
 } from '@/components/ui/staged-edit';
@@ -171,9 +167,9 @@ function CustomerFormDialog({
   // Fetch master companies for parent dropdown
   const { data: masterCompanies } = useQuery({
     queryKey: ['master-companies'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
+    queryFn: async (): Promise<any> => {
+      const { data, error } = await (supabase
+        .from('customers') as any)
         .select('id, code, name')
         .eq('is_master_company', true)
         .eq('is_active', true)
@@ -283,7 +279,7 @@ function CustomerFormDialog({
     if (open && isNewCustomer) {
       stagedEdit.startEdit();
     }
-  }, [open, isNewCustomer]);
+  }, [open, isNewCustomer, stagedEdit.startEdit]);
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
@@ -315,11 +311,14 @@ function CustomerFormDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       toast({ title: 'Customer created successfully' });
+      stagedEdit.setIsSaving(false);
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating customer', description: error.message, variant: 'destructive' });
+      stagedEdit.setIsSaving(false);
     },
   });
 
@@ -348,13 +347,18 @@ function CustomerFormDialog({
           tax_exempt: rest.tax_exempt,
           tax_id: rest.tax_id || null,
           notes: rest.notes || null,
+          parent_company_id: rest.parent_company_id || null,
+          is_master_company: rest.is_master_company,
+          location_name: rest.location_name || null,
         })
         .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       toast({ title: 'Customer updated successfully' });
+      stagedEdit.setIsSaving(false);
       stagedEdit.cancelEdit();
     },
     onError: (error: Error) => {
@@ -450,15 +454,6 @@ function CustomerFormDialog({
           </DialogHeader>
 
           <FormProvider {...form}>
-            <StagedEditProvider
-              resourceType="customer"
-              resourceId={customer?.id}
-              tableName="customers"
-              form={form}
-              initialData={customer as any}
-              resourceName="Customer"
-              canEdit={canEdit}
-            >
               <div className="flex-1 overflow-y-auto px-6 py-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-3">
@@ -775,9 +770,9 @@ function CustomerFormDialog({
                 </Tabs>
               </div>
 
-              {/* Sticky Action Bar */}
+              {/* Action Bar - Fixed at bottom */}
               {stagedEdit.isEditing && (
-                <div className="sticky bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] px-6 py-3 flex items-center justify-between gap-4">
+                <div className="border-t bg-background px-6 py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                     <span className="text-muted-foreground">
@@ -833,7 +828,6 @@ function CustomerFormDialog({
                   </Button>
                 </div>
               )}
-            </StagedEditProvider>
           </FormProvider>
         </DialogContent>
       </Dialog>

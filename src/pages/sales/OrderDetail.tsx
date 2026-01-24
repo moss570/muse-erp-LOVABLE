@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tantml:react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,14 +18,14 @@ export default function OrderDetail() {
   const [activeTab, setActiveTab] = useState('order');
 
   // Fetch sales order with all related data
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, error } = useQuery({
     queryKey: ['sales-order', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales_orders')
         .select(`
           *,
-          customers!sales_orders_customer_id_fkey (
+          customers (
             id,
             code,
             name,
@@ -42,17 +42,17 @@ export default function OrderDetail() {
               id,
               sku,
               name
+            ),
+            product_sizes (
+              id,
+              sku,
+              size_name,
+              size_type
             )
-          ),
-          pick_requests!sales_orders_pick_request_id_fkey (
-            id,
-            status,
-            source_type,
-            created_at
           )
         `)
-        .eq('id', id)
-        .single();
+        .eq('id', id!)
+        .maybeSingle();
 
       if (error) throw error;
       return data;

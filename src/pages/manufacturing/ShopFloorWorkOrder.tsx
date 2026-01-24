@@ -38,7 +38,8 @@ interface WorkOrderDetail {
     planned_quantity: number;
     planned_uom: string;
     actual_quantity: number | null;
-    material?: { id: string; name: string; material_code: string } | null;
+    // Note: `materials` table uses `code` (not `material_code`)
+    material?: { id: string; name: string; code: string } | null;
   }>;
   work_order_stage_progress?: Array<{
     id: string;
@@ -62,7 +63,7 @@ interface StagedMaterial {
 }
 
 export default function ShopFloorWorkOrder() {
-  const { id } = useParams();
+  const { workOrderId: id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [scanInput, setScanInput] = useState("");
@@ -83,16 +84,16 @@ export default function ShopFloorWorkOrder() {
           input_lot:production_lots!work_orders_input_lot_id_fkey(id, lot_number, quantity_available),
           work_order_materials(
             *,
-            material:materials(id, name, material_code)
+            material:materials(id, name, code)
           ),
           work_order_stage_progress(
             *,
-            wip_lot:production_lots(id, lot_number),
+            wip_lot:manufacturing_lots!work_order_stage_progress_wip_lot_id_fkey(id, lot_number),
             stage:production_stages_master(id, stage_code, stage_name, sequence_order, creates_intermediate_lot)
           )
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as unknown as WorkOrderDetail;

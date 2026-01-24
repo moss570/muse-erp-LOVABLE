@@ -44,10 +44,10 @@ export default function EmployeeDetail() {
           job_position:job_positions(*),
           department:departments(*),
           location:locations(*),
-          profile:profiles(id, email, status)
+          profile:profiles!employees_profile_id_fkey(id, email, status)
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as EmployeeWithRelations;

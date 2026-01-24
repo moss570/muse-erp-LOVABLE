@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, Edit, Send, Check, X, AlertCircle } from 'lucide-react';
 import { SettingsBreadcrumb } from '@/components/settings/SettingsBreadcrumb';
 import { useToast } from '@/hooks/use-toast';
-import { DataTableHeader } from '@/components/ui/data-table-header';
+import { DataTableHeader } from '@/components/ui/data-table';
 import {
   Table,
   TableBody,
@@ -323,6 +323,8 @@ export default function PriceSheets() {
         </CardHeader>
         <CardContent>
           <DataTableHeader
+            title=""
+            searchValue=""
             searchPlaceholder="Search price sheets..."
             onSearchChange={() => {}}
           />

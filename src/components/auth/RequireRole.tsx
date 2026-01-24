@@ -5,7 +5,7 @@ import { Shield } from 'lucide-react';
 
 interface RequireRoleProps {
   children: ReactNode;
-  allowedRoles: ('admin' | 'manager' | 'supervisor' | 'employee')[];
+  allowedRoles: ('admin' | 'manager' | 'supervisor' | 'employee' | 'hr')[];
   fallbackPath?: string;
 }
 
