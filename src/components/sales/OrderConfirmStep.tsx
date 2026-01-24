@@ -109,7 +109,6 @@ export function OrderConfirmStep({
         product_size_id: item.mapped_product_size_id!,
         quantity_ordered: item.quantity,
         unit_price: item.unit_price || 0,
-        line_total: item.quantity * (item.unit_price || 0),
       }));
 
       const { error: itemsError } = await supabase
