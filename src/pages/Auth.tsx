@@ -92,25 +92,33 @@ export default function Auth() {
 
     setForgotPasswordLoading(true);
     
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-      redirectTo: `${window.location.origin}/update-password`,
-    });
-    
-    setForgotPasswordLoading(false);
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message,
+    try {
+      const { data, error } = await supabase.functions.invoke('public-reset-password', {
+        body: { email: forgotPasswordEmail },
       });
-    } else {
+      
+      if (error) {
+        console.error('Reset password error:', error);
+      }
+      
+      // Always show success message (prevents email enumeration)
+      toast({
+        title: 'Check your email',
+        description: data?.message || 'If an account exists with this email, you will receive a password reset link.',
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      console.error('Reset password error:', error);
+      // Still show success to prevent enumeration
       toast({
         title: 'Check your email',
         description: 'If an account exists with this email, you will receive a password reset link.',
       });
       setShowForgotPassword(false);
       setForgotPasswordEmail('');
+    } finally {
+      setForgotPasswordLoading(false);
     }
   };
 
