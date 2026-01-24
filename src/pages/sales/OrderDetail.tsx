@@ -4,18 +4,20 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrderTab } from '@/components/sales/order-detail/OrderTab';
 import { PickingTab } from '@/components/sales/order-detail/PickingTab';
 import { PackingTab } from '@/components/sales/order-detail/PackingTab';
 import { ShippingTab } from '@/components/sales/order-detail/ShippingTab';
 import { InvoicingTab } from '@/components/sales/order-detail/InvoicingTab';
+import { EditOrderDialog } from '@/components/sales/EditOrderDialog';
 
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('order');
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Fetch sales order with all related data
   const { data: order, isLoading, error } = useQuery({
@@ -111,6 +113,10 @@ export default function OrderDetail() {
             </p>
           </div>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+          <Pencil className="h-4 w-4 mr-2" />
+          Edit Order
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -151,6 +157,13 @@ export default function OrderDetail() {
           {isInvoicingEnabled && <InvoicingTab order={order} />}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Order Dialog */}
+      <EditOrderDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        order={order}
+      />
     </div>
   );
 }

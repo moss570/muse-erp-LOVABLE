@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, Package, TruckIcon, FileText } from 'lucide-react';
+import { Plus, Eye, Package, TruckIcon, FileText, Pencil } from 'lucide-react';
 import { DataTableHeader } from '@/components/ui/data-table';
 import {
   Table,
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { CreateOrderDialog } from '@/components/sales/CreateOrderDialog';
+import { EditOrderDialog } from '@/components/sales/EditOrderDialog';
 
 interface SalesOrder {
   id: string;
@@ -36,6 +37,7 @@ interface SalesOrder {
 export default function Orders() {
   const navigate = useNavigate();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -54,6 +56,15 @@ export default function Orders() {
           is_partially_shipped,
           has_backorders,
           shipment_count,
+          customer_id,
+          customer_po_number,
+          requested_delivery_date,
+          ship_to_name,
+          ship_to_address,
+          ship_to_city,
+          ship_to_state,
+          ship_to_zip,
+          notes,
           customers!sales_orders_customer_id_fkey (
             id,
             name,
@@ -271,17 +282,28 @@ export default function Orders() {
                       ${order.total_amount.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/sales/orders/${order.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingOrder(order);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/sales/orders/${order.id}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -296,6 +318,15 @@ export default function Orders() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
       />
+
+      {/* Edit Order Dialog */}
+      {editingOrder && (
+        <EditOrderDialog
+          open={!!editingOrder}
+          onOpenChange={(open) => !open && setEditingOrder(null)}
+          order={editingOrder}
+        />
+      )}
     </div>
   );
 }
