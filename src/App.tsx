@@ -43,6 +43,7 @@ import ListedMaterialNames from "./pages/settings/ListedMaterialNames";
 import MaterialNameCategories from "./pages/settings/MaterialNameCategories";
 import UserManagement from "./pages/settings/UserManagement";
 import ImportExport from "./pages/settings/ImportExport";
+import AdminOverrides from "./pages/settings/AdminOverrides";
 import RolePermissions from "./pages/settings/RolePermissions";
 import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 import CompanySettings from "./pages/settings/CompanySettings";
@@ -178,6 +179,7 @@ const App = () => (
             <Route path="/settings/material-names" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ListedMaterialNames /></RequireRole></AppLayout>} />
             <Route path="/settings/material-name-categories" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><MaterialNameCategories /></RequireRole></AppLayout>} />
             <Route path="/settings/users" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><UserManagement /></RequireRole></AppLayout>} />
+            <Route path="/settings/admin-overrides" element={<AppLayout><RequireRole allowedRoles={['admin']}><AdminOverrides /></RequireRole></AppLayout>} />
             <Route path="/settings/permissions" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><RolePermissions /></RequireRole></AppLayout>} />
             <Route path="/settings/import-export" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ImportExport /></RequireRole></AppLayout>} />
             <Route path="/settings/templates" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><DocumentTemplatesPage /></RequireRole></AppLayout>} />

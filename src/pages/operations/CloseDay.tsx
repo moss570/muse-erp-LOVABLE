@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { useMutation } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,19 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Calendar } from '@/components/ui/calendar';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   CalendarDays,
   CheckCircle2,
@@ -30,28 +34,85 @@ import {
   Factory,
   Truck,
   CalendarIcon,
-  ExternalLink,
+  ShieldAlert,
+  Loader2,
 } from 'lucide-react';
 import { useEndOfDayBlockers } from '@/hooks/useApprovalEngine';
+import { usePermissions } from '@/hooks/usePermission';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CloseDay() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isForceCloseDialogOpen, setIsForceCloseDialogOpen] = useState(false);
+  const [forceCloseConfirmed, setForceCloseConfirmed] = useState(false);
+  const [forceCloseReason, setForceCloseReason] = useState('');
   const dateString = format(selectedDate, 'yyyy-MM-dd');
   
   const { data: blockers, isLoading, refetch } = useEndOfDayBlockers(dateString);
+  const { isAdmin } = usePermissions();
+
+  const closeDayMutation = useMutation({
+    mutationFn: async ({ force, reason }: { force: boolean; reason?: string }) => {
+      // Log to admin audit if force closing
+      if (force) {
+        const { error: auditError } = await supabase
+          .from('admin_audit_log')
+          .insert({
+            admin_user_id: (await supabase.auth.getUser()).data.user?.id,
+            action_type: 'force_close_day',
+            action_details: {
+              date: dateString,
+              blockers_ignored: {
+                receiving_sessions: blockers?.receivingSessions.length || 0,
+                production_lots: blockers?.productionLots.length || 0,
+                bills_of_lading: blockers?.billsOfLading.length || 0,
+              },
+            },
+            justification: reason,
+          });
+        
+        if (auditError) {
+          console.warn('Failed to log force close to audit:', auditError);
+        }
+      }
+      
+      // TODO: Implement actual day close logic (create accounting_periods record, etc.)
+      return { success: true, force };
+    },
+    onSuccess: (result) => {
+      if (result.force) {
+        toast.success(`Force closed ${format(selectedDate, 'MMMM d, yyyy')} (Admin Override)`);
+      } else {
+        toast.success(`Successfully closed ${format(selectedDate, 'MMMM d, yyyy')}`);
+      }
+      setIsForceCloseDialogOpen(false);
+      setForceCloseConfirmed(false);
+      setForceCloseReason('');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to close day');
+    },
+  });
 
   const handleCloseDay = () => {
     if (blockers && blockers.totalBlockers > 0) {
       toast.error('Cannot close day with open transactions. Please resolve all blockers first.');
       return;
     }
-    // TODO: Implement actual day close logic
-    toast.success(`Successfully closed ${format(selectedDate, 'MMMM d, yyyy')}`);
+    closeDayMutation.mutate({ force: false });
+  };
+
+  const handleForceClose = () => {
+    if (!forceCloseConfirmed || forceCloseReason.trim().length < 10) {
+      return;
+    }
+    closeDayMutation.mutate({ force: true, reason: forceCloseReason });
   };
 
   const canCloseDay = !blockers || blockers.totalBlockers === 0;
+  const canForceClose = isAdmin && forceCloseConfirmed && forceCloseReason.trim().length >= 10;
 
   return (
     <AppLayout>
@@ -114,26 +175,44 @@ export default function CloseDay() {
                   </p>
                 </div>
               </div>
-              <Button
-                size="lg"
-                disabled={!canCloseDay || isLoading}
-                onClick={handleCloseDay}
-                className={cn(
-                  canCloseDay && 'bg-emerald-600 hover:bg-emerald-700'
+              <div className="flex items-center gap-2">
+                {/* Admin Force Close Button */}
+                {isAdmin && !canCloseDay && (
+                  <Button
+                    variant="outline"
+                    className="border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950"
+                    onClick={() => setIsForceCloseDialogOpen(true)}
+                  >
+                    <ShieldAlert className="h-5 w-5 mr-2" />
+                    Force Close (Admin)
+                  </Button>
                 )}
-              >
-                {canCloseDay ? (
-                  <>
-                    <CheckCircle2 className="h-5 w-5 mr-2" />
-                    Close Day
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-5 w-5 mr-2" />
-                    Cannot Close
-                  </>
-                )}
-              </Button>
+                <Button
+                  size="lg"
+                  disabled={!canCloseDay || isLoading || closeDayMutation.isPending}
+                  onClick={handleCloseDay}
+                  className={cn(
+                    canCloseDay && 'bg-emerald-600 hover:bg-emerald-700'
+                  )}
+                >
+                  {closeDayMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Closing...
+                    </>
+                  ) : canCloseDay ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 mr-2" />
+                      Close Day
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-5 w-5 mr-2" />
+                      Cannot Close
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -302,6 +381,95 @@ export default function CloseDay() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Force Close Dialog */}
+      <Dialog open={isForceCloseDialogOpen} onOpenChange={setIsForceCloseDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <ShieldAlert className="h-5 w-5" />
+              Admin Force Close
+            </DialogTitle>
+            <DialogDescription>
+              You are about to force close {format(selectedDate, 'MMMM d, yyyy')} with{' '}
+              <span className="font-semibold text-destructive">{blockers?.totalBlockers || 0}</span> unresolved blockers.
+              This action will be logged for audit purposes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Warning</AlertTitle>
+              <AlertDescription>
+                Force closing with open transactions may cause:
+                <ul className="list-disc list-inside mt-2 text-sm">
+                  <li>Incomplete receiving sessions to be orphaned</li>
+                  <li>Production lot costs to be inaccurate</li>
+                  <li>Shipment tracking discrepancies</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="force-close-confirm"
+                checked={forceCloseConfirmed}
+                onCheckedChange={(checked) => setForceCloseConfirmed(checked === true)}
+                className="mt-1"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="force-close-confirm" className="font-medium cursor-pointer">
+                  I understand the implications and want to proceed
+                </Label>
+              </div>
+            </div>
+
+            {forceCloseConfirmed && (
+              <div className="space-y-2">
+                <Label htmlFor="force-reason">
+                  Justification <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="force-reason"
+                  value={forceCloseReason}
+                  onChange={(e) => setForceCloseReason(e.target.value)}
+                  placeholder="Explain why this force close is necessary (minimum 10 characters)..."
+                  className="min-h-[80px]"
+                />
+                {forceCloseReason.length > 0 && forceCloseReason.trim().length < 10 && (
+                  <p className="text-xs text-destructive">
+                    Please provide a more detailed justification
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsForceCloseDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!canForceClose || closeDayMutation.isPending}
+              onClick={handleForceClose}
+            >
+              {closeDayMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Closing...
+                </>
+              ) : (
+                <>
+                  <ShieldAlert className="h-4 w-4 mr-2" />
+                  Force Close Day
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

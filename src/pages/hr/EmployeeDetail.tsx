@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermission';
 import { EmployeeFormDialog } from '@/components/hr/EmployeeFormDialog';
 import { EmployeeJobDetails } from '@/components/hr/EmployeeJobDetails';
 import { EmployeePersonalInfo } from '@/components/hr/EmployeePersonalInfo';
@@ -16,6 +17,7 @@ import { EmployeeDocuments } from '@/components/hr/EmployeeDocuments';
 import { EmployeePerformance } from '@/components/hr/EmployeePerformance';
 import { CreateUserAccountDialog } from '@/components/hr/CreateUserAccountDialog';
 import { EmployeeAccountStatus } from '@/components/hr/EmployeeAccountStatus';
+import { ReinstateEmployeeDialog } from '@/components/hr/ReinstateEmployeeDialog';
 import {
   ArrowLeft,
   Phone,
@@ -32,8 +34,10 @@ export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin, isManager } = useAuth();
+  const { isAdmin: isAdminRole } = usePermissions();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
+  const [isReinstateDialogOpen, setIsReinstateDialogOpen] = useState(false);
   
   const canEditEmployee = isAdmin || isManager;
 
@@ -59,6 +63,8 @@ export default function EmployeeDetail() {
     },
     enabled: !!id,
   });
+
+  const isTerminated = employee?.employment_status === 'terminated';
 
   if (isLoading) {
     return (
@@ -170,9 +176,20 @@ export default function EmployeeDetail() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Admin Reinstate Button for terminated employees */}
+          {isAdminRole && isTerminated && (
+            <Button
+              variant="outline"
+              className="border-green-500 text-green-700 hover:bg-green-50"
+              onClick={() => setIsReinstateDialogOpen(true)}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Reinstate
+            </Button>
+          )}
           <Button
             variant="destructive"
-            disabled={employee.employment_status === 'terminated'}
+            disabled={isTerminated}
           >
             Terminate
           </Button>
@@ -277,6 +294,25 @@ export default function EmployeeDetail() {
           setIsCreateUserDialogOpen(false);
         }}
       />
+
+      {/* Reinstate Employee Dialog (Admin Only) */}
+      {employee && (
+        <ReinstateEmployeeDialog
+          open={isReinstateDialogOpen}
+          onOpenChange={setIsReinstateDialogOpen}
+          employee={{
+            id: employee.id,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            employee_number: employee.employee_number,
+            termination_date: employee.termination_date,
+          }}
+          onSuccess={() => {
+            refetch();
+            setIsReinstateDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
