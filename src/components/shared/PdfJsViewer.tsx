@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +17,10 @@ interface PdfJsViewerProps {
   className?: string;
 }
 
+const ZOOM_STEP = 0.25;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3;
+
 export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -25,6 +30,7 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   // IMPORTANT: PDF.js transfers (detaches) ArrayBuffers to the worker.
   // We receive a Uint8Array and copy its underlying buffer so each render gets a fresh buffer.
@@ -33,6 +39,7 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
 
   useEffect(() => {
     setPageNumber(1);
+    setZoom(1);
   }, [data]);
 
   // Load (or reload) the PDF document when bytes change
@@ -71,7 +78,7 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
     };
   }, [bytes]);
 
-  // Render current page (and re-render on resize)
+  // Render current page (and re-render on resize or zoom change)
   useEffect(() => {
     let cancelled = false;
     let renderTask: ReturnType<pdfjs.PDFPageProxy["render"]> | null = null;
@@ -96,10 +103,12 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
+        // Base scale to fit container width, then apply zoom multiplier
         const viewport = page.getViewport({ scale: 1 });
-        const containerWidth = Math.max(320, container.clientWidth);
-        const scale = containerWidth / viewport.width;
-        const scaledViewport = page.getViewport({ scale });
+        const containerWidth = Math.max(320, container.clientWidth - 32); // account for padding
+        const baseScale = containerWidth / viewport.width;
+        const finalScale = baseScale * zoom;
+        const scaledViewport = page.getViewport({ scale: finalScale });
 
         canvas.width = Math.floor(scaledViewport.width);
         canvas.height = Math.floor(scaledViewport.height);
@@ -140,10 +149,14 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         // ignore
       }
     };
-  }, [pageNumber, numPages]);
+  }, [pageNumber, numPages, zoom]);
 
   const canPrev = pageNumber > 1;
   const canNext = numPages ? pageNumber < numPages : false;
+
+  const handleZoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP));
+  const handleZoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP));
+  const handleZoomReset = () => setZoom(1);
 
   return (
     <div ref={containerRef} className={className}>
@@ -151,6 +164,48 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
         <div className="text-xs text-muted-foreground">
           {numPages ? `Page ${pageNumber} of ${numPages}` : "Loading…"}
         </div>
+        
+        {/* Zoom controls */}
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={isRendering || zoom <= MIN_ZOOM}
+            onClick={handleZoomOut}
+            title="Zoom out"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <span className="text-xs text-muted-foreground min-w-[3rem] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={isRendering || zoom >= MAX_ZOOM}
+            onClick={handleZoomIn}
+            title="Zoom in"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={isRendering || zoom === 1}
+            onClick={handleZoomReset}
+            title="Reset zoom"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {/* Page navigation */}
         <div className="flex items-center gap-1">
           <Button
             type="button"
