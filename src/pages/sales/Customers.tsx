@@ -52,10 +52,6 @@ import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
 import { usePermissions } from '@/hooks/usePermission';
 import { 
-  StagedEditProvider, 
-  StagedFormField, 
-  StagedEditActionBar, 
-  EditButton,
   UnsavedChangesDialog,
   ViewModeValue,
 } from '@/components/ui/staged-edit';
@@ -283,7 +279,7 @@ function CustomerFormDialog({
     if (open && isNewCustomer) {
       stagedEdit.startEdit();
     }
-  }, [open, isNewCustomer]);
+  }, [open, isNewCustomer, stagedEdit.startEdit]);
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
@@ -450,15 +446,6 @@ function CustomerFormDialog({
           </DialogHeader>
 
           <FormProvider {...form}>
-            <StagedEditProvider
-              resourceType="customer"
-              resourceId={customer?.id}
-              tableName="customers"
-              form={form}
-              initialData={customer as any}
-              resourceName="Customer"
-              canEdit={canEdit}
-            >
               <div className="flex-1 overflow-y-auto px-6 py-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-3">
@@ -833,7 +820,6 @@ function CustomerFormDialog({
                   </Button>
                 </div>
               )}
-            </StagedEditProvider>
           </FormProvider>
         </DialogContent>
       </Dialog>
