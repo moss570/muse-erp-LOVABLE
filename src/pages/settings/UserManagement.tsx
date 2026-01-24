@@ -55,6 +55,7 @@ interface UserWithRole extends Profile {
 
 const ROLES: { value: Enums<'app_role'>; label: string; icon: React.ElementType }[] = [
   { value: 'admin', label: 'Administrator', icon: ShieldAlert },
+  { value: 'hr', label: 'HR', icon: ShieldCheck },
   { value: 'manager', label: 'Manager', icon: ShieldCheck },
   { value: 'supervisor', label: 'Supervisor', icon: Shield },
   { value: 'employee', label: 'Employee', icon: User },
@@ -67,7 +68,7 @@ const USER_STATUSES: { value: Enums<'user_status'>; label: string }[] = [
 ];
 
 const userRoleSchema = z.object({
-  role: z.enum(['admin', 'manager', 'supervisor', 'employee']),
+  role: z.enum(['admin', 'hr', 'manager', 'supervisor', 'employee']),
 });
 
 type UserRoleFormData = z.infer<typeof userRoleSchema>;
@@ -197,6 +198,7 @@ export default function UserManagement() {
     
     const colors: Record<Enums<'app_role'>, string> = {
       admin: 'bg-red-100 text-red-800 border-red-200',
+      hr: 'bg-amber-100 text-amber-800 border-amber-200',
       manager: 'bg-purple-100 text-purple-800 border-purple-200',
       supervisor: 'bg-blue-100 text-blue-800 border-blue-200',
       employee: 'bg-green-100 text-green-800 border-green-200',

@@ -15170,6 +15170,7 @@ export type Database = {
         Args: { p_work_order_id: string }
         Returns: undefined
       }
+      is_admin_or_hr: { Args: { _user_id: string }; Returns: boolean }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
       is_material_approved: {
         Args: { p_material_id: string }
@@ -15202,7 +15203,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "manager" | "supervisor" | "employee"
+      app_role: "admin" | "manager" | "supervisor" | "employee" | "hr"
       approval_status_enum:
         | "Draft"
         | "Pending_QA"
@@ -15364,7 +15365,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "manager", "supervisor", "employee"],
+      app_role: ["admin", "manager", "supervisor", "employee", "hr"],
       approval_status_enum: [
         "Draft",
         "Pending_QA",
