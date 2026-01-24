@@ -334,6 +334,7 @@ export default function Materials() {
           if (!open) setEditingMaterial(null);
         }}
         material={editingMaterial}
+        canEdit={canEdit}
       />
     </div>
   );

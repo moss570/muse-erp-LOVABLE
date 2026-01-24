@@ -56,6 +56,7 @@ interface WorkOrderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workOrder?: WorkOrder | null;
+  canEdit?: boolean;
 }
 
 interface ProductionStage {
@@ -104,7 +105,7 @@ interface StageCategoryMapping {
   category_code: string;
 }
 
-export function WorkOrderFormDialog({ open, onOpenChange, workOrder }: WorkOrderFormDialogProps) {
+export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = false }: WorkOrderFormDialogProps) {
   const queryClient = useQueryClient();
   const isEditMode = !!workOrder;
   const isInProgress = workOrder?.wo_status === "In Progress";

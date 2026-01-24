@@ -70,6 +70,7 @@ interface EmployeeFormDialogProps {
   onOpenChange: (open: boolean) => void;
   employee?: EmployeeWithRelations | null;
   onSuccess?: () => void;
+  canEdit?: boolean;
 }
 
 export function EmployeeFormDialog({
@@ -77,6 +78,7 @@ export function EmployeeFormDialog({
   onOpenChange,
   employee,
   onSuccess,
+  canEdit = false,
 }: EmployeeFormDialogProps) {
   const queryClient = useQueryClient();
   const { createEmployee, updateEmployee } = useEmployees();

@@ -31,6 +31,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { RecipeFormDialog } from "@/components/manufacturing/RecipeFormDialog";
+import { usePermissions } from "@/hooks/usePermission";
 
 interface Recipe {
   id: string;
@@ -53,10 +54,14 @@ interface Recipe {
 export default function Recipes() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { checkPermission, isAdmin } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  
+  const canCreate = isAdmin || checkPermission('recipes.create', 'full');
+  const canEdit = isAdmin || checkPermission('recipes.edit', 'full');
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ["recipes", searchTerm, statusFilter],
@@ -134,10 +139,12 @@ export default function Recipes() {
             </h1>
             <p className="text-muted-foreground">Manage product recipes and BOMs with cost tracking</p>
           </div>
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Recipe
-          </Button>
+          {canCreate && (
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Recipe
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -235,10 +242,12 @@ export default function Recipes() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(recipe)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
+                            {canEdit && (
+                              <DropdownMenuItem onClick={() => handleEdit(recipe)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem 
                               onClick={() => recalculateCostMutation.mutate(recipe.id)}
                               disabled={recalculateCostMutation.isPending}
@@ -270,6 +279,7 @@ export default function Recipes() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         recipe={editingRecipe}
+        canEdit={canEdit}
       />
     </>
   );

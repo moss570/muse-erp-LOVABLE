@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
 import { EmployeeFormDialog } from '@/components/hr/EmployeeFormDialog';
 import { EmployeeJobDetails } from '@/components/hr/EmployeeJobDetails';
 import { EmployeePersonalInfo } from '@/components/hr/EmployeePersonalInfo';
@@ -30,8 +31,11 @@ import type { EmployeeWithRelations } from '@/hooks/useEmployees';
 export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin, isManager } = useAuth();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
+  
+  const canEditEmployee = isAdmin || isManager;
 
   const { data: employee, isLoading, refetch } = useQuery({
     queryKey: ['employee', id],
@@ -251,6 +255,7 @@ export default function EmployeeDetail() {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         employee={employee}
+        canEdit={canEditEmployee}
         onSuccess={() => {
           refetch();
           setIsEditDialogOpen(false);

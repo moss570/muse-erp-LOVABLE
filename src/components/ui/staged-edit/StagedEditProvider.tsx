@@ -43,7 +43,7 @@ export function StagedEditProvider<T extends FieldValues>({
   initialData,
   enabled = true,
   resourceName = 'record',
-  canEdit = true,
+  canEdit = false,
   onSaveSuccess,
   onDataRefresh,
 }: StagedEditProviderProps<T>) {

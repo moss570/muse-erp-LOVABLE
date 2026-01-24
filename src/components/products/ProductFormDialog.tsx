@@ -58,6 +58,7 @@ interface ProductFormDialogProps {
   } | null;
   onSubmit: (data: ProductFormData) => void;
   isSubmitting?: boolean;
+  canEdit?: boolean;
 }
 
 export function ProductFormDialog({
@@ -66,13 +67,15 @@ export function ProductFormDialog({
   product,
   onSubmit,
   isSubmitting = false,
+  canEdit = false,
 }: ProductFormDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [isEditMode, setIsEditMode] = useState(false);
   const isExistingProduct = !!product?.id;
   
-  // For existing products, start in view mode. For new products, start in edit mode
-  const isFieldsDisabled = isExistingProduct && !isEditMode;
+  // For existing products, start in view mode. For new products, start in edit mode (if allowed)
+  // canEdit controls whether editing is allowed at all
+  const isFieldsDisabled = isExistingProduct ? !isEditMode : !canEdit;
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -128,7 +131,7 @@ export function ProductFormDialog({
         is_family_head: false,
         family_head_id: undefined,
       });
-      setIsEditMode(true); // New products start in edit mode
+      setIsEditMode(canEdit); // New products start in edit mode only if allowed
     }
   }, [product, form]);
 
@@ -201,7 +204,7 @@ export function ProductFormDialog({
               </Badge>
             )}
           </div>
-          {isExistingProduct && !isEditMode && (
+          {isExistingProduct && !isEditMode && canEdit && (
             <Button
               type="button"
               variant="outline"

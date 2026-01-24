@@ -268,11 +268,13 @@ interface MaterialFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   material?: Material | null;
+  canEdit?: boolean;
 }
 export function MaterialFormDialog({
   open,
   onOpenChange,
-  material
+  material,
+  canEdit = false,
 }: MaterialFormDialogProps) {
   const [activeTab, setActiveTab] = useState('basic');
   const [unitVariants, setUnitVariants] = useState<UnitVariant[]>([]);
@@ -1685,6 +1687,7 @@ export function MaterialFormDialog({
           initialData={material || null}
           resourceName={material?.name || 'New Material'}
           enabled={!!material}
+          canEdit={canEdit}
         >
           <MaterialFormContent
             material={material}
