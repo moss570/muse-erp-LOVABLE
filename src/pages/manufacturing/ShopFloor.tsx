@@ -13,7 +13,7 @@ import { ShopFloorPriorityDashboard } from "@/components/manufacturing/ShopFloor
 import { useUnfulfilledSalesOrders } from "@/hooks/useUnfulfilledSalesOrders";
 import { DeleteWorkOrderDialog } from "@/components/manufacturing/DeleteWorkOrderDialog";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { useManufacturingPreferences } from "@/hooks/useManufacturingPreferences";
 interface ScheduleInfo {
   id: string;
   schedule_date: string;
@@ -73,6 +73,10 @@ export default function ShopFloor() {
   const hasUnfulfilled = (unfulfilledData?.items?.length || 0) > 0;
   // Work order creation is locked until user acknowledges THIS VISIT
   const canCreateWorkOrder = !hasUnfulfilled || hasAcknowledgedThisVisit;
+
+  // Manufacturing preferences - controls time clock visibility
+  const { data: mfgPrefs } = useManufacturingPreferences();
+  const showTimeClock = mfgPrefs?.trackTimeByProduction ?? false;
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
@@ -293,45 +297,47 @@ export default function ShopFloor() {
         onAcknowledged={() => setHasAcknowledgedThisVisit(true)}
       />
 
-      {/* Clock Status Card */}
-      <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Time Clock
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activeClock ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Clocked in at</p>
-                <p className="text-2xl font-bold">
-                  {format(new Date(activeClock.clock_in), "h:mm a")}
-                </p>
-                <Badge className="mt-1 bg-primary">WORKING</Badge>
+      {/* Clock Status Card - only shown if time tracking is enabled */}
+      {showTimeClock && (
+        <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Time Clock
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activeClock ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Clocked in at</p>
+                  <p className="text-2xl font-bold">
+                    {format(new Date(activeClock.clock_in), "h:mm a")}
+                  </p>
+                  <Badge className="mt-1 bg-primary">WORKING</Badge>
+                </div>
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  onClick={handleClockOut}
+                  disabled={clockOutMutation.isPending}
+                  className="gap-2"
+                >
+                  <StopCircle className="h-5 w-5" />
+                  Clock Out
+                </Button>
               </div>
-              <Button
-                size="lg"
-                variant="destructive"
-                onClick={handleClockOut}
-                disabled={clockOutMutation.isPending}
-                className="gap-2"
-              >
-                <StopCircle className="h-5 w-5" />
-                Clock Out
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground mb-2">Not clocked in</p>
-              <p className="text-sm text-muted-foreground">
-                Select a work order below to clock in
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-2">Not clocked in</p>
+                <p className="text-sm text-muted-foreground">
+                  Select a work order below to clock in
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Active Work Orders */}
       <Card>
@@ -403,7 +409,7 @@ export default function ShopFloor() {
                           Delete
                         </Button>
                       )}
-                      {!activeClock && (
+                      {showTimeClock && !activeClock && (
                         <Button
                           size="sm"
                           onClick={() => handleClockIn(wo.id)}

@@ -30,6 +30,7 @@ import {
   Barcode,
   FolderTree,
   Mail,
+  Clock,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -138,6 +139,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Set minimum production goals and calculate cost per gallon',
         href: '/settings/daily-production-targets',
         icon: Factory,
+        status: 'active',
+      },
+      {
+        title: 'Manufacturing Preferences',
+        description: 'Configure labor tracking and work order settings',
+        href: '/settings/manufacturing-preferences',
+        icon: Clock,
         status: 'active',
       },
     ],
