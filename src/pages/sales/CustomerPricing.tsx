@@ -65,7 +65,7 @@ export default function CustomerPricing() {
     queryKey: ['customer-pricing', selectedCustomerId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('customer_product_pricing')
+        .from('customer_product_pricing' as any)
         .select(`
           *,
           product_size:product_sizes(
@@ -93,8 +93,6 @@ export default function CustomerPricing() {
           id,
           sku,
           size_name,
-          distributor_price,
-          direct_price,
           product:products!inner(id, name, sku)
         `)
         .eq('is_active', true)
@@ -106,7 +104,12 @@ export default function CustomerPricing() {
 
       const { data, error } = await query.limit(50);
       if (error) throw error;
-      return data;
+      return data as Array<{
+        id: string;
+        sku: string | null;
+        size_name: string;
+        product: { id: string; name: string; sku: string } | null;
+      }>;
     },
     enabled: showAddDialog,
   });
@@ -114,7 +117,7 @@ export default function CustomerPricing() {
   // Create customer pricing mutation
   const createPricingMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('customer_product_pricing').insert({
+      const { error } = await supabase.from('customer_product_pricing' as any).insert({
         customer_id: selectedCustomerId,
         product_size_id: newPricing.product_size_id,
         unit_price: parseFloat(newPricing.unit_price),
@@ -145,7 +148,7 @@ export default function CustomerPricing() {
   const deletePricingMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('customer_product_pricing')
+        .from('customer_product_pricing' as any)
         .delete()
         .eq('id', id);
       if (error) throw error;
@@ -318,19 +321,13 @@ export default function CustomerPricing() {
                 value={newPricing.product_size_id}
                 onValueChange={(value) => {
                   setNewPricing({ ...newPricing, product_size_id: value });
-                  // Auto-populate price from product size if available
-                  const productSize = productSizes?.find(ps => ps.id === value);
-                  if (productSize && (productSize.direct_price || productSize.distributor_price)) {
-                    const defaultPrice = productSize.direct_price || productSize.distributor_price;
-                    setNewPricing(prev => ({ ...prev, unit_price: defaultPrice?.toString() || '' }));
-                  }
                 }}
               >
                 <SelectTrigger id="product-size">
                   <SelectValue placeholder="Select a product SKU..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
-                  {productSizes?.map((ps: any) => (
+                  {productSizes?.map((ps) => (
                     <SelectItem key={ps.id} value={ps.id}>
                       <div className="flex items-center justify-between w-full gap-4">
                         <div className="flex flex-col">
@@ -339,11 +336,6 @@ export default function CustomerPricing() {
                             {ps.product?.name} - {ps.size_name}
                           </span>
                         </div>
-                        {(ps.direct_price || ps.distributor_price) && (
-                          <span className="text-xs text-muted-foreground">
-                            Default: ${parseFloat(ps.direct_price || ps.distributor_price).toFixed(2)}
-                          </span>
-                        )}
                       </div>
                     </SelectItem>
                   ))}
