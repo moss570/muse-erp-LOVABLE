@@ -11,7 +11,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 interface PdfJsViewerProps {
-  data: ArrayBuffer;
+  /** Pass a Uint8Array. We'll copy its buffer before giving it to PDF.js (which detaches buffers). */
+  data: Uint8Array;
   className?: string;
 }
 
@@ -26,9 +27,9 @@ export function PdfJsViewer({ data, className }: PdfJsViewerProps) {
   const [error, setError] = useState<string | null>(null);
 
   // IMPORTANT: PDF.js transfers (detaches) ArrayBuffers to the worker.
-  // If we reuse the same underlying buffer across renders, it can become detached.
-  // Always give PDF.js a fresh copied buffer.
-  const bytes = useMemo(() => new Uint8Array(data.slice(0)), [data]);
+  // We receive a Uint8Array and copy its underlying buffer so each render gets a fresh buffer.
+  // Using data.slice() on a Uint8Array creates a new Uint8Array with a new underlying ArrayBuffer.
+  const bytes = useMemo(() => data.slice(), [data]);
 
   useEffect(() => {
     setPageNumber(1);
