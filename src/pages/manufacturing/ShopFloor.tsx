@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { WorkOrderFormDialog, WorkOrder } from "@/components/manufacturing/WorkOrderFormDialog";
+import { ShopFloorPriorityDashboard } from "@/components/manufacturing/ShopFloorPriorityDashboard";
 import { DeleteWorkOrderDialog } from "@/components/manufacturing/DeleteWorkOrderDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -272,6 +273,9 @@ export default function ShopFloor() {
           Create Work Order
         </Button>
       </div>
+
+      {/* Priority Dashboard - Unfulfilled Orders */}
+      <ShopFloorPriorityDashboard onCreateWorkOrder={() => setIsCreateDialogOpen(true)} />
 
       {/* Clock Status Card */}
       <Card className="bg-gradient-to-r from-primary/10 to-primary/5">

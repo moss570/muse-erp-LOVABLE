@@ -1887,6 +1887,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "corrective_actions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "corrective_actions_production_lot_id_fkey"
             columns: ["production_lot_id"]
             isOneToOne: false
@@ -2114,6 +2121,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "customer_complaints_resolved_by_fkey"
@@ -2924,6 +2938,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disposal_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "disposal_log_production_lot_id_fkey"
@@ -5029,6 +5050,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_movement_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "inventory_movement_items_production_lot_id_fkey"
             columns: ["production_lot_id"]
             isOneToOne: false
@@ -5265,6 +5293,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "inventory_transactions_production_lot_id_fkey"
@@ -7298,6 +7333,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "mock_recall_drills_affected_product_id_fkey"
+            columns: ["affected_product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "mock_recall_drills_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -7801,6 +7843,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "non_conformities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "non_conformities_production_lot_id_fkey"
             columns: ["production_lot_id"]
             isOneToOne: false
@@ -8125,6 +8174,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pallet_cases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "pallet_cases_production_lot_id_fkey"
@@ -8618,6 +8674,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pick_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       pick_request_picks: {
@@ -9100,6 +9163,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "price_sheet_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       price_sheets: {
@@ -9191,6 +9261,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_attributes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -9358,6 +9435,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "product_nutrition_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "product_nutrition_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
@@ -9428,6 +9512,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_qa_requirements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_qa_requirements_test_template_id_fkey"
@@ -9636,6 +9727,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_recipes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       product_size_par_levels: {
@@ -9827,6 +9925,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_sizes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "product_sizes_size_unit_id_fkey"
@@ -10496,6 +10601,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "production_lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "production_lots_product_size_id_fkey"
             columns: ["product_size_id"]
             isOneToOne: false
@@ -10656,6 +10768,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_schedule_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "production_schedule_production_line_id_fkey"
@@ -10876,6 +10995,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "products_base_product_id_fkey"
+            columns: ["base_product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "products_conditional_approval_by_fkey"
             columns: ["conditional_approval_by"]
             isOneToOne: false
@@ -10888,6 +11014,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_family_head_id_fkey"
+            columns: ["family_head_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "products_product_category_id_fkey"
@@ -12051,6 +12184,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quality_complaints_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "quality_complaints_production_lot_id_fkey"
             columns: ["production_lot_id"]
             isOneToOne: false
@@ -13165,6 +13305,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rma_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "rma_items_rma_id_fkey"
             columns: ["rma_id"]
             isOneToOne: false
@@ -13328,6 +13475,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -13501,6 +13655,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "sales_order_items_product_size_id_fkey"
@@ -15052,6 +15213,51 @@ export type Database = {
         }
         Relationships: []
       }
+      unfulfilled_so_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          created_at: string
+          id: string
+          notes: string | null
+          unfulfilled_items_snapshot: Json
+          user_id: string
+          work_order_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          unfulfilled_items_snapshot: Json
+          user_id: string
+          work_order_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          unfulfilled_items_snapshot?: Json
+          user_id?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unfulfilled_so_acknowledgments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unfulfilled_so_acknowledgments_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_conversions: {
         Row: {
           conversion_factor: number
@@ -15611,6 +15817,7 @@ export type Database = {
       }
       work_orders: {
         Row: {
+          acknowledged_unfulfilled_items: boolean | null
           actual_cost_per_unit: number | null
           actual_labor_cost: number | null
           actual_labor_hours: number | null
@@ -15667,6 +15874,7 @@ export type Database = {
           yield_percentage: number | null
         }
         Insert: {
+          acknowledged_unfulfilled_items?: boolean | null
           actual_cost_per_unit?: number | null
           actual_labor_cost?: number | null
           actual_labor_hours?: number | null
@@ -15723,6 +15931,7 @@ export type Database = {
           yield_percentage?: number | null
         }
         Update: {
+          acknowledged_unfulfilled_items?: boolean | null
           actual_cost_per_unit?: number | null
           actual_labor_cost?: number | null
           actual_labor_hours?: number | null
@@ -15799,6 +16008,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "work_orders_product_size_id_fkey"
@@ -16064,6 +16280,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "non_conformities_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_unfulfilled_sales_order_items"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "non_conformities_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -16117,6 +16340,30 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: []
+      }
+      vw_unfulfilled_sales_order_items: {
+        Row: {
+          due_date_factor: number | null
+          earliest_due_date: string | null
+          number_of_sales_orders: number | null
+          product_code: string | null
+          product_description: string | null
+          product_id: string | null
+          product_size_id: string | null
+          sales_order_numbers: string[] | null
+          shortage_quantity: number | null
+          total_available_stock: number | null
+          total_quantity_needed: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_items_product_size_id_fkey"
+            columns: ["product_size_id"]
+            isOneToOne: false
+            referencedRelation: "product_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
