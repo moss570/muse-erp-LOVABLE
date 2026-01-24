@@ -1929,11 +1929,12 @@ function MaterialFormContent({
   warningSupplierName,
   setWarningSupplierName,
 }: MaterialFormContentProps) {
-  const { isEditing, startEdit, isSaving } = useStagedEditContext();
+  const { isEditing, startEdit, isSaving, canEdit } = useStagedEditContext();
   const queryClient = useQueryClient();
   
-  // Determine if form fields should be disabled (view mode for existing materials)
-  const isFieldsDisabled = !isEditing && !!material;
+  // Determine if form fields should be disabled - SECURITY: Both edit mode AND permission required
+  // Fields are disabled if: not in edit mode OR user doesn't have edit permission
+  const isFieldsDisabled = !isEditing || !canEdit;
   
   // Group dropdown options by type
   const allergenOptions = dropdownOptions?.filter(o => o.dropdown_type === 'allergen') || [];

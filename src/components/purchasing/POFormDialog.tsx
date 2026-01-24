@@ -90,9 +90,15 @@ interface POFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   purchaseOrder: PurchaseOrder | null;
+  canEdit?: boolean;
 }
 
-export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialogProps) {
+export function POFormDialog({ open, onOpenChange, purchaseOrder, canEdit = false }: POFormDialogProps) {
+  // SECURITY: Calculate isFieldsDisabled - editing requires permission AND not be closed/cancelled
+  const isExisting = !!purchaseOrder;
+  const isClosedOrCancelled = purchaseOrder?.status === 'received' || purchaseOrder?.status === 'cancelled';
+  const isFieldsDisabled = isExisting && (!canEdit || isClosedOrCancelled);
+  
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -666,6 +672,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                           }
                         }} 
                         value={field.value}
+                        disabled={isFieldsDisabled}
                       >
                         <FormControl>
                           <SelectTrigger className={getSupplierFieldStyles(selectedSupplier?.approval_status)}>
@@ -704,7 +711,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   <FormItem>
                     <FormLabel>Order Date *</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -718,7 +725,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   <FormItem>
                     <FormLabel>Expected Delivery</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -731,7 +738,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Delivery Location</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select location" />
@@ -782,7 +789,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                   <FormItem>
                     <FormLabel>Shipping Method</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Truck, Air, Ocean" {...field} />
+                      <Input placeholder="e.g., Truck, Air, Ocean" {...field} disabled={isFieldsDisabled} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -795,7 +802,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Shipping Terms</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isFieldsDisabled}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select terms" />
@@ -831,7 +838,7 @@ export function POFormDialog({ open, onOpenChange, purchaseOrder }: POFormDialog
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">Line Items</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
+                <Button type="button" variant="outline" size="sm" onClick={addLineItem} disabled={isFieldsDisabled}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add Item
                 </Button>

@@ -110,6 +110,8 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
   const isEditMode = !!workOrder;
   const isInProgress = workOrder?.wo_status === "In Progress";
   const isCompleted = workOrder?.wo_status === "Completed";
+  // SECURITY: Fields disabled if editing existing WO without permission OR if WO is completed
+  const isFieldsDisabled = (isEditMode && !canEdit) || isCompleted;
 
   const [productId, setProductId] = useState("");
   const [recipeId, setRecipeId] = useState("");
@@ -665,7 +667,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
               <Select 
                 value={targetStageCode} 
                 onValueChange={handleStageChange}
-                disabled={isEditMode && isInProgress}
+                disabled={isFieldsDisabled || (isEditMode && isInProgress)}
               >
                 <SelectTrigger id="stage">
                   <SelectValue placeholder="Select production stage" />
@@ -702,7 +704,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                   setInputLotId("");
                   setProductSizeId("");
                 }}
-                disabled={isEditMode && isInProgress || !targetStageCode}
+                disabled={isFieldsDisabled || (isEditMode && isInProgress) || !targetStageCode}
               >
                 <SelectTrigger id="product">
                   <SelectValue placeholder={targetStageCode ? "Select product" : "Select stage first"} />
@@ -745,7 +747,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                 <Select 
                   value={inputLotId} 
                   onValueChange={setInputLotId}
-                  disabled={isEditMode && isInProgress}
+                  disabled={isFieldsDisabled || (isEditMode && isInProgress)}
                 >
                   <SelectTrigger id="inputLot">
                     <SelectValue placeholder="Select input lot (optional for planning)" />
@@ -783,7 +785,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                   <Select 
                     value={productSizeId} 
                     onValueChange={setProductSizeId}
-                    disabled={isEditMode && isInProgress}
+                    disabled={isFieldsDisabled || (isEditMode && isInProgress)}
                   >
                     <SelectTrigger id="productSize">
                       <SelectValue placeholder={`Select ${targetStageCode === "FREEZE" ? "tub size" : "case configuration"}`} />
@@ -806,7 +808,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
               <Select 
                 value={recipeId} 
                 onValueChange={setRecipeId} 
-                disabled={!productId || (isEditMode && isInProgress)}
+                disabled={isFieldsDisabled || !productId || (isEditMode && isInProgress)}
               >
                 <SelectTrigger id="recipe">
                   <SelectValue placeholder={productId ? "Select recipe" : "Select product first"} />
@@ -827,7 +829,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
               <Select 
                 value={productionLineId} 
                 onValueChange={setProductionLineId}
-                disabled={isEditMode && isInProgress}
+                disabled={isFieldsDisabled || (isEditMode && isInProgress)}
               >
                 <SelectTrigger id="line">
                   <SelectValue placeholder="Select production line" />
@@ -854,7 +856,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                   value={targetQuantity}
                   onChange={(e) => setTargetQuantity(e.target.value)}
                   placeholder="Enter quantity"
-                  disabled={isCompleted}
+                  disabled={isFieldsDisabled}
                 />
               </div>
               <div className="grid gap-2">
@@ -862,7 +864,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                 <Select 
                   value={stageUomSettings.isLocked ? stageUomSettings.uom : targetUom} 
                   onValueChange={setTargetUom}
-                  disabled={stageUomSettings.isLocked || (isEditMode && isInProgress)}
+                  disabled={isFieldsDisabled || stageUomSettings.isLocked || (isEditMode && isInProgress)}
                 >
                   <SelectTrigger id="uom">
                     <SelectValue />
@@ -904,7 +906,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
             {/* Priority */}
             <div className="grid gap-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={setPriority} disabled={isCompleted}>
+              <Select value={priority} onValueChange={setPriority} disabled={isFieldsDisabled}>
                 <SelectTrigger id="priority">
                   <SelectValue />
                 </SelectTrigger>
@@ -929,7 +931,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                         "justify-start text-left font-normal",
                         !scheduledDate && "text-muted-foreground"
                       )}
-                      disabled={isEditMode && isInProgress}
+                      disabled={isFieldsDisabled || (isEditMode && isInProgress)}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {scheduledDate ? format(scheduledDate, "PP") : "Pick date (optional)"}
@@ -960,7 +962,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                         "justify-start text-left font-normal",
                         !dueDate && "text-muted-foreground"
                       )}
-                      disabled={isCompleted}
+                      disabled={isFieldsDisabled}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dueDate ? format(dueDate, "PP") : "Pick date (optional)"}
@@ -987,7 +989,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
                 onChange={(e) => setSpecialInstructions(e.target.value)}
                 placeholder="Any special instructions or notes..."
                 rows={2}
-                disabled={isCompleted}
+                disabled={isFieldsDisabled}
               />
             </div>
 
@@ -1001,7 +1003,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, workOrder, canEdit = f
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending || isCompleted}>
+            <Button type="submit" disabled={isPending || isFieldsDisabled}>
               {isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
