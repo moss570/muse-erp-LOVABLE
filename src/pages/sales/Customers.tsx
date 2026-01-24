@@ -102,6 +102,10 @@ const customerSchema = z.object({
   tax_id: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(true),
+  // Customer hierarchy fields
+  parent_company_id: z.string().uuid().optional().nullable(),
+  is_master_company: z.boolean().default(false),
+  location_name: z.string().optional(),
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;
@@ -158,7 +162,27 @@ function CustomerFormDialog({
       tax_id: '',
       notes: '',
       is_active: true,
+      parent_company_id: null,
+      is_master_company: false,
+      location_name: '',
     },
+  });
+
+  // Fetch master companies for parent dropdown
+  const { data: masterCompanies } = useQuery({
+    queryKey: ['master-companies'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, code, name')
+        .eq('is_master_company', true)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
   });
 
   // Reset form when customer changes
@@ -184,6 +208,9 @@ function CustomerFormDialog({
         tax_id: customer.tax_id || '',
         notes: customer.notes || '',
         is_active: customer.is_active ?? true,
+        parent_company_id: customer.parent_company_id || null,
+        is_master_company: customer.is_master_company || false,
+        location_name: customer.location_name || '',
       });
     } else {
       form.reset({
@@ -206,6 +233,9 @@ function CustomerFormDialog({
         tax_id: '',
         notes: '',
         is_active: true,
+        parent_company_id: null,
+        is_master_company: false,
+        location_name: '',
       });
     }
     setActiveTab('general');
@@ -236,6 +266,9 @@ function CustomerFormDialog({
       tax_id: customer.tax_id || '',
       notes: customer.notes || '',
       is_active: customer.is_active ?? true,
+      parent_company_id: customer.parent_company_id || null,
+      is_master_company: customer.is_master_company || false,
+      location_name: customer.location_name || '',
     } : null,
     enabled: open && !!customer,
     resourceName: 'Customer',
@@ -274,6 +307,9 @@ function CustomerFormDialog({
         tax_exempt: data.tax_exempt,
         tax_id: data.tax_id || null,
         notes: data.notes || null,
+        parent_company_id: data.parent_company_id || null,
+        is_master_company: data.is_master_company,
+        location_name: data.location_name || null,
       }]);
       if (error) throw error;
     },
@@ -665,6 +701,75 @@ function CustomerFormDialog({
                           </div>
                         )}
                       />
+                    </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="text-sm font-medium mb-4">Customer Hierarchy</h3>
+                      <div className="space-y-4">
+                        <StagedFormFieldWrapper
+                          name="is_master_company"
+                          label="Master Company"
+                          isEditing={stagedEdit.isEditing}
+                          viewRender={(value) => <ViewModeValue value={value} type="boolean" />}
+                          editRender={(field) => (
+                            <div className="flex items-center justify-between rounded-lg border p-3">
+                              <div>
+                                <p className="text-sm font-medium">Master Company</p>
+                                <p className="text-xs text-muted-foreground">This is a parent company for consolidated billing</p>
+                              </div>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </div>
+                          )}
+                        />
+
+                        <StagedFormFieldWrapper
+                          name="parent_company_id"
+                          label="Parent Company"
+                          isEditing={stagedEdit.isEditing}
+                          viewRender={(value) => {
+                            const parentCompany = masterCompanies?.find(c => c.id === value);
+                            return <ViewModeValue value={parentCompany?.name} />;
+                          }}
+                          editRender={(field) => {
+                            const isMasterCompany = form.watch('is_master_company');
+                            return (
+                              <Select
+                                onValueChange={(value) => field.onChange(value === '__none__' ? null : value)}
+                                value={field.value || '__none__'}
+                                disabled={isMasterCompany}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={isMasterCompany ? "N/A - This is a master company" : "Select parent company"} />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="__none__">None</SelectItem>
+                                  {masterCompanies?.map((company) => (
+                                    <SelectItem key={company.id} value={company.id}>
+                                      {company.name} ({company.code})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            );
+                          }}
+                        />
+
+                        <StagedFormFieldWrapper
+                          name="location_name"
+                          label="Location Name"
+                          isEditing={stagedEdit.isEditing}
+                          viewRender={(value) => <ViewModeValue value={value} />}
+                          editRender={(field) => (
+                            <Input
+                              placeholder="e.g., Downtown Store, Warehouse #2"
+                              {...field}
+                              disabled={form.watch('is_master_company')}
+                            />
+                          )}
+                        />
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
