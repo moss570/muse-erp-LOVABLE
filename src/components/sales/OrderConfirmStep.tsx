@@ -103,14 +103,13 @@ export function OrderConfirmStep({
       if (orderError) throw orderError;
 
       // 4. Create sales order items
-      const orderItems = mappedItems.map((item, index) => ({
+      const orderItems = mappedItems.map((item) => ({
         sales_order_id: salesOrder.id,
         product_id: productSizeMap.get(item.mapped_product_size_id!) || '',
         product_size_id: item.mapped_product_size_id!,
         quantity_ordered: item.quantity,
         unit_price: item.unit_price || 0,
         line_total: item.quantity * (item.unit_price || 0),
-        sort_order: index + 1,
       }));
 
       const { error: itemsError } = await supabase
