@@ -77,7 +77,7 @@ serve(async (req) => {
       throw new Error('Missing required field: userId');
     }
 
-    // Create admin client
+    // Create admin client with service role to access auth schema
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -86,11 +86,17 @@ serve(async (req) => {
           autoRefreshToken: false,
           persistSession: false,
         },
+        db: {
+          schema: 'auth',
+        },
       }
     );
 
-    // Sign out the user from all sessions
-    const { error: signoutError } = await supabaseAdmin.auth.admin.signOut(userId);
+    // Delete all sessions for the user from the auth.sessions table
+    const { error: signoutError } = await supabaseAdmin
+      .from('sessions')
+      .delete()
+      .eq('user_id', userId);
 
     if (signoutError) {
       throw new Error(`Failed to sign out user: ${signoutError.message}`);
