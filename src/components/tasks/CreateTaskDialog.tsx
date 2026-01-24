@@ -57,12 +57,14 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultValues?: Partial<FormData>;
+  canEdit?: boolean;
 }
 
-const CreateTaskDialog = ({ open, onOpenChange, defaultValues }: CreateTaskDialogProps) => {
+const CreateTaskDialog = ({ open, onOpenChange, defaultValues, canEdit = true }: CreateTaskDialogProps) => {
   const [activeTab, setActiveTab] = useState('basic');
   const createTask = useCreateTask();
   const { data: categories } = useTaskCategories();
+  const isFieldsDisabled = !canEdit;
   
   const { data: departments } = useQuery({
     queryKey: ['departments'],

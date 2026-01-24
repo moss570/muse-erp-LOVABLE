@@ -16,10 +16,12 @@ interface ShiftTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectTemplate?: (template: any) => void;
+  canEdit?: boolean;
 }
 
-export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: ShiftTemplateDialogProps) {
+export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate, canEdit = true }: ShiftTemplateDialogProps) {
   const { templates, createTemplate, deleteTemplate } = useShiftTemplates();
+  const isFieldsDisabled = !canEdit;
   const { positions } = useJobPositions();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -87,7 +89,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
 
         {!showForm ? (
           <div className="space-y-4">
-            <Button onClick={() => setShowForm(true)} className="w-full">
+            <Button onClick={() => setShowForm(true)} className="w-full" disabled={isFieldsDisabled}>
               <Plus className="h-4 w-4 mr-2" />
               Create New Template
             </Button>
@@ -141,6 +143,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                         <Button
                           variant="ghost"
                           size="icon"
+                          disabled={isFieldsDisabled}
                           onClick={(e) => {
                             e.stopPropagation();
                             deleteTemplate.mutate(template.id);
@@ -166,6 +169,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Morning Shift"
                   required
+                  disabled={isFieldsDisabled}
                 />
               </div>
 
@@ -177,6 +181,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Optional description"
                   rows={2}
+                  disabled={isFieldsDisabled}
                 />
               </div>
 
@@ -188,6 +193,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                   value={formData.start_time}
                   onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                   required
+                  disabled={isFieldsDisabled}
                 />
               </div>
 
@@ -199,6 +205,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                   value={formData.end_time}
                   onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                   required
+                  disabled={isFieldsDisabled}
                 />
               </div>
 
@@ -210,6 +217,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                   value={formData.break_minutes}
                   onChange={(e) => setFormData({ ...formData, break_minutes: parseInt(e.target.value) || 0 })}
                   min={0}
+                  disabled={isFieldsDisabled}
                 />
               </div>
 
@@ -221,6 +229,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   className="h-10"
+                  disabled={isFieldsDisabled}
                 />
               </div>
 
@@ -229,6 +238,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                 <Select
                   value={formData.department_id}
                   onValueChange={(value) => setFormData({ ...formData, department_id: value })}
+                  disabled={isFieldsDisabled}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -248,6 +258,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
                 <Select
                   value={formData.job_position_id}
                   onValueChange={(value) => setFormData({ ...formData, job_position_id: value })}
+                  disabled={isFieldsDisabled}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select position" />
@@ -274,7 +285,7 @@ export function ShiftTemplateDialog({ open, onOpenChange, onSelectTemplate }: Sh
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createTemplate.isPending}>
+              <Button type="submit" disabled={createTemplate.isPending || isFieldsDisabled}>
                 {createTemplate.isPending ? 'Creating...' : 'Create Template'}
               </Button>
             </div>

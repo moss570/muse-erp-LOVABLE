@@ -3075,7 +3075,7 @@ function MaterialFormContent({
                         Enter the specification data from the manufacturer's COA
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setCoaLimits([...coaLimits, {
+                    <Button type="button" variant="outline" size="sm" disabled={isFieldsDisabled} onClick={() => setCoaLimits([...coaLimits, {
                       id: `new-${Date.now()}`,
                       parameter: '',
                       target_spec: '',
@@ -3111,7 +3111,7 @@ function MaterialFormContent({
                                 parameter: e.target.value
                               };
                               setCoaLimits(updated);
-                            }} placeholder="e.g., Moisture" className="h-8 text-sm" />
+                            }} placeholder="e.g., Moisture" className="h-8 text-sm" disabled={isFieldsDisabled} />
                             </td>
                             <td className="p-1">
                               <Input value={limit.target_spec} onChange={e => {
@@ -3121,7 +3121,7 @@ function MaterialFormContent({
                                 target_spec: e.target.value
                               };
                               setCoaLimits(updated);
-                            }} placeholder="e.g., ≤5%" className="h-8 text-sm" />
+                            }} placeholder="e.g., ≤5%" className="h-8 text-sm" disabled={isFieldsDisabled} />
                             </td>
                             <td className="p-1">
                               <Input value={limit.min} onChange={e => {
@@ -3131,7 +3131,7 @@ function MaterialFormContent({
                                 min: e.target.value
                               };
                               setCoaLimits(updated);
-                            }} placeholder="Min" className="h-8 text-sm" />
+                            }} placeholder="Min" className="h-8 text-sm" disabled={isFieldsDisabled} />
                             </td>
                             <td className="p-1">
                               <Input value={limit.max} onChange={e => {
@@ -3141,7 +3141,7 @@ function MaterialFormContent({
                                 max: e.target.value
                               };
                               setCoaLimits(updated);
-                            }} placeholder="Max" className="h-8 text-sm" />
+                            }} placeholder="Max" className="h-8 text-sm" disabled={isFieldsDisabled} />
                             </td>
                             <td className="p-1">
                               <Input value={limit.uom} onChange={e => {
@@ -3151,7 +3151,7 @@ function MaterialFormContent({
                                 uom: e.target.value
                               };
                               setCoaLimits(updated);
-                            }} placeholder="e.g., %" className="h-8 text-sm" />
+                            }} placeholder="e.g., %" className="h-8 text-sm" disabled={isFieldsDisabled} />
                             </td>
                             <td className="p-1">
                               <Input value={limit.method} onChange={e => {
@@ -3161,10 +3161,10 @@ function MaterialFormContent({
                                 method: e.target.value
                               };
                               setCoaLimits(updated);
-                            }} placeholder="Test method" className="h-8 text-sm" />
+                            }} placeholder="Test method" className="h-8 text-sm" disabled={isFieldsDisabled} />
                             </td>
                             <td className="p-1">
-                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setCoaLimits(coaLimits.filter((_, i) => i !== index))}>
+                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isFieldsDisabled} onClick={() => setCoaLimits(coaLimits.filter((_, i) => i !== index))}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </td>
@@ -3190,7 +3190,7 @@ function MaterialFormContent({
                         Different pack sizes/variants produced by the manufacturer
                       </p>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addUnitVariant}>
+                    <Button type="button" variant="outline" size="sm" disabled={isFieldsDisabled} onClick={addUnitVariant}>
                       <Plus className="h-4 w-4 mr-1" /> Add Variant
                     </Button>
                   </div>
@@ -3242,7 +3242,7 @@ function MaterialFormContent({
                                 Default Item Photo
                               </label>
                               <div className="flex items-center gap-2">
-                                <Input type="file" accept="image/*" onChange={e => {
+                                <Input type="file" accept="image/*" disabled={isFieldsDisabled} onChange={e => {
                                 const file = e.target.files?.[0];
                                 if (file) setDefaultPhotoFile(file);
                               }} className="flex-1" />
@@ -3365,13 +3365,13 @@ function MaterialFormContent({
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Code
                                     </label>
-                                    <Input value={uv.code} onChange={e => updateUnitVariant(index, 'code', e.target.value)} placeholder="Material code" className="font-mono" />
+                                    <Input value={uv.code} onChange={e => updateUnitVariant(index, 'code', e.target.value)} placeholder="Material code" className="font-mono" disabled={isFieldsDisabled} />
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       Manufacturer Item #
                                     </label>
-                                    <Input value={uv.item_number || ''} onChange={e => updateUnitVariant(index, 'item_number', e.target.value)} placeholder="Item number" />
+                                    <Input value={uv.item_number || ''} onChange={e => updateUnitVariant(index, 'item_number', e.target.value)} placeholder="Item number" disabled={isFieldsDisabled} />
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -3388,7 +3388,7 @@ function MaterialFormContent({
                                             </SelectItem>)}
                                         </SelectContent>
                                       </Select>
-                                      <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => {
+                                      <Button type="button" variant="outline" size="icon" className="shrink-0" disabled={isFieldsDisabled} onClick={() => {
                                     setPendingUnitField(index);
                                     setCreateUnitOpen(true);
                                   }} title="Create custom unit">
@@ -3400,7 +3400,7 @@ function MaterialFormContent({
                                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                                       {displayUnit ? `${displayUnit.code} per pack` : 'Conversion'}
                                     </label>
-                                    <Input type="number" step="0.01" value={uv.conversion_to_base} onChange={e => updateUnitVariant(index, 'conversion_to_base', parseFloat(e.target.value) || 0)} placeholder="e.g., 22.68" />
+                                    <Input type="number" step="0.01" value={uv.conversion_to_base} onChange={e => updateUnitVariant(index, 'conversion_to_base', parseFloat(e.target.value) || 0)} placeholder="e.g., 22.68" disabled={isFieldsDisabled} />
                                   </div>
                                 </div>
 
@@ -3411,7 +3411,7 @@ function MaterialFormContent({
                                       Product Photo
                                     </label>
                                     <div className="flex items-center gap-2">
-                                      <Input type="file" accept="image/*" onChange={e => handleUnitVariantPhotoUpload(index, e.target.files?.[0])} className="flex-1" />
+                                      <Input type="file" accept="image/*" disabled={isFieldsDisabled} onChange={e => handleUnitVariantPhotoUpload(index, e.target.files?.[0])} className="flex-1" />
                                       {uv.photo_file && <span className="text-xs text-green-600">New file selected</span>}
                                     </div>
                                     {/* Photo Dates */}
@@ -3456,6 +3456,7 @@ function MaterialFormContent({
                                         value={uv.par_level ?? ''} 
                                         onChange={e => updateUnitVariant(index, 'par_level', e.target.value ? parseFloat(e.target.value) : undefined)} 
                                         placeholder="Target qty" 
+                                        disabled={isFieldsDisabled}
                                       />
                                     </div>
                                     <div>
@@ -3468,6 +3469,7 @@ function MaterialFormContent({
                                         value={uv.reorder_point ?? ''} 
                                         onChange={e => updateUnitVariant(index, 'reorder_point', e.target.value ? parseFloat(e.target.value) : undefined)} 
                                         placeholder="Min qty" 
+                                        disabled={isFieldsDisabled}
                                       />
                                     </div>
                                     <div>
@@ -3480,12 +3482,13 @@ function MaterialFormContent({
                                         value={uv.max_stock_level ?? ''} 
                                         onChange={e => updateUnitVariant(index, 'max_stock_level', e.target.value ? parseFloat(e.target.value) : undefined)} 
                                         placeholder="Max qty" 
+                                        disabled={isFieldsDisabled}
                                       />
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0 mt-5" onClick={() => removeUnitVariant(index)}>
+                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0 mt-5" disabled={isFieldsDisabled} onClick={() => removeUnitVariant(index)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
