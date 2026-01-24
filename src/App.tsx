@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { RequireRole } from "@/components/auth/RequireRole";
 import Auth from "./pages/Auth";
 import UpdatePassword from "./pages/UpdatePassword";
 import Dashboard from "./pages/Dashboard";
@@ -162,44 +163,44 @@ const App = () => (
             <Route path="/purchasing/receiving/new" element={<AppLayout><Receiving /></AppLayout>} />
             <Route path="/purchasing/*" element={<AppLayout><div className="text-center py-12"><h2 className="text-2xl font-bold mb-2">Purchasing Module</h2><p className="text-muted-foreground">Coming soon</p></div></AppLayout>} />
             
-            {/* Settings routes */}
-            <Route path="/settings" element={<AppLayout><SettingsHub /></AppLayout>} />
-            <Route path="/settings/machines" element={<AppLayout><Machines /></AppLayout>} />
-            <Route path="/settings/locations" element={<AppLayout><Locations /></AppLayout>} />
-            <Route path="/settings/sub-categories" element={<AppLayout><SubCategories /></AppLayout>} />
-            <Route path="/settings/document-requirements" element={<AppLayout><DocumentRequirements /></AppLayout>} />
-            <Route path="/settings/units" element={<AppLayout><UnitsOfMeasure /></AppLayout>} />
-            <Route path="/settings/departments" element={<AppLayout><Departments /></AppLayout>} />
-            <Route path="/settings/material-names" element={<AppLayout><ListedMaterialNames /></AppLayout>} />
-            <Route path="/settings/material-name-categories" element={<AppLayout><MaterialNameCategories /></AppLayout>} />
-            <Route path="/settings/users" element={<AppLayout><UserManagement /></AppLayout>} />
-            <Route path="/settings/permissions" element={<AppLayout><RolePermissions /></AppLayout>} />
-            <Route path="/settings/import-export" element={<AppLayout><ImportExport /></AppLayout>} />
-            <Route path="/settings/templates" element={<AppLayout><DocumentTemplatesPage /></AppLayout>} />
-            <Route path="/settings/labels" element={<AppLayout><LabelTemplates /></AppLayout>} />
-            <Route path="/settings/company" element={<AppLayout><CompanySettings /></AppLayout>} />
-            <Route path="/settings/email" element={<AppLayout><EmailSettings /></AppLayout>} />
-            <Route path="/settings/fixed-costs" element={<AppLayout><FixedCosts /></AppLayout>} />
-            <Route path="/settings/gl-accounts" element={<AppLayout><GLAccounts /></AppLayout>} />
-            <Route path="/settings/period-close" element={<AppLayout><PeriodClose /></AppLayout>} />
+            {/* Settings routes - restricted to admin, manager, supervisor, hr */}
+            <Route path="/settings" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SettingsHub /></RequireRole></AppLayout>} />
+            <Route path="/settings/machines" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><Machines /></RequireRole></AppLayout>} />
+            <Route path="/settings/locations" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><Locations /></RequireRole></AppLayout>} />
+            <Route path="/settings/sub-categories" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SubCategories /></RequireRole></AppLayout>} />
+            <Route path="/settings/document-requirements" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><DocumentRequirements /></RequireRole></AppLayout>} />
+            <Route path="/settings/units" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><UnitsOfMeasure /></RequireRole></AppLayout>} />
+            <Route path="/settings/departments" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><Departments /></RequireRole></AppLayout>} />
+            <Route path="/settings/material-names" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ListedMaterialNames /></RequireRole></AppLayout>} />
+            <Route path="/settings/material-name-categories" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><MaterialNameCategories /></RequireRole></AppLayout>} />
+            <Route path="/settings/users" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><UserManagement /></RequireRole></AppLayout>} />
+            <Route path="/settings/permissions" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><RolePermissions /></RequireRole></AppLayout>} />
+            <Route path="/settings/import-export" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ImportExport /></RequireRole></AppLayout>} />
+            <Route path="/settings/templates" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><DocumentTemplatesPage /></RequireRole></AppLayout>} />
+            <Route path="/settings/labels" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><LabelTemplates /></RequireRole></AppLayout>} />
+            <Route path="/settings/company" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><CompanySettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/email" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><EmailSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/fixed-costs" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><FixedCosts /></RequireRole></AppLayout>} />
+            <Route path="/settings/gl-accounts" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><GLAccounts /></RequireRole></AppLayout>} />
+            <Route path="/settings/period-close" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PeriodClose /></RequireRole></AppLayout>} />
             <Route path="/settings/xero" element={<XeroConfiguration />} />
-            <Route path="/settings/category-gl-defaults" element={<AppLayout><CategoryGLDefaults /></AppLayout>} />
-            <Route path="/settings/product-categories" element={<AppLayout><ProductCategories /></AppLayout>} />
-            <Route path="/settings/packaging-indicators" element={<AppLayout><PackagingIndicators /></AppLayout>} />
-            <Route path="/settings/container-sizes" element={<AppLayout><ContainerSizes /></AppLayout>} />
-            <Route path="/settings/quality-tests" element={<AppLayout><QualityTests /></AppLayout>} />
-            <Route path="/settings/qa-approval-rules" element={<AppLayout><QAApprovalRules /></AppLayout>} />
-            <Route path="/settings/supplier-scoring" element={<AppLayout><SupplierScoringSettings /></AppLayout>} />
-            <Route path="/settings/complaints" element={<AppLayout><ComplaintSettings /></AppLayout>} />
-            <Route path="/settings/audits" element={<AppLayout><AuditSettings /></AppLayout>} />
-            <Route path="/settings/recall-contacts" element={<AppLayout><RecallContacts /></AppLayout>} />
-            <Route path="/settings/task-templates" element={<AppLayout><TaskTemplates /></AppLayout>} />
-            <Route path="/settings/production-lines" element={<AppLayout><ProductionLinesSettings /></AppLayout>} />
-            <Route path="/settings/production-stages" element={<AppLayout><ProductionStagesSettings /></AppLayout>} />
-            <Route path="/settings/daily-production-targets" element={<AppLayout><DailyProductionTargets /></AppLayout>} />
-            <Route path="/settings/price-sheets" element={<AppLayout><PriceSheets /></AppLayout>} />
-            <Route path="/settings/price-sheets/:id" element={<AppLayout><PriceSheetDetail /></AppLayout>} />
-            <Route path="/settings/*" element={<AppLayout><SettingsHub /></AppLayout>} />
+            <Route path="/settings/category-gl-defaults" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><CategoryGLDefaults /></RequireRole></AppLayout>} />
+            <Route path="/settings/product-categories" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductCategories /></RequireRole></AppLayout>} />
+            <Route path="/settings/packaging-indicators" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PackagingIndicators /></RequireRole></AppLayout>} />
+            <Route path="/settings/container-sizes" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ContainerSizes /></RequireRole></AppLayout>} />
+            <Route path="/settings/quality-tests" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><QualityTests /></RequireRole></AppLayout>} />
+            <Route path="/settings/qa-approval-rules" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><QAApprovalRules /></RequireRole></AppLayout>} />
+            <Route path="/settings/supplier-scoring" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SupplierScoringSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/complaints" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ComplaintSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/audits" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><AuditSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/recall-contacts" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><RecallContacts /></RequireRole></AppLayout>} />
+            <Route path="/settings/task-templates" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><TaskTemplates /></RequireRole></AppLayout>} />
+            <Route path="/settings/production-lines" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductionLinesSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/production-stages" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductionStagesSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/daily-production-targets" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><DailyProductionTargets /></RequireRole></AppLayout>} />
+            <Route path="/settings/price-sheets" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PriceSheets /></RequireRole></AppLayout>} />
+            <Route path="/settings/price-sheets/:id" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PriceSheetDetail /></RequireRole></AppLayout>} />
+            <Route path="/settings/*" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SettingsHub /></RequireRole></AppLayout>} />
             
             {/* Other placeholder routes */}
             {/* Sales routes */}
