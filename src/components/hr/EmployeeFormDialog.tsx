@@ -133,18 +133,7 @@ export function EmployeeFormDialog({
     },
   });
 
-  const { data: locations } = useQuery({
-    queryKey: ['locations-active'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('locations')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Location query removed - location_id preserved in data but not editable
 
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
@@ -442,30 +431,6 @@ export function EmployeeFormDialog({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="location_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select location" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {locations?.map((loc) => (
-                              <SelectItem key={loc.id} value={loc.id}>
-                                {loc.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="hire_date"
