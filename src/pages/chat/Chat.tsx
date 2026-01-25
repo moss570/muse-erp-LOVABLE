@@ -5,13 +5,13 @@ import { useChannels, useChannel, useMessages, useChatRealtime, useSendMessage, 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { 
   Hash, Lock, MessageSquare, Send, Plus, Search, 
-  Paperclip, MoreHorizontal, Pin,
+  Paperclip, Pin,
   Users, Settings
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import CreateChannelDialog from '@/components/chat/CreateChannelDialog';
 import NewDMDialog from '@/components/chat/NewDMDialog';
 import ChannelMembersDialog from '@/components/chat/ChannelMembersDialog';
+import MentionInput from '@/components/chat/MentionInput';
 
 const Chat = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -313,12 +314,12 @@ const Chat = () => {
                 <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
                   <Paperclip className="h-4 w-4" />
                 </Button>
-                <Input
+                <MentionInput
                   placeholder={`Message #${activeChannel.name}`}
                   value={message}
-                  onChange={(e) => handleTyping(e.target.value)}
+                  onChange={handleTyping}
                   onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                  className="flex-1"
+                  channelId={activeChannelId || undefined}
                 />
                 <Button onClick={handleSendMessage} disabled={!message.trim() || sendMessage.isPending}>
                   <Send className="h-4 w-4" />
