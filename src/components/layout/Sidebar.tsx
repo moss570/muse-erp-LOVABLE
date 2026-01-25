@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -28,6 +29,8 @@ import {
   MessageSquare,
   User,
   GraduationCap,
+  Search,
+  X,
 } from 'lucide-react';
 
 interface NavItem {
@@ -221,8 +224,54 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const { role, isAdmin, isManager } = useAuth();
+
+  const canAccess = (item: NavItem) => {
+    if (!item.requiredRole) return true;
+    if (item.requiredRole === 'admin') return isAdmin;
+    if (item.requiredRole === 'manager') return isManager;
+    return true;
+  };
+
+  // Filter nav items based on search query
+  const filteredNavItems = useMemo(() => {
+    const accessibleItems = navItems.filter(canAccess);
+    
+    if (!searchQuery.trim()) return accessibleItems;
+    
+    const query = searchQuery.toLowerCase();
+    
+    return accessibleItems
+      .map(item => {
+        // Check if parent title matches
+        const parentMatches = item.title.toLowerCase().includes(query);
+        
+        // Filter children that match
+        const matchingChildren = item.children?.filter(child =>
+          child.title.toLowerCase().includes(query)
+        );
+        
+        // Include if parent matches OR has matching children
+        if (parentMatches) {
+          return item; // Show all children when parent matches
+        } else if (matchingChildren && matchingChildren.length > 0) {
+          return { ...item, children: matchingChildren };
+        }
+        
+        return null;
+      })
+      .filter((item): item is NavItem => item !== null);
+  }, [searchQuery, isAdmin, isManager]);
+
+  // Auto-expand parents with matching children during search
+  const expandedDuringSearch = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return filteredNavItems
+      .filter(item => item.children && item.children.length > 0)
+      .map(item => item.title);
+  }, [searchQuery, filteredNavItems]);
 
   // Update expanded items when route changes to keep active parent menu open
   useEffect(() => {
@@ -253,11 +302,12 @@ export function Sidebar() {
     );
   };
 
-  const canAccess = (item: NavItem) => {
-    if (!item.requiredRole) return true;
-    if (item.requiredRole === 'admin') return isAdmin;
-    if (item.requiredRole === 'manager') return isManager;
-    return true;
+  // Determine if an item should be expanded (either manually or during search)
+  const isItemExpanded = (title: string) => {
+    if (searchQuery.trim()) {
+      return expandedDuringSearch.includes(title);
+    }
+    return expandedItems.includes(title);
   };
 
   return (
@@ -290,14 +340,43 @@ export function Sidebar() {
         </Button>
       </div>
 
+      {/* Search Input */}
+      {!collapsed && (
+        <div className="px-3 py-2 border-b">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search menus..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-8 h-9 text-sm"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0.5 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
         <nav className="space-y-1 px-2">
-          {navItems.filter(canAccess).map((item) => {
+          {filteredNavItems.length === 0 && searchQuery.trim() && (
+            <p className="text-sm text-muted-foreground text-center py-4">No matching menus</p>
+          )}
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href ||
               location.pathname.startsWith(item.href + '/');
-            const isExpanded = expandedItems.includes(item.title);
+            const isExpanded = isItemExpanded(item.title);
             const hasChildren = item.children && item.children.length > 0;
 
             return (
