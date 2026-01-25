@@ -8,6 +8,7 @@ export interface UnfulfilledItem {
   product_code: string;
   product_description: string;
   product_id: string | null;
+  size_type: string | null;
   total_quantity_needed: number;
   total_available_stock: number;
   shortage_quantity: number;
@@ -108,6 +109,7 @@ export function useUnfulfilledSalesOrders() {
           product_code: row.product_code || "N/A",
           product_description: row.product_description || "Unknown",
           product_id: row.product_id,
+          size_type: row.size_type || null,
           total_quantity_needed: row.total_quantity_needed || 0,
           total_available_stock: row.total_available_stock || 0,
           shortage_quantity: row.shortage_quantity || 0,
