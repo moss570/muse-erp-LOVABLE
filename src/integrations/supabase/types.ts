@@ -16352,6 +16352,7 @@ export type Database = {
           product_size_id: string | null
           sales_order_numbers: string[] | null
           shortage_quantity: number | null
+          size_type: string | null
           total_available_stock: number | null
           total_quantity_needed: number | null
         }

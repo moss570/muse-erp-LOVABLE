@@ -211,7 +211,7 @@ export function ShopFloorPriorityDashboard({
                           {item.product_code}
                         </TableCell>
                         <TableCell className="text-right font-bold">
-                          {item.shortage_quantity} CS
+                          {item.shortage_quantity} {(item as any).size_type === 'case' ? 'CS' : 'EA'}
                         </TableCell>
                         <TableCell>
                           {item.earliest_due_date ? (

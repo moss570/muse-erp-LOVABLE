@@ -94,7 +94,7 @@ const customerSchema = z.object({
   country: z.string().default('USA'),
   payment_terms: z.string().optional(),
   credit_limit: z.coerce.number().min(0).optional(),
-  tax_exempt: z.boolean().default(false),
+  tax_exempt: z.boolean().default(true), // Default to tax exempt for wholesale
   tax_id: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(true),
@@ -154,7 +154,7 @@ function CustomerFormDialog({
       country: 'USA',
       payment_terms: '',
       credit_limit: undefined,
-      tax_exempt: false,
+      tax_exempt: true, // Default to tax exempt for wholesale
       tax_id: '',
       notes: '',
       is_active: true,

@@ -265,6 +265,7 @@ export function OrderTab({ order }: { order: any }) {
               <TableRow>
                 <TableHead>SKU</TableHead>
                 <TableHead>Product</TableHead>
+                <TableHead>UOM</TableHead>
                 <TableHead className="text-right">Qty Ordered</TableHead>
                 <TableHead className="text-right">Unit Price</TableHead>
                 <TableHead className="text-right">Line Total</TableHead>
@@ -274,40 +275,49 @@ export function OrderTab({ order }: { order: any }) {
             <TableBody>
               {order.sales_order_items?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isDraft ? 6 : 5} className="text-center py-8">
+                  <TableCell colSpan={isDraft ? 7 : 6} className="text-center py-8">
                     No items added yet. Click "Add Product" to get started.
                   </TableCell>
                 </TableRow>
               ) : (
-                order.sales_order_items?.map((item: any) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.product_sizes?.sku || item.products?.sku}
-                    </TableCell>
-                    <TableCell>
-                      {item.products?.name}
-                      {item.product_sizes?.size_name && (
-                        <span className="text-muted-foreground ml-1">({item.product_sizes.size_name})</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">{item.quantity_ordered}</TableCell>
-                    <TableCell className="text-right">${item.unit_price.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${item.line_total.toFixed(2)}
-                    </TableCell>
-                    {isDraft && (
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteItemMutation.mutate(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                order.sales_order_items?.map((item: any) => {
+                  // Determine UOM display based on size_type
+                  const sizeType = item.product_sizes?.size_type;
+                  const uomDisplay = sizeType === 'case' ? 'CASE' : sizeType === 'unit' ? 'EACH' : sizeType?.toUpperCase() || '-';
+                  
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        {item.product_sizes?.sku || item.products?.sku}
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                      <TableCell>
+                        {item.products?.name}
+                        {item.product_sizes?.size_name && (
+                          <span className="text-muted-foreground ml-1">({item.product_sizes.size_name})</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium text-muted-foreground">
+                        {uomDisplay}
+                      </TableCell>
+                      <TableCell className="text-right">{item.quantity_ordered}</TableCell>
+                      <TableCell className="text-right">${item.unit_price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        ${item.line_total.toFixed(2)}
+                      </TableCell>
+                      {isDraft && (
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => deleteItemMutation.mutate(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
