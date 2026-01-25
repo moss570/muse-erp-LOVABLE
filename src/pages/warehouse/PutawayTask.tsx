@@ -72,7 +72,7 @@ const PutawayTask = () => {
           transactions:putaway_transactions(
             id,
             quantity,
-            location:locations(id, name, zone)
+            location:locations!putaway_transactions_location_id_fkey(id, name, zone)
           )
         `)
         .eq('id', taskId)
