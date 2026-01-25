@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { FieldSaveIndicator } from './FieldSaveIndicator';
 import { useAutoSaveContext } from './AutoSaveProvider';
 import { cn } from '@/lib/utils';
 
-interface AutoSaveInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onBlur' | 'value'> {
+interface AutoSaveInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onBlur' | 'onFocus' | 'value'> {
   name: string;
   value: string;
   onValueChange?: (value: string) => void;
@@ -15,6 +15,8 @@ interface AutoSaveInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
 
 /**
  * Input that auto-saves on blur.
+ * Uses a ref to track the original value when focus starts to ensure
+ * changes are detected even when parent state updates synchronously.
  */
 export function AutoSaveInput({
   name,
@@ -28,11 +30,18 @@ export function AutoSaveInput({
 }: AutoSaveInputProps) {
   const { queueSave, savingFields, savedFields, errors } = useAutoSaveContext();
   const [localValue, setLocalValue] = useState(value);
+  // Track the value when focus started to compare against on blur
+  const originalValueRef = useRef(value);
 
-  // Sync local value when prop changes
+  // Sync local value when prop changes (e.g., from external updates)
   React.useEffect(() => {
     setLocalValue(value);
   }, [value]);
+
+  const handleFocus = useCallback(() => {
+    // Capture the current value when user starts editing
+    originalValueRef.current = localValue;
+  }, [localValue]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -41,11 +50,14 @@ export function AutoSaveInput({
   }, [onValueChange]);
 
   const handleBlur = useCallback(() => {
-    if (localValue !== value) {
+    // Compare against the original value captured on focus
+    if (localValue !== originalValueRef.current) {
       const valueToSave = transformValue ? transformValue(localValue) : localValue;
       queueSave(name, valueToSave || null);
+      // Update original ref after queuing save
+      originalValueRef.current = localValue;
     }
-  }, [localValue, value, name, queueSave, transformValue]);
+  }, [localValue, name, queueSave, transformValue]);
 
   const isSaving = savingFields.has(name);
   const isSaved = savedFields.has(name);
@@ -57,6 +69,7 @@ export function AutoSaveInput({
         {...props}
         value={localValue}
         onChange={handleChange}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         className={cn(
           error && "border-destructive focus-visible:ring-destructive",
