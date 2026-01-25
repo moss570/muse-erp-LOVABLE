@@ -159,6 +159,21 @@ export function useApprovalAction() {
 
         if (updateError) throw updateError;
 
+        // When approving, also release any pending inventory holds
+        if (action === 'Approved') {
+          await supabase
+            .from('inventory_holds')
+            .update({
+              status: 'released',
+              resolved_at: new Date().toISOString(),
+              resolved_by: user?.id,
+              resolution_type: 'release',
+              resolution_notes: notes || 'Released via QA Dashboard approval'
+            })
+            .eq('receiving_lot_id', recordId)
+            .in('status', ['pending', 'under_review']);
+        }
+
         // Keep the receiving line item in sync (Receiving screen renders inspection_status)
         if (action === 'Approved') {
           await supabase
@@ -289,6 +304,7 @@ export function useApprovalAction() {
         queryClient.invalidateQueries({ queryKey: ['receiving-session'] });
         queryClient.invalidateQueries({ queryKey: ['receiving-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['receiving-lots'] });
+        queryClient.invalidateQueries({ queryKey: ['inventory-holds'] });
       }
 
       toast.success(`Item ${variables.action.toLowerCase()} successfully`);
