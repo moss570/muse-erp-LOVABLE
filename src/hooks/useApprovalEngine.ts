@@ -401,12 +401,32 @@ export function useMaterialApprovalCheck(materialId: string) {
   });
 }
 
-// Hook to get recent approval activity
+// Extended type for approval activity with entity details
+export interface ApprovalActivityLog {
+  id: string;
+  related_record_id: string;
+  related_table_name: string;
+  action: string;
+  previous_status: string | null;
+  new_status: string | null;
+  user_id: string | null;
+  timestamp: string;
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  profiles?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+  entity_name?: string;
+  lot_number?: string;
+}
+
+// Hook to get recent approval activity with entity details
 export function useRecentApprovalActivity(limit = 10) {
   return useQuery({
     queryKey: ['recent-approval-activity', limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: logs, error } = await supabase
         .from('approval_logs')
         .select(`
           *,
@@ -419,7 +439,101 @@ export function useRecentApprovalActivity(limit = 10) {
         .limit(limit);
 
       if (error) throw error;
-      return data as ApprovalLog[];
+      if (!logs || logs.length === 0) return [] as ApprovalActivityLog[];
+
+      // Fetch entity details for each log
+      const enrichedLogs = await Promise.all(
+        logs.map(async (log) => {
+          const enrichedLog: ApprovalActivityLog = { 
+            ...log,
+            metadata: (log.metadata as Record<string, unknown>) || {},
+          };
+
+          try {
+            switch (log.related_table_name) {
+              case 'materials': {
+                const { data } = await supabase
+                  .from('materials')
+                  .select('name, code')
+                  .eq('id', log.related_record_id)
+                  .single();
+                if (data) {
+                  enrichedLog.entity_name = data.name;
+                  enrichedLog.lot_number = data.code;
+                }
+                break;
+              }
+              case 'products': {
+                const { data } = await supabase
+                  .from('products')
+                  .select('name, sku')
+                  .eq('id', log.related_record_id)
+                  .single();
+                if (data) {
+                  enrichedLog.entity_name = data.name;
+                  enrichedLog.lot_number = data.sku;
+                }
+                break;
+              }
+              case 'suppliers': {
+                const { data } = await supabase
+                  .from('suppliers')
+                  .select('name, code')
+                  .eq('id', log.related_record_id)
+                  .single();
+                if (data) {
+                  enrichedLog.entity_name = data.name;
+                  enrichedLog.lot_number = data.code;
+                }
+                break;
+              }
+              case 'production_lots': {
+                const { data } = await supabase
+                  .from('production_lots')
+                  .select('lot_number, products(name)')
+                  .eq('id', log.related_record_id)
+                  .single();
+                if (data) {
+                  enrichedLog.entity_name = (data.products as any)?.name;
+                  enrichedLog.lot_number = data.lot_number;
+                }
+                break;
+              }
+              case 'receiving_lots': {
+                const { data } = await supabase
+                  .from('receiving_lots')
+                  .select('internal_lot_number, materials(name)')
+                  .eq('id', log.related_record_id)
+                  .single();
+                if (data) {
+                  enrichedLog.entity_name = (data.materials as any)?.name;
+                  enrichedLog.lot_number = data.internal_lot_number;
+                }
+                break;
+              }
+              case 'po_receiving_sessions': {
+                const { data } = await supabase
+                  .from('po_receiving_sessions')
+                  .select('receiving_number, purchase_orders:purchase_order_id(po_number)')
+                  .eq('id', log.related_record_id)
+                  .single();
+                if (data) {
+                  enrichedLog.entity_name = `PO: ${(data.purchase_orders as any)?.po_number || 'N/A'}`;
+                  enrichedLog.lot_number = data.receiving_number;
+                }
+                break;
+              }
+            }
+          } catch (e) {
+            // If entity lookup fails, continue without enrichment
+            console.warn('Failed to enrich approval log:', e);
+          }
+
+          return enrichedLog;
+        })
+      );
+
+      return enrichedLogs;
     },
   });
 }
