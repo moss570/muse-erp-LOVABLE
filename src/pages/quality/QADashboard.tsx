@@ -412,25 +412,53 @@ export default function QADashboard() {
               <p className="text-center py-4 text-muted-foreground">No recent activity</p>
             ) : (
               <div className="space-y-3">
-                {recentActivity.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <div className="flex items-center gap-3">
-                      <ApprovalStatusBadge status={log.new_status || 'Draft'} size="sm" showIcon={false} />
-                      <div>
-                        <span className="font-medium">{log.action}</span>
-                        <span className="text-muted-foreground mx-2">•</span>
-                        <span className="text-sm text-muted-foreground capitalize">
-                          {log.related_table_name.replace(/_/g, ' ')}
-                        </span>
+                {recentActivity.map((log) => {
+                  const config = tableConfig[log.related_table_name];
+                  const handleClick = () => {
+                    if (config) {
+                      const url = config.paramName 
+                        ? `${config.route}?${config.paramName}=${log.related_record_id}`
+                        : `${config.route}/${log.related_record_id}`;
+                      navigate(url);
+                    }
+                  };
+
+                  return (
+                    <div 
+                      key={log.id} 
+                      className={cn(
+                        "flex items-center justify-between py-3 px-3 border-b last:border-0 rounded-md -mx-3",
+                        config && "hover:bg-muted/50 cursor-pointer transition-colors"
+                      )}
+                      onClick={config ? handleClick : undefined}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <ApprovalStatusBadge status={log.new_status || 'Draft'} size="sm" showIcon={false} />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium">{log.action}</span>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-sm text-muted-foreground capitalize">
+                              {config?.label || log.related_table_name.replace(/_/g, ' ')}
+                            </span>
+                            {config && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
+                          </div>
+                          {(log.entity_name || log.lot_number) && (
+                            <div className="text-sm text-muted-foreground mt-0.5 truncate">
+                              {log.entity_name && <span className="font-medium text-foreground">{log.entity_name}</span>}
+                              {log.entity_name && log.lot_number && <span className="mx-1.5">•</span>}
+                              {log.lot_number && <span>#{log.lot_number}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground text-right shrink-0 ml-4">
+                        <div>{log.profiles?.first_name} {log.profiles?.last_name}</div>
+                        <div className="text-xs">{format(new Date(log.timestamp), 'MMM d, h:mm a')}</div>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {log.profiles?.first_name} {log.profiles?.last_name}
-                      <span className="mx-2">•</span>
-                      {format(new Date(log.timestamp), 'MMM d, h:mm a')}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           )}
         </CardContent>
