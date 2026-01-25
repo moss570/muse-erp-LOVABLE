@@ -136,6 +136,20 @@ export function useApprovalAction() {
           updateData.status = 'available';
         } else if (action === 'Rejected') {
           updateData.status = 'hold';
+          updateData.hold_status = 'on_hold';
+          
+          // Create an inventory_holds entry so it appears in the Hold Log
+          await supabase
+            .from('inventory_holds')
+            .insert({
+              receiving_lot_id: recordId,
+              hold_reason_code_id: '786d820c-a7b9-4a67-9393-3d905a85a1d8', // Visual Quality Concern
+              hold_reason_description: notes || 'QA Review rejected',
+              auto_hold: true,
+              status: 'pending',
+              priority: 'high',
+              hold_placed_by: user?.id
+            });
         }
 
         const { error: updateError } = await supabase

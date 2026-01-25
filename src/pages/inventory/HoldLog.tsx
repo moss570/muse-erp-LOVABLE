@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileDown, Printer, Search, AlertCircle, Clock, CheckCircle2, Plus } from "lucide-react";
+import { AlertTriangle, FileDown, Printer, Search, AlertCircle, Clock, CheckCircle2, Plus, Tag } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { HoldDetailDialog } from "@/components/inventory/HoldDetailDialog";
 import { HoldResolutionDialog } from "@/components/inventory/HoldResolutionDialog";
 import { ManualHoldDialog } from "@/components/inventory/ManualHoldDialog";
+import { HoldLabelPrint } from "@/components/inventory/HoldLabelPrint";
 import { cn } from "@/lib/utils";
 
 type HoldStatus = 'pending' | 'under_review' | 'released' | 'rejected' | 'disposed' | 'returned';
@@ -55,6 +56,8 @@ const HoldLog = () => {
   const [showResolutionDialog, setShowResolutionDialog] = useState(false);
   const [resolutionType, setResolutionType] = useState<'release' | 'reject'>('release');
   const [showManualHoldDialog, setShowManualHoldDialog] = useState(false);
+  const [showLabelDialog, setShowLabelDialog] = useState(false);
+  const [labelHold, setLabelHold] = useState<HoldEntry | null>(null);
 
   // Fetch hold log entries with related data
   const { data: holdEntries, isLoading, refetch } = useQuery({
@@ -411,6 +414,21 @@ const HoldLog = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        {/* Print Label Button - always visible for active holds */}
+                        {(hold.status === 'pending' || hold.status === 'under_review') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLabelHold(hold);
+                              setShowLabelDialog(true);
+                            }}
+                            title="Print Hold Label"
+                          >
+                            <Tag className="h-4 w-4" />
+                          </Button>
+                        )}
                         {(hold.status === 'pending' || hold.status === 'under_review') && (
                           <>
                             <Button
@@ -472,6 +490,16 @@ const HoldLog = () => {
             setShowManualHoldDialog(false);
             refetch();
           }}
+        />
+      )}
+
+      {showLabelDialog && labelHold && (
+        <HoldLabelPrint
+          open={showLabelDialog}
+          onOpenChange={setShowLabelDialog}
+          materialName={labelHold.receiving_lot?.material?.name || 'Unknown Material'}
+          lotNumber={labelHold.receiving_lot?.internal_lot_number || ''}
+          holdReason={labelHold.reason?.name || labelHold.hold_reason_description || undefined}
         />
       )}
     </div>
