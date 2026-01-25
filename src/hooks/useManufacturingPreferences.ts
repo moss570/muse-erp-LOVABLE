@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface ManufacturingPreferences {
   trackTimeByProduction: boolean;
+  requireStagePhotoEvidence: boolean;
 }
 
 export function useManufacturingPreferences() {
@@ -12,7 +13,7 @@ export function useManufacturingPreferences() {
       const { data, error } = await supabase
         .from('inventory_preferences')
         .select('preference_key, preference_value')
-        .in('preference_key', ['track_time_by_production']);
+        .in('preference_key', ['track_time_by_production', 'require_stage_photo_evidence']);
 
       if (error) {
         console.error('Error fetching manufacturing preferences:', error);
@@ -26,6 +27,7 @@ export function useManufacturingPreferences() {
 
       return {
         trackTimeByProduction: getValue('track_time_by_production') === 'true',
+        requireStagePhotoEvidence: getValue('require_stage_photo_evidence') === 'true',
       };
     },
   });
