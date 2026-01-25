@@ -136,41 +136,74 @@ serve(async (req) => {
       .eq('email_type', 'employee_welcome')
       .single();
 
+    // Fetch email template
+    const { data: emailTemplate } = await supabaseAdmin
+      .from('email_templates')
+      .select('subject, heading, body_text, button_text, footer_text')
+      .eq('email_type', 'employee_welcome')
+      .eq('is_active', true)
+      .single();
+
     const companyName = companySettings?.company_name || 'Our Company';
     const supportEmail = companySettings?.email || 'support@example.com';
 
     const fromName = emailSettings?.from_name || companyName;
     const fromEmail = emailSettings?.from_email || 'noreply@musescoop.com';
 
+    // Use template values or defaults
+    const subject = (emailTemplate?.subject || (isResend
+      ? `Reminder: Set Up Your {{COMPANY_NAME}} Account`
+      : `Welcome to {{COMPANY_NAME}} - Set Up Your Account`))
+      .replace(/\{\{COMPANY_NAME\}\}/g, companyName);
+    
+    const heading = (emailTemplate?.heading || (isResend ? 'Account Setup Reminder' : 'Welcome to the Team!'))
+      .replace(/\{\{COMPANY_NAME\}\}/g, companyName)
+      .replace(/\{\{FIRST_NAME\}\}/g, firstName || 'there');
+    
+    const bodyText = (emailTemplate?.body_text || (isResend
+      ? `This is a reminder that your {{COMPANY_NAME}} account is ready and waiting for you. Please set up your password to access the system.`
+      : `Your account has been created for {{COMPANY_NAME}}'s management system. To get started, please set your password using the button below.`))
+      .replace(/\{\{COMPANY_NAME\}\}/g, companyName)
+      .replace(/\{\{FIRST_NAME\}\}/g, firstName || 'there');
+    
+    const buttonText = emailTemplate?.button_text || 'Set My Password';
+    const footerText = (emailTemplate?.footer_text || 'This link will expire in 24 hours for security reasons.')
+      .replace(/\{\{COMPANY_NAME\}\}/g, companyName);
+
     // Send email via Resend
     const resend = new Resend(resendApiKey);
-
-    const emailSubject = isResend
-      ? `Reminder: Set Up Your ${companyName} Account`
-      : `Welcome to ${companyName} - Set Up Your Account`;
 
     const emailResponse = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: [email],
       reply_to: emailSettings?.reply_to || supportEmail,
-      subject: emailSubject,
+      subject: subject,
       html: `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
+          <!--[if mso]>
+          <noscript>
+            <xml>
+              <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+              </o:OfficeDocumentSettings>
+            </xml>
+          </noscript>
+          <![endif]-->
         </head>
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 40px 20px;">
             <tr>
               <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                   <!-- Header -->
                   <tr>
                     <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #eee;">
                       <h1 style="margin: 0; color: #1a1a1a; font-size: 24px; font-weight: 600;">
-                        ${isResend ? 'Account Setup Reminder' : 'Welcome to ' + companyName + '!'}
+                        ${heading}
                       </h1>
                     </td>
                   </tr>
@@ -183,30 +216,43 @@ serve(async (req) => {
                       </p>
                       
                       <p style="margin: 0 0 20px; color: #333; font-size: 16px; line-height: 1.6;">
-                        ${isResend
-                          ? `This is a reminder that your ${companyName} account is ready and waiting for you. Please set up your password to access the system.`
-                          : `Your account has been created for ${companyName}'s management system. To get started, please set your password using the button below.`
-                        }
+                        ${bodyText}
                       </p>
                       
-                      <!-- CTA Button -->
-                      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                      <!-- CTA Button - Table-based for maximum email client compatibility -->
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
                         <tr>
                           <td align="center">
+                            <!--[if mso]>
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${resetUrl}" style="height:50px;v-text-anchor:middle;width:200px;" arcsize="12%" strokecolor="#2563eb" fillcolor="#2563eb">
+                              <w:anchorlock/>
+                              <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">${buttonText}</center>
+                            </v:roundrect>
+                            <![endif]-->
+                            <!--[if !mso]><!-->
                             <a href="${resetUrl}" 
-                               style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
-                              Set My Password
+                               style="background-color: #2563eb; border-radius: 6px; color: #ffffff; display: inline-block; font-size: 16px; font-weight: 600; padding: 14px 32px; text-decoration: none; text-align: center;">
+                              ${buttonText}
                             </a>
+                            <!--<![endif]-->
                           </td>
                         </tr>
                       </table>
+                      
+                      <!-- Fallback link for email clients that don't render the button -->
+                      <p style="margin: 20px 0 15px; color: #666; font-size: 13px; line-height: 1.6; text-align: center;">
+                        If the button above doesn't work, copy and paste this link into your browser:
+                      </p>
+                      <p style="margin: 0 0 20px; color: #2563eb; font-size: 12px; line-height: 1.6; text-align: center; word-break: break-all;">
+                        <a href="${resetUrl}" style="color: #2563eb;">${resetUrl}</a>
+                      </p>
                       
                       <p style="margin: 0 0 15px; color: #666; font-size: 14px; line-height: 1.6;">
                         <strong>Your login email:</strong> ${email}
                       </p>
                       
                       <p style="margin: 0 0 15px; color: #666; font-size: 14px; line-height: 1.6;">
-                        This link will expire in 24 hours for security reasons. If you need a new link, please contact your HR administrator.
+                        ${footerText}
                       </p>
                       
                       <p style="margin: 20px 0 0; color: #999; font-size: 13px; line-height: 1.6;">

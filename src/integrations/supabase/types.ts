@@ -3160,6 +3160,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          body_text: string
+          button_text: string | null
+          created_at: string | null
+          email_type: string
+          footer_text: string | null
+          heading: string | null
+          id: string
+          is_active: boolean | null
+          subject: string
+          template_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          body_text: string
+          button_text?: string | null
+          created_at?: string | null
+          email_type: string
+          footer_text?: string | null
+          heading?: string | null
+          id?: string
+          is_active?: boolean | null
+          subject: string
+          template_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          body_text?: string
+          button_text?: string | null
+          created_at?: string | null
+          email_type?: string
+          footer_text?: string | null
+          heading?: string | null
+          id?: string
+          is_active?: boolean | null
+          subject?: string
+          template_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       employee_account_invitations: {
         Row: {
           created_at: string
