@@ -27,37 +27,44 @@ export function HoldLabelPrint({
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open && barcodeRef.current && lotNumber) {
-      try {
-        JsBarcode(barcodeRef.current, lotNumber, {
-          format: "CODE128",
-          width: 2,
-          height: 40,
-          displayValue: true,
-          fontSize: 12,
-          margin: 5,
-          textMargin: 3
-        });
-      } catch (error) {
-        console.error("Error generating barcode:", error);
+    // Add a small delay to ensure DOM is fully rendered after dialog opens
+    if (!open) return;
+    
+    const timer = setTimeout(() => {
+      if (barcodeRef.current && lotNumber) {
+        try {
+          JsBarcode(barcodeRef.current, lotNumber, {
+            format: "CODE128",
+            width: 2,
+            height: 40,
+            displayValue: true,
+            fontSize: 12,
+            margin: 5,
+            textMargin: 3
+          });
+        } catch (error) {
+          console.error("Error generating barcode:", error);
+        }
       }
-    }
 
-    if (open && internalBarcodeRef.current && internalLotNumber) {
-      try {
-        JsBarcode(internalBarcodeRef.current, internalLotNumber, {
-          format: "CODE128",
-          width: 2,
-          height: 40,
-          displayValue: true,
-          fontSize: 12,
-          margin: 5,
-          textMargin: 3
-        });
-      } catch (error) {
-        console.error("Error generating internal barcode:", error);
+      if (internalBarcodeRef.current && internalLotNumber) {
+        try {
+          JsBarcode(internalBarcodeRef.current, internalLotNumber, {
+            format: "CODE128",
+            width: 2,
+            height: 40,
+            displayValue: true,
+            fontSize: 12,
+            margin: 5,
+            textMargin: 3
+          });
+        } catch (error) {
+          console.error("Error generating internal barcode:", error);
+        }
       }
-    }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [open, lotNumber, internalLotNumber]);
 
   const handlePrint = () => {
