@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Package, MapPin, Calendar } from "lucide-react";
+import { Loader2, Package, MapPin, ShoppingCart, ExternalLink } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
 interface ProductInventoryTabProps {
@@ -21,6 +21,23 @@ interface ProductionLot {
   machine: {
     id: string;
     name: string;
+  } | null;
+}
+
+interface OpenSalesOrderItem {
+  id: string;
+  quantity_ordered: number;
+  product_size: {
+    sku: string | null;
+  } | null;
+  sales_order: {
+    id: string;
+    order_number: string;
+    status: string;
+    requested_delivery_date: string | null;
+    customer: {
+      name: string;
+    } | null;
   } | null;
 }
 
@@ -46,6 +63,36 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
 
       if (error) throw error;
       return data as unknown as ProductionLot[];
+    },
+  });
+
+  // Fetch open sales orders containing this product
+  const { data: openOrders = [], isLoading: isLoadingOrders } = useQuery({
+    queryKey: ["product-open-orders", productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sales_order_items")
+        .select(`
+          id,
+          quantity_ordered,
+          product_size:product_sizes(sku),
+          sales_order:sales_orders(
+            id,
+            order_number,
+            status,
+            requested_delivery_date,
+            customer:customers(name)
+          )
+        `)
+        .eq("product_id", productId);
+
+      if (error) throw error;
+      // Filter to only include open orders (not cancelled, completed, or delivered)
+      const filtered = (data || []).filter(item => {
+        const status = (item.sales_order as any)?.status;
+        return status && !['cancelled', 'completed', 'delivered'].includes(status);
+      });
+      return filtered as unknown as OpenSalesOrderItem[];
     },
   });
 
@@ -105,6 +152,10 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
     }
   };
 
+  const handleOpenOrder = (orderId: string) => {
+    window.open(`/sales/orders/${orderId}`, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -156,22 +207,89 @@ export function ProductInventoryTab({ productId }: ProductInventoryTabProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Machines
+              Open Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-bold">
-                {Object.keys(byMachine).length}
+              <ShoppingCart className="h-4 w-4 text-blue-500" />
+              <span className="text-2xl font-bold text-blue-600">
+                {openOrders.length}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              production machines
+              pending sales orders
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Open Sales Orders */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Open Sales Orders
+          </CardTitle>
+          <CardDescription>
+            Active orders containing this product
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>SO #</TableHead>
+                <TableHead>Customer Name</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead className="text-right">Qty Ordered</TableHead>
+                <TableHead>Expected Delivery</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {openOrders.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <button
+                      onClick={() => handleOpenOrder(item.sales_order?.id || '')}
+                      className="flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                      {item.sales_order?.order_number}
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </TableCell>
+                  <TableCell>{item.sales_order?.customer?.name || '-'}</TableCell>
+                  <TableCell>
+                    {item.product_size?.sku ? (
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                        {item.product_size.sku}
+                      </code>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {item.quantity_ordered?.toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {item.sales_order?.requested_delivery_date
+                      ? format(new Date(item.sales_order.requested_delivery_date), "MMM d, yyyy")
+                      : <span className="text-muted-foreground">Not set</span>
+                    }
+                  </TableCell>
+                </TableRow>
+              ))}
+              {openOrders.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    No open sales orders for this product
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* By Machine */}
       <Card>
