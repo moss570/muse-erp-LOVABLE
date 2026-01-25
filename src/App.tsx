@@ -55,6 +55,7 @@ import PriceSheetDetail from "./pages/settings/PriceSheetDetail";
 import TeamRoster from "./pages/hr/TeamRoster";
 import EmployeeDetail from "./pages/hr/EmployeeDetail";
 import Schedule from "./pages/hr/Schedule";
+import Timesheets from "./pages/hr/Timesheets";
 import FixedCosts from "./pages/settings/FixedCosts";
 import GLAccounts from "./pages/settings/GLAccounts";
 import PeriodClose from "./pages/settings/PeriodClose";
@@ -320,6 +321,7 @@ const App = () => (
             <Route path="/hr/team" element={<AppLayout><TeamRoster /></AppLayout>} />
             <Route path="/hr/team/:id" element={<AppLayout><EmployeeDetail /></AppLayout>} />
             <Route path="/employees/directory" element={<AppLayout><TeamRoster /></AppLayout>} />
+            <Route path="/employees/timesheets" element={<AppLayout><Timesheets /></AppLayout>} />
             <Route path="/employees/*" element={<AppLayout><TeamRoster /></AppLayout>} />
             <Route path="/reports/profit-loss" element={<AppLayout><ProfitLoss /></AppLayout>} />
             <Route path="/reports/unfulfilled-acknowledgments" element={<AppLayout><UnfulfilledAcknowledgments /></AppLayout>} />
