@@ -6,21 +6,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import BarcodeScanner from "@/components/shared/BarcodeScanner";
 import { 
   Package, 
-  QrCode, 
   MapPin, 
   CheckCircle, 
   AlertTriangle,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  ArrowRight,
+  RotateCcw
 } from "lucide-react";
 import { differenceInHours, isPast } from "date-fns";
+
+type WizardStep = 'source' | 'lot' | 'quantity' | 'destination' | 'confirm';
+
+const STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
+  { key: 'source', label: 'Source', icon: <MapPin className="h-4 w-4" /> },
+  { key: 'lot', label: 'Lot', icon: <Package className="h-4 w-4" /> },
+  { key: 'quantity', label: 'Quantity', icon: <Package className="h-4 w-4" /> },
+  { key: 'destination', label: 'Destination', icon: <MapPin className="h-4 w-4" /> },
+  { key: 'confirm', label: 'Confirm', icon: <CheckCircle className="h-4 w-4" /> },
+];
 
 const PutawayTask = () => {
   const { taskId } = useParams();
@@ -28,12 +38,19 @@ const PutawayTask = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Wizard state
+  const [currentStep, setCurrentStep] = useState<WizardStep>('source');
+  const [sourceLocationId, setSourceLocationId] = useState<string | null>(null);
+  const [sourceLocationBarcode, setSourceLocationBarcode] = useState<string | null>(null);
+  const [lotVerified, setLotVerified] = useState(false);
   const [quantity, setQuantity] = useState(0);
-  const [locationId, setLocationId] = useState("");
-  const [splitMode, setSplitMode] = useState(false);
-  const [splitAllocations, setSplitAllocations] = useState<{locationId: string; quantity: number}[]>([]);
-  const [lotScanned, setLotScanned] = useState(false);
-  const [locationScanned, setLocationScanned] = useState(false);
+  const [destinationLocationId, setDestinationLocationId] = useState<string | null>(null);
+  const [destinationLocationBarcode, setDestinationLocationBarcode] = useState<string | null>(null);
+  
+  // Validation errors
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [lotError, setLotError] = useState<string | null>(null);
+  const [destinationError, setDestinationError] = useState<string | null>(null);
 
   // Fetch task data
   const { data: task, isLoading } = useQuery({
@@ -66,30 +83,27 @@ const PutawayTask = () => {
     }
   });
 
-  // Fetch locations
+  // Fetch all locations for barcode validation
   const { data: locations } = useQuery({
-    queryKey: ['warehouse-locations'],
+    queryKey: ['all-locations-with-barcodes'],
     queryFn: async () => {
       const { data } = await supabase
         .from('locations')
-        .select('*')
-        .eq('location_type', 'warehouse')
-        .eq('is_active', true)
-        .order('zone')
-        .order('name');
-      return data;
+        .select('id, name, location_code, location_type, location_barcode, is_active')
+        .eq('is_active', true);
+      return data || [];
     }
   });
 
   // Calculate remaining quantity
   const remainingQuantity = task ? (task.total_quantity - (task.putaway_quantity || 0)) : 0;
 
-  // Set initial quantity
+  // Set initial quantity when task loads
   useEffect(() => {
-    if (task) {
+    if (task && quantity === 0) {
       setQuantity(remainingQuantity);
     }
-  }, [task, remainingQuantity]);
+  }, [task, remainingQuantity, quantity]);
 
   // Calculate progress
   const progress = task?.total_quantity > 0 
@@ -102,36 +116,127 @@ const PutawayTask = () => {
     ? differenceInHours(new Date(task.deadline), new Date())
     : null;
 
+  // Get current step index
+  const currentStepIndex = STEPS.findIndex(s => s.key === currentStep);
+
+  // Validate source location barcode
+  const handleSourceScan = (barcode: string) => {
+    setSourceError(null);
+    const location = locations?.find(
+      l => l.location_barcode?.toLowerCase() === barcode.toLowerCase()
+    );
+    
+    if (!location) {
+      setSourceError(`Location barcode "${barcode}" not found in system`);
+      return;
+    }
+
+    setSourceLocationId(location.id);
+    setSourceLocationBarcode(barcode);
+    
+    toast({
+      title: "Source Location Verified",
+      description: `${location.location_code ? location.location_code + ' - ' : ''}${location.name}`
+    });
+    
+    // Auto-advance to next step
+    setTimeout(() => setCurrentStep('lot'), 500);
+  };
+
+  // Validate lot barcode
+  const handleLotScan = (barcode: string) => {
+    setLotError(null);
+    const expectedLot = task?.receiving_lot?.internal_lot_number;
+    const supplierLot = task?.receiving_lot?.supplier_lot_number;
+    
+    if (barcode.toLowerCase() !== expectedLot?.toLowerCase() && 
+        barcode.toLowerCase() !== supplierLot?.toLowerCase()) {
+      setLotError(`Barcode "${barcode}" does not match expected lot ${expectedLot}`);
+      return;
+    }
+
+    setLotVerified(true);
+    
+    toast({
+      title: "Lot Verified",
+      description: task?.receiving_lot?.material?.name
+    });
+    
+    // Auto-advance
+    setTimeout(() => setCurrentStep('quantity'), 500);
+  };
+
+  // Handle quantity confirmation
+  const handleQuantityConfirm = () => {
+    if (quantity <= 0) {
+      toast({ title: "Invalid Quantity", description: "Enter a quantity greater than 0", variant: "destructive" });
+      return;
+    }
+    if (quantity > remainingQuantity) {
+      toast({ title: "Quantity Too High", description: `Maximum is ${remainingQuantity}`, variant: "destructive" });
+      return;
+    }
+    setCurrentStep('destination');
+  };
+
+  // Validate destination location barcode
+  const handleDestinationScan = (barcode: string) => {
+    setDestinationError(null);
+    const location = locations?.find(
+      l => l.location_barcode?.toLowerCase() === barcode.toLowerCase() && l.location_type === 'warehouse'
+    );
+    
+    if (!location) {
+      const anyMatch = locations?.find(l => l.location_barcode?.toLowerCase() === barcode.toLowerCase());
+      if (anyMatch) {
+        setDestinationError(`"${anyMatch.name}" is not a warehouse location`);
+      } else {
+        setDestinationError(`Location barcode "${barcode}" not found`);
+      }
+      return;
+    }
+
+    setDestinationLocationId(location.id);
+    setDestinationLocationBarcode(barcode);
+    
+    toast({
+      title: "Destination Verified",
+      description: `${location.location_code ? location.location_code + ' - ' : ''}${location.name}`
+    });
+    
+    // Auto-advance to confirm
+    setTimeout(() => setCurrentStep('confirm'), 500);
+  };
+
   // Putaway mutation
   const putawayMutation = useMutation({
     mutationFn: async () => {
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      const allocations = splitMode ? splitAllocations : [{ locationId, quantity }];
-
-      // Validate total
-      const totalAllocated = allocations.reduce((sum, a) => sum + a.quantity, 0);
-      if (totalAllocated > remainingQuantity) {
-        throw new Error('Total quantity exceeds remaining');
+      
+      if (!destinationLocationId || !sourceLocationId) {
+        throw new Error('Missing location data');
       }
 
-      // Create transactions
-      for (const allocation of allocations) {
-        const { error: txError } = await supabase
-          .from('putaway_transactions')
-          .insert({
-            putaway_task_id: taskId,
-            receiving_lot_id: task?.receiving_lot?.id,
-            quantity: allocation.quantity,
-            unit_id: task?.unit_id,
-            location_id: allocation.locationId,
-            performed_by: userId
-          });
+      // Create transaction with source tracking
+      const { error: txError } = await supabase
+        .from('putaway_transactions')
+        .insert({
+          putaway_task_id: taskId,
+          receiving_lot_id: task?.receiving_lot?.id,
+          quantity: quantity,
+          unit_id: task?.unit_id,
+          location_id: destinationLocationId,
+          source_location_id: sourceLocationId,
+          source_location_barcode_scanned: sourceLocationBarcode,
+          location_barcode_scanned: destinationLocationBarcode,
+          lot_barcode_scanned: task?.receiving_lot?.internal_lot_number,
+          performed_by: userId
+        });
 
-        if (txError) throw txError;
-      }
+      if (txError) throw txError;
 
       // Update task
-      const newPutawayQty = (task?.putaway_quantity || 0) + totalAllocated;
+      const newPutawayQty = (task?.putaway_quantity || 0) + quantity;
       const isComplete = newPutawayQty >= task?.total_quantity;
 
       const { error: taskError } = await supabase
@@ -164,13 +269,16 @@ const PutawayTask = () => {
         title: isComplete ? "Putaway Complete!" : "Progress Saved",
         description: isComplete 
           ? "All items have been put away."
-          : "Your progress has been saved. You can continue later."
+          : `${quantity} ${task?.receiving_lot?.unit?.code} moved successfully.`
       });
       queryClient.invalidateQueries({ queryKey: ['putaway-task', taskId] });
       queryClient.invalidateQueries({ queryKey: ['putaway-tasks'] });
       
       if (isComplete) {
         navigate('/warehouse/putaway');
+      } else {
+        // Reset wizard for another putaway
+        resetWizard();
       }
     },
     onError: (error: any) => {
@@ -182,242 +290,258 @@ const PutawayTask = () => {
     }
   });
 
-  // Simulate barcode scan
-  const handleScanLot = () => {
-    setLotScanned(true);
-    toast({ title: "Lot Scanned", description: task?.receiving_lot?.internal_lot_number });
+  // Reset wizard state
+  const resetWizard = () => {
+    setCurrentStep('source');
+    setSourceLocationId(null);
+    setSourceLocationBarcode(null);
+    setLotVerified(false);
+    setQuantity(remainingQuantity);
+    setDestinationLocationId(null);
+    setDestinationLocationBarcode(null);
+    setSourceError(null);
+    setLotError(null);
+    setDestinationError(null);
   };
 
-  const handleScanLocation = () => {
-    setLocationScanned(true);
-    toast({ title: "Location Scanned" });
+  // Get source location name
+  const getSourceLocationName = () => {
+    if (!sourceLocationId) return null;
+    const loc = locations?.find(l => l.id === sourceLocationId);
+    return loc ? `${loc.location_code ? loc.location_code + ' - ' : ''}${loc.name}` : sourceLocationBarcode;
+  };
+
+  // Get destination location name
+  const getDestinationLocationName = () => {
+    if (!destinationLocationId) return null;
+    const loc = locations?.find(l => l.id === destinationLocationId);
+    return loc ? `${loc.location_code ? loc.location_code + ' - ' : ''}${loc.name}` : destinationLocationBarcode;
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-6 text-center">Loading...</div>;
   }
 
   if (!task) {
-    return <div className="p-6">Task not found</div>;
+    return <div className="p-6 text-center">Task not found</div>;
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background p-4 pb-24">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/warehouse/putaway')}>
           <ArrowLeft className="h-6 w-6" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Putaway Task</h1>
-          <div className="text-muted-foreground font-mono">
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">Putaway</h1>
+          <div className="text-sm text-muted-foreground font-mono">
             {task.receiving_lot?.internal_lot_number}
           </div>
         </div>
+        <Button variant="ghost" size="icon" onClick={resetWizard}>
+          <RotateCcw className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Deadline Warning */}
       {isOverdue && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            OVERDUE! This putaway should have been completed.
-          </AlertDescription>
+          <AlertDescription>OVERDUE! Complete immediately.</AlertDescription>
         </Alert>
       )}
       {!isOverdue && hoursRemaining !== null && hoursRemaining <= 6 && (
-        <Alert>
+        <Alert className="mb-4">
           <Clock className="h-4 w-4" />
-          <AlertDescription>
-            {hoursRemaining} hours remaining to complete this putaway.
-          </AlertDescription>
+          <AlertDescription>{hoursRemaining}h remaining</AlertDescription>
         </Alert>
       )}
 
-      {/* Progress */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Progress</span>
-            <span className="text-sm text-muted-foreground">
+      {/* Progress Bar */}
+      <Card className="mb-4">
+        <CardContent className="pt-4 pb-3">
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span>Progress</span>
+            <span className="font-mono">
               {task.putaway_quantity || 0} / {task.total_quantity} {task.receiving_lot?.unit?.code}
             </span>
           </div>
-          <Progress value={progress} />
+          <Progress value={progress} className="h-2" />
         </CardContent>
       </Card>
 
-      {/* Lot Information */}
-      <Card>
+      {/* Step Indicators */}
+      <div className="flex justify-between mb-6 px-2">
+        {STEPS.map((step, index) => (
+          <div 
+            key={step.key}
+            className={`flex flex-col items-center gap-1 ${
+              index <= currentStepIndex ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              index < currentStepIndex 
+                ? 'bg-primary text-primary-foreground' 
+                : index === currentStepIndex 
+                  ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background' 
+                  : 'bg-muted text-muted-foreground'
+            }`}>
+              {index < currentStepIndex ? <CheckCircle className="h-4 w-4" /> : index + 1}
+            </div>
+            <span className="text-xs">{step.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Step Content */}
+      <Card className="mb-4">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Lot Information
+            {STEPS[currentStepIndex].icon}
+            Step {currentStepIndex + 1}: {STEPS[currentStepIndex].label}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Material:</span>
-              <p className="font-medium">{task.receiving_lot?.material?.name}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Remaining:</span>
-              <p className="font-medium text-lg">
-                {remainingQuantity} {task.receiving_lot?.unit?.code}
+        <CardContent>
+          {/* Step 1: Source Location */}
+          {currentStep === 'source' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Scan the location where the item is currently stored (e.g., Receiving Dock)
               </p>
+              <BarcodeScanner
+                onScan={handleSourceScan}
+                label="Scan Source Location Barcode"
+                validated={!!sourceLocationId}
+                validationError={sourceError || undefined}
+                autoFocus
+              />
             </div>
-            <div>
-              <span className="text-muted-foreground">Supplier Lot:</span>
-              <p className="font-medium">{task.receiving_lot?.supplier_lot_number}</p>
-            </div>
-          </div>
+          )}
 
-          {/* Scan Lot Button */}
-          <Button
-            variant={lotScanned ? "secondary" : "outline"}
-            className="w-full h-16 text-lg"
-            onClick={handleScanLot}
-          >
-            <QrCode className="h-6 w-6 mr-2" />
-            {lotScanned ? (
-              <span className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Lot Verified
-              </span>
-            ) : (
-              'Scan Lot Barcode to Confirm'
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Destination */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Destination
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Split to multiple locations</span>
-              <Switch checked={splitMode} onCheckedChange={setSplitMode} />
+          {/* Step 2: Lot Verification */}
+          {currentStep === 'lot' && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Material:</span>
+                  <p className="font-medium">{task.receiving_lot?.material?.name}</p>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Expected Lot:</span>
+                  <p className="font-mono font-medium">{task.receiving_lot?.internal_lot_number}</p>
+                </div>
+              </div>
+              <BarcodeScanner
+                onScan={handleLotScan}
+                expectedValue={task.receiving_lot?.internal_lot_number || undefined}
+                label="Scan Lot Barcode to Verify"
+                validated={lotVerified}
+                validationError={lotError || undefined}
+                autoFocus
+              />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!splitMode ? (
-            <>
-              {/* Single Location */}
+          )}
+
+          {/* Step 3: Quantity */}
+          {currentStep === 'quantity' && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="text-sm text-muted-foreground">Remaining to put away:</div>
+                <div className="text-2xl font-bold">
+                  {remainingQuantity} {task.receiving_lot?.unit?.code}
+                </div>
+              </div>
+              
               <div>
-                <Label>Quantity</Label>
-                <div className="flex items-center gap-2 mt-1">
+                <Label htmlFor="quantity" className="text-base">Quantity to Move</Label>
+                <div className="flex items-center gap-3 mt-2">
                   <Input
+                    id="quantity"
                     type="number"
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
                     max={remainingQuantity}
-                    min={0}
-                    className="text-lg h-12"
+                    min={1}
+                    className="h-14 text-xl font-mono text-center"
                   />
-                  <span className="text-muted-foreground">
+                  <span className="text-lg text-muted-foreground min-w-[60px]">
                     {task.receiving_lot?.unit?.code}
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Max: {remainingQuantity} {task.receiving_lot?.unit?.code}
+                </p>
               </div>
 
-              <div>
-                <Label>Location</Label>
-                <Select value={locationId} onValueChange={setLocationId}>
-                  <SelectTrigger className="h-12 mt-1">
-                    <SelectValue placeholder="Select location..." />
-                  </SelectTrigger>
-                        <SelectContent>
-                          {locations?.map((loc) => (
-                            <SelectItem key={loc.id} value={loc.id}>
-                              {loc.name}
-                            </SelectItem>
-                          ))}
-                  </SelectContent>
-                </Select>
+              <Button 
+                className="w-full h-14 text-lg" 
+                onClick={handleQuantityConfirm}
+                disabled={quantity <= 0 || quantity > remainingQuantity}
+              >
+                Continue
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </div>
+          )}
+
+          {/* Step 4: Destination Location */}
+          {currentStep === 'destination' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Scan the warehouse location where you placed the {quantity} {task.receiving_lot?.unit?.code}
+              </p>
+              <BarcodeScanner
+                onScan={handleDestinationScan}
+                label="Scan Destination Location Barcode"
+                validated={!!destinationLocationId}
+                validationError={destinationError || undefined}
+                autoFocus
+              />
+            </div>
+          )}
+
+          {/* Step 5: Confirm */}
+          {currentStep === 'confirm' && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">From:</span>
+                  <span className="font-medium">{getSourceLocationName()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Lot:</span>
+                  <span className="font-mono">{task.receiving_lot?.internal_lot_number}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Material:</span>
+                  <span className="font-medium">{task.receiving_lot?.material?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Quantity:</span>
+                  <span className="text-lg font-bold">{quantity} {task.receiving_lot?.unit?.code}</span>
+                </div>
+                <div className="flex justify-between text-sm pt-2 border-t">
+                  <span className="text-muted-foreground">To:</span>
+                  <span className="font-medium text-primary">{getDestinationLocationName()}</span>
+                </div>
               </div>
 
-              {/* Scan Location Button */}
-              {locationId && (
-                <Button
-                  variant={locationScanned ? "secondary" : "outline"}
-                  className="w-full h-12"
-                  onClick={handleScanLocation}
-                >
-                  <QrCode className="h-5 w-5 mr-2" />
-                  {locationScanned ? (
-                    <span className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      Location Verified
-                    </span>
-                  ) : (
-                    'Scan Location Barcode'
-                  )}
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              {/* Split Mode */}
-              <div className="space-y-3">
-                {splitAllocations.map((alloc, index) => (
-                  <div key={index} className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Label>Location</Label>
-                      <Select
-                        value={alloc.locationId}
-                        onValueChange={(v) => {
-                          const newAllocs = [...splitAllocations];
-                          newAllocs[index].locationId = v;
-                          setSplitAllocations(newAllocs);
-                        }}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations?.map((loc) => (
-                            <SelectItem key={loc.id} value={loc.id}>
-                              {loc.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-24">
-                      <Label>Qty</Label>
-                      <Input
-                        type="number"
-                        value={alloc.quantity}
-                        onChange={(e) => {
-                          const newAllocs = [...splitAllocations];
-                          newAllocs[index].quantity = Number(e.target.value);
-                          setSplitAllocations(newAllocs);
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSplitAllocations([...splitAllocations, { locationId: '', quantity: 0 }])}
-                >
-                  + Add Location
-                </Button>
-              </div>
-
-              <div className="text-sm text-muted-foreground">
-                Total: {splitAllocations.reduce((s, a) => s + a.quantity, 0)} / {remainingQuantity}
-              </div>
-            </>
+              <Button 
+                className="w-full h-14 text-lg" 
+                onClick={() => putawayMutation.mutate()}
+                disabled={putawayMutation.isPending}
+              >
+                {putawayMutation.isPending ? (
+                  "Processing..."
+                ) : (
+                  <>
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    Confirm Putaway
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -426,39 +550,39 @@ const PutawayTask = () => {
       {task.transactions && task.transactions.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Previous Putaways</CardTitle>
+            <CardTitle className="text-sm">Previous Movements</CardTitle>
           </CardHeader>
           <CardContent>
             {task.transactions.map((tx: any) => (
-              <div key={tx.id} className="flex justify-between text-sm py-1">
-                <span>{tx.location?.zone} - {tx.location?.name}</span>
-                <span>{tx.quantity} {task.receiving_lot?.unit?.code}</span>
+              <div key={tx.id} className="flex justify-between text-sm py-1 border-b last:border-0">
+                <span className="text-muted-foreground">
+                  {tx.location?.zone ? `${tx.location.zone} - ` : ''}{tx.location?.name}
+                </span>
+                <span className="font-mono">{tx.quantity} {task.receiving_lot?.unit?.code}</span>
               </div>
             ))}
           </CardContent>
         </Card>
       )}
 
-      {/* Actions */}
-      <div className="flex gap-4">
-        <Button
-          variant="outline"
-          className="flex-1"
+      {/* Fixed Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex gap-3">
+        {currentStepIndex > 0 && currentStep !== 'confirm' && (
+          <Button 
+            variant="outline" 
+            className="flex-1 h-12"
+            onClick={() => setCurrentStep(STEPS[currentStepIndex - 1].key)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        )}
+        <Button 
+          variant="outline" 
+          className={currentStepIndex > 0 && currentStep !== 'confirm' ? "flex-1 h-12" : "w-full h-12"}
           onClick={() => navigate('/warehouse/putaway')}
         >
           Save & Exit
-        </Button>
-        <Button
-          className="flex-1"
-          onClick={() => putawayMutation.mutate()}
-          disabled={
-            (!splitMode && (!locationId || quantity <= 0)) ||
-            (splitMode && splitAllocations.length === 0) ||
-            putawayMutation.isPending
-          }
-        >
-          <CheckCircle className="h-4 w-4 mr-2" />
-          Confirm Putaway
         </Button>
       </div>
     </div>
