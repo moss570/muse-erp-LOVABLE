@@ -18,7 +18,7 @@ const PutawayStatusWidget = () => {
         .from('putaway_tasks')
         .select(`
           *,
-          receiving_lot:receiving_lots(
+          receiving_lot:receiving_lots!putaway_tasks_receiving_lot_id_fkey(
             internal_lot_number,
             material:materials(name),
             unit:units_of_measure(code)
