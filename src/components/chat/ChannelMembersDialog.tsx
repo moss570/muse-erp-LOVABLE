@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,10 +18,24 @@ interface ChannelMembersDialogProps {
 }
 
 const ChannelMembersDialog = ({ channelId, open, onOpenChange }: ChannelMembersDialogProps) => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('members');
+
+  // Fetch channel details
+  const { data: channel } = useQuery({
+    queryKey: ['channel-details', channelId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('chat_channels')
+        .select('*')
+        .eq('id', channelId)
+        .single();
+      return data;
+    },
+    enabled: open,
+  });
 
   // Fetch current members
   const { data: members } = useQuery({
@@ -40,9 +53,17 @@ const ChannelMembersDialog = ({ channelId, open, onOpenChange }: ChannelMembersD
     enabled: open,
   });
 
-  // Check if current user is owner or admin
+  // Check if current user can manage members
   const currentUserMember = members?.find(m => m.user_id === user?.id);
-  const canManageMembers = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
+  const isChannelOwnerOrAdmin = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
+  const isChannelCreator = channel?.created_by === user?.id;
+  const isSystemAdmin = role === 'admin' || role === 'manager';
+  
+  // For public channels, allow system admins/managers or channel creator
+  // For private channels, require channel owner/admin membership
+  const canManageMembers = channel?.channel_type === 'public' 
+    ? (isSystemAdmin || isChannelCreator)
+    : isChannelOwnerOrAdmin;
 
   // Fetch all users for adding
   const { data: allUsers } = useQuery({
