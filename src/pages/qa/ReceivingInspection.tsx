@@ -171,15 +171,28 @@ const ReceivingInspection = () => {
         }
       }
 
-      // If rejected, place all lots on hold
+      // If rejected, place all lots on hold and create inventory_holds entries
       if (result === 'rejected' && session?.lots) {
         for (const lot of session.lots) {
           if (lot.hold_status !== 'on_hold') {
-
+            // Update the receiving lot status
             await supabase
               .from('receiving_lots')
-              .update({ hold_status: 'on_hold' })
+              .update({ hold_status: 'on_hold', status: 'hold' })
               .eq('id', lot.id);
+
+            // Create an inventory_holds entry so it appears in the Hold Log
+            await supabase
+              .from('inventory_holds')
+              .insert({
+                receiving_lot_id: lot.id,
+                hold_reason_code_id: '786d820c-a7b9-4a67-9393-3d905a85a1d8', // Visual Quality Concern
+                hold_reason_description: rejectionReason || 'QA Inspection rejected',
+                auto_hold: true,
+                status: 'pending',
+                priority: 'high',
+                hold_placed_by: userId
+              });
           }
         }
       }
