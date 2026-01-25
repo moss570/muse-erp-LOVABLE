@@ -317,9 +317,9 @@ export function useSendMessage() {
       
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       // Update last read
-      supabase
+      await supabase
         .from('chat_read_receipts')
         .upsert({
           channel_id: data.channel_id,
@@ -327,6 +327,102 @@ export function useSendMessage() {
           last_read_message_id: data.id,
           last_read_at: new Date().toISOString(),
         });
+      
+      // Create notifications for recipients
+      try {
+        // Get channel details
+        const { data: channel } = await supabase
+          .from('chat_channels')
+          .select('channel_type, participant_ids, name')
+          .eq('id', data.channel_id)
+          .single();
+        
+        if (!channel) return;
+        
+        // Get sender name
+        const { data: senderProfile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user?.id)
+          .single();
+        
+        const senderName = senderProfile 
+          ? `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim() || 'Someone'
+          : 'Someone';
+        
+        let recipientIds: string[] = [];
+        
+        if (channel.channel_type === 'direct') {
+          // DM: notify the other participant
+          recipientIds = (channel.participant_ids || []).filter((id: string) => id !== user?.id);
+        } else {
+          // Group/Public: get all members except sender
+          const { data: members } = await supabase
+            .from('chat_channel_members')
+            .select('user_id')
+            .eq('channel_id', data.channel_id)
+            .neq('user_id', user?.id);
+          recipientIds = members?.map(m => m.user_id) || [];
+        }
+        
+        // Filter recipients who haven't viewed recently (prevent spam)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const notifiableRecipients: string[] = [];
+        
+        for (const recipientId of recipientIds) {
+          const { data: recentReceipt } = await supabase
+            .from('chat_read_receipts')
+            .select('last_read_at')
+            .eq('channel_id', data.channel_id)
+            .eq('user_id', recipientId)
+            .single();
+          
+          // Only notify if they haven't read recently
+          if (!recentReceipt?.last_read_at || recentReceipt.last_read_at < fiveMinutesAgo) {
+            notifiableRecipients.push(recipientId);
+          }
+        }
+        
+        // Create notifications
+        if (notifiableRecipients.length > 0) {
+          const truncatedContent = data.content.length > 100 
+            ? data.content.substring(0, 100) + '...' 
+            : data.content;
+          
+          await supabase.from('notifications').insert(
+            notifiableRecipients.map(recipientId => ({
+              user_id: recipientId,
+              title: channel.channel_type === 'direct' 
+                ? `New message from ${senderName}`
+                : `New message in ${channel.name}`,
+              message: truncatedContent,
+              notification_type: 'chat_message',
+              link_type: 'chat',
+              link_id: data.channel_id,
+            }))
+          );
+        }
+        
+        // Handle @mentions separately (always notify)
+        if (variables.mentions?.length) {
+          const mentionNotifications = variables.mentions
+            .filter(id => id !== user?.id) // Don't notify self
+            .map(mentionedUserId => ({
+              user_id: mentionedUserId,
+              title: `${senderName} mentioned you`,
+              message: data.content.substring(0, 100),
+              notification_type: 'chat_mention',
+              link_type: 'chat',
+              link_id: data.channel_id,
+            }));
+          
+          if (mentionNotifications.length > 0) {
+            await supabase.from('notifications').insert(mentionNotifications);
+          }
+        }
+      } catch (error) {
+        console.error('Error creating chat notifications:', error);
+      }
     },
   });
 }

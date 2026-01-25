@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useChannels, useChannel, useMessages, useChatRealtime, useSendMessage, useMarkAsRead, ChatMessage } from '@/hooks/useChat';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,7 @@ const Chat = () => {
   const activeChannelId = searchParams.get('channel');
   
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
@@ -43,12 +46,24 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  // Mark as read when opening channel
+  // Mark as read when opening channel and clear chat notifications
   useEffect(() => {
-    if (activeChannelId) {
+    if (activeChannelId && user?.id) {
       markAsRead.mutate(activeChannelId);
+      
+      // Clear chat notifications for this channel
+      supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('link_type', 'chat')
+        .eq('link_id', activeChannelId)
+        .eq('is_read', false)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        });
     }
-  }, [activeChannelId]);
+  }, [activeChannelId, user?.id]);
   
   // Filter channels by search
   const filteredChannels = channels?.filter(c => 
