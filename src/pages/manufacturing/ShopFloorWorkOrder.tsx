@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Scan, Package, CheckCircle, AlertTriangle, Loader2, DollarSign, Clock } from "lucide-react";
+import { ArrowLeft, Scan, Package, CheckCircle, AlertTriangle, Loader2, DollarSign, Clock, Camera, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useManufacturingPreferences } from "@/hooks/useManufacturingPreferences";
 
 interface WorkOrderDetail {
   id: string;
@@ -70,6 +71,13 @@ export default function ShopFloorWorkOrder() {
   const [currentStage, setCurrentStage] = useState("BASE_PREP");
   const [outputQuantity, setOutputQuantity] = useState(0);
   const [wasteQuantity, setWasteQuantity] = useState(0);
+  const [stagePhotos, setStagePhotos] = useState<File[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { data: mfgPrefs } = useManufacturingPreferences();
+  const requirePhotoEvidence = mfgPrefs?.requireStagePhotoEvidence ?? false;
 
   // Get work order details
   const { data: workOrder, isLoading } = useQuery({
@@ -179,6 +187,29 @@ export default function ShopFloorWorkOrder() {
   // Complete stage mutation - uses v2 function with WIP lot creation
   const completeStageMutation = useMutation({
     mutationFn: async () => {
+      // Upload photos first if any
+      const photoUrls: string[] = [];
+      if (stagePhotos.length > 0) {
+        for (const photo of stagePhotos) {
+          const fileName = `${id}/${currentStage}/${Date.now()}-${photo.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('production-evidence')
+            .upload(fileName, photo);
+          
+          if (uploadError) {
+            console.error('Photo upload error:', uploadError);
+            // Continue even if upload fails - we'll log it but not block completion
+          } else {
+            const { data: urlData } = supabase.storage
+              .from('production-evidence')
+              .getPublicUrl(fileName);
+            if (urlData?.publicUrl) {
+              photoUrls.push(urlData.publicUrl);
+            }
+          }
+        }
+      }
+
       // Try the v2 function first, fall back to original if not available
       const { data, error } = await supabase.rpc("complete_production_stage_v2", {
         p_work_order_id: id,
@@ -206,6 +237,9 @@ export default function ShopFloorWorkOrder() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["shop-floor-wo", id] });
+      // Clear photos after successful completion
+      setStagePhotos([]);
+      setPhotoPreviewUrls([]);
       const wipMessage = data.wip_lot_number ? ` • WIP Lot: ${data.wip_lot_number}` : '';
       toast.success("Stage completed", {
         description: `Yield: ${data.yield_percentage?.toFixed(1) || '0'}% • Cost: $${data.stage_costs?.total?.toFixed(2) || '0.00'}${wipMessage}`,
@@ -215,6 +249,34 @@ export default function ShopFloorWorkOrder() {
       toast.error("Failed to complete stage", { description: error.message });
     },
   });
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setStagePhotos(prev => [...prev, ...files]);
+    
+    // Create preview URLs
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreviewUrls(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Clear input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setStagePhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotoPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const canCompleteStage = outputQuantity > 0 && (!requirePhotoEvidence || stagePhotos.length > 0);
 
   const handleScanMaterial = () => {
     if (!scanInput.trim()) {
@@ -539,6 +601,7 @@ export default function ShopFloorWorkOrder() {
                 <CardTitle>Complete Current Stage</CardTitle>
                 <CardDescription>
                   Enter output quantity and waste to complete the stage
+                  {requirePhotoEvidence && " • Photo evidence required"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -567,9 +630,67 @@ export default function ShopFloorWorkOrder() {
                   </div>
                 </div>
 
+                {/* Photo Evidence Section */}
+                {requirePhotoEvidence && (
+                  <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium">
+                          Photo Evidence <span className="text-destructive">*</span>
+                        </label>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        Add Photo
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handlePhotoSelect}
+                      />
+                    </div>
+                    
+                    {photoPreviewUrls.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {photoPreviewUrls.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={url}
+                              alt={`Evidence ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-md border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(index)}
+                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground border-2 border-dashed rounded-md">
+                        <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No photos added yet</p>
+                        <p className="text-xs">At least one photo is required</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Button
                   onClick={() => completeStageMutation.mutate()}
-                  disabled={completeStageMutation.isPending || outputQuantity <= 0}
+                  disabled={completeStageMutation.isPending || !canCompleteStage}
                   className="w-full"
                   size="lg"
                 >
@@ -579,6 +700,7 @@ export default function ShopFloorWorkOrder() {
                     <CheckCircle className="h-4 w-4 mr-2" />
                   )}
                   Complete Stage
+                  {requirePhotoEvidence && stagePhotos.length === 0 && " (Photo Required)"}
                 </Button>
               </CardContent>
             </Card>

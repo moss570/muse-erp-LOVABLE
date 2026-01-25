@@ -5,17 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Factory, Clock } from "lucide-react";
+import { Loader2, Save, Factory, Clock, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 interface PreferenceState {
   trackTimeByProduction: boolean;
+  requireStagePhotoEvidence: boolean;
 }
 
 const ManufacturingPreferences = () => {
   const queryClient = useQueryClient();
   const [preferences, setPreferences] = useState<PreferenceState>({
     trackTimeByProduction: false,
+    requireStagePhotoEvidence: false,
   });
 
   const { data: fetchedPreferences, isLoading } = useQuery({
@@ -24,7 +26,7 @@ const ManufacturingPreferences = () => {
       const { data, error } = await supabase
         .from('inventory_preferences')
         .select('*')
-        .in('preference_key', ['track_time_by_production']);
+        .in('preference_key', ['track_time_by_production', 'require_stage_photo_evidence']);
 
       if (error) throw error;
       return data;
@@ -40,6 +42,7 @@ const ManufacturingPreferences = () => {
 
       setPreferences({
         trackTimeByProduction: getValue('track_time_by_production') === 'true',
+        requireStagePhotoEvidence: getValue('require_stage_photo_evidence') === 'true',
       });
     }
   }, [fetchedPreferences]);
@@ -52,6 +55,12 @@ const ManufacturingPreferences = () => {
           preference_value: String(prefs.trackTimeByProduction),
           preference_type: 'boolean',
           description: 'Enable labor time tracking on Work Orders in Shop Floor',
+        },
+        {
+          preference_key: 'require_stage_photo_evidence',
+          preference_value: String(prefs.requireStagePhotoEvidence),
+          preference_type: 'boolean',
+          description: 'Require photo evidence when completing production stages on Shop Floor',
         },
       ];
 
@@ -126,6 +135,39 @@ const ManufacturingPreferences = () => {
               This setting only affects the Work Order labor tracking feature on the Shop Floor. 
               The general Employee Time Clock (for shift in/out and breaks) remains available separately.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5" />
+            Stage Documentation
+          </CardTitle>
+          <CardDescription>
+            Configure documentation requirements for production stages
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+            <div className="space-y-1">
+              <Label htmlFor="require-photo" className="font-medium">
+                Require Photo Evidence for Stage Completion
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                When enabled, operators must upload at least one photo as evidence before 
+                completing any production stage on the Shop Floor. This helps with quality 
+                control and traceability.
+              </p>
+            </div>
+            <Switch
+              id="require-photo"
+              checked={preferences.requireStagePhotoEvidence}
+              onCheckedChange={(checked) => 
+                setPreferences(prev => ({ ...prev, requireStagePhotoEvidence: checked }))
+              }
+            />
           </div>
         </CardContent>
       </Card>
