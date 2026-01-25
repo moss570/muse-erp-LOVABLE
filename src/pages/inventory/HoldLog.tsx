@@ -498,7 +498,8 @@ const HoldLog = () => {
           open={showLabelDialog}
           onOpenChange={setShowLabelDialog}
           materialName={labelHold.receiving_lot?.material?.name || 'Unknown Material'}
-          lotNumber={labelHold.receiving_lot?.internal_lot_number || ''}
+          lotNumber={labelHold.receiving_lot?.supplier_lot_number || labelHold.receiving_lot?.internal_lot_number || ''}
+          internalLotNumber={labelHold.receiving_lot?.internal_lot_number}
           holdReason={labelHold.reason?.name || labelHold.hold_reason_description || undefined}
         />
       )}

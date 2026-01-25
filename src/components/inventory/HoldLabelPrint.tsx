@@ -10,6 +10,7 @@ interface HoldLabelPrintProps {
   onOpenChange: (open: boolean) => void;
   materialName: string;
   lotNumber: string;
+  internalLotNumber?: string;
   holdReason?: string;
 }
 
@@ -18,9 +19,11 @@ export function HoldLabelPrint({
   onOpenChange, 
   materialName, 
   lotNumber,
+  internalLotNumber,
   holdReason 
 }: HoldLabelPrintProps) {
   const barcodeRef = useRef<SVGSVGElement>(null);
+  const internalBarcodeRef = useRef<SVGSVGElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,17 +32,33 @@ export function HoldLabelPrint({
         JsBarcode(barcodeRef.current, lotNumber, {
           format: "CODE128",
           width: 2,
-          height: 50,
+          height: 40,
           displayValue: true,
-          fontSize: 14,
-          margin: 10,
-          textMargin: 5
+          fontSize: 12,
+          margin: 5,
+          textMargin: 3
         });
       } catch (error) {
         console.error("Error generating barcode:", error);
       }
     }
-  }, [open, lotNumber]);
+
+    if (open && internalBarcodeRef.current && internalLotNumber) {
+      try {
+        JsBarcode(internalBarcodeRef.current, internalLotNumber, {
+          format: "CODE128",
+          width: 2,
+          height: 40,
+          displayValue: true,
+          fontSize: 12,
+          margin: 5,
+          textMargin: 3
+        });
+      } catch (error) {
+        console.error("Error generating internal barcode:", error);
+      }
+    }
+  }, [open, lotNumber, internalLotNumber]);
 
   const handlePrint = () => {
     if (!printRef.current) return;
@@ -108,6 +127,22 @@ export function HoldLabelPrint({
                 max-width: 100%;
                 height: auto;
               }
+              .lot-label {
+                font-size: 11px;
+                font-weight: bold;
+                color: #374151;
+                margin-bottom: 2px;
+              }
+              .barcodes-row {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                align-items: flex-start;
+              }
+              .barcode-item {
+                text-align: center;
+                flex: 1;
+              }
               .hold-reason {
                 font-size: 12px;
                 color: #4b5563;
@@ -174,9 +209,21 @@ export function HoldLabelPrint({
                 <p className="text-lg font-bold text-foreground">{materialName}</p>
               </div>
 
-              {/* Barcode */}
-              <div className="flex justify-center my-3">
-                <svg ref={barcodeRef} />
+              {/* Barcodes */}
+              <div className="flex gap-3 justify-center my-3">
+                {/* Supplier Lot */}
+                <div className="flex-1 text-center">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Supplier Lot#</p>
+                  <svg ref={barcodeRef} />
+                </div>
+
+                {/* Internal Lot */}
+                {internalLotNumber && (
+                  <div className="flex-1 text-center">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Internal Lot#</p>
+                    <svg ref={internalBarcodeRef} />
+                  </div>
+                )}
               </div>
 
               {/* Hold Reason */}
