@@ -63,6 +63,7 @@ import ProfitLoss from "./pages/reports/ProfitLoss";
 import XeroConfiguration from "./pages/settings/XeroConfiguration";
 import CategoryGLDefaults from "./pages/settings/CategoryGLDefaults";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
+import ManufacturingKPIDashboard from "./pages/manufacturing/ManufacturingKPIDashboard";
 import ProductionExecution from "./pages/manufacturing/ProductionExecution";
 import ManufacturingLots from "./pages/manufacturing/ManufacturingLots";
 import CreateManufacturingLot from "./pages/manufacturing/CreateManufacturingLot";
@@ -236,7 +237,8 @@ const App = () => (
               }
             />
             {/* Manufacturing routes */}
-            <Route path="/manufacturing/dashboard" element={<AppLayout><ProductionDashboard /></AppLayout>} />
+            <Route path="/manufacturing/dashboard" element={<AppLayout><ManufacturingKPIDashboard /></AppLayout>} />
+            <Route path="/manufacturing/production-runs" element={<AppLayout><ProductionDashboard /></AppLayout>} />
             <Route path="/manufacturing/production" element={<AppLayout><ProductionExecution /></AppLayout>} />
             <Route path="/manufacturing/lots" element={<AppLayout><ManufacturingLots /></AppLayout>} />
             <Route path="/manufacturing/lots/new" element={<AppLayout><CreateManufacturingLot /></AppLayout>} />
