@@ -157,17 +157,39 @@ const ReceivingInspection = () => {
 
       if (sessionError) throw sessionError;
 
-      // If approved, update lots to ready for putaway
+      // If approved, update lots to ready for putaway and create putaway tasks
       if (result === 'approved' && session?.lots) {
-        const lotIds = session.lots
-          .filter((lot: any) => lot.hold_status !== 'on_hold')
-          .map((lot: any) => lot.id);
+        const approvedLots = session.lots.filter((lot: any) => lot.hold_status !== 'on_hold');
+        const lotIds = approvedLots.map((lot: any) => lot.id);
 
         if (lotIds.length > 0) {
           await supabase
             .from('receiving_lots')
             .update({ status: 'ready_for_putaway' })
             .in('id', lotIds);
+
+          // Fetch putaway deadline preference
+          const { data: deadlinePref } = await supabase
+            .from('inventory_preferences')
+            .select('preference_value')
+            .eq('preference_key', 'putaway_deadline_hours')
+            .single();
+
+          const deadlineHours = deadlinePref?.preference_value 
+            ? parseInt(deadlinePref.preference_value) 
+            : 24;
+
+          // Create putaway tasks for each approved lot
+          for (const lot of approvedLots) {
+            await supabase.from('putaway_tasks').insert({
+              receiving_lot_id: lot.id,
+              receiving_session_id: sessionId,
+              total_quantity: lot.quantity_received,
+              putaway_quantity: 0,
+              status: 'pending',
+              deadline: new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString()
+            });
+          }
         }
       }
 
@@ -207,6 +229,7 @@ const ReceivingInspection = () => {
           : "All lots have been placed on hold."
       });
       queryClient.invalidateQueries({ queryKey: ['qa-pending-inspections'] });
+      queryClient.invalidateQueries({ queryKey: ['putaway-tasks'] });
       navigate('/qa/receiving-inspections');
     },
     onError: (error: any) => {
