@@ -1,9 +1,10 @@
 // App component with route definitions
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { RequireRole } from "@/components/auth/RequireRole";
@@ -50,6 +51,7 @@ import DocumentTemplatesPage from "./pages/settings/DocumentTemplates";
 import CompanySettings from "./pages/settings/CompanySettings";
 import LabelTemplates from "./pages/settings/LabelTemplates";
 import EmailSettings from "./pages/settings/EmailSettings";
+import EmailTemplateEditor from "./pages/settings/EmailTemplateEditor";
 import PriceSheets from "./pages/settings/PriceSheets";
 import PriceSheetDetail from "./pages/settings/PriceSheetDetail";
 import TeamRoster from "./pages/hr/TeamRoster";
@@ -136,6 +138,30 @@ import NonConformities from "./pages/quality/NonConformities";
 
 const queryClient = new QueryClient();
 
+// Component to handle recovery token redirect
+// This intercepts recovery links and ensures they go to /update-password
+function RecoveryRedirect({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if the URL hash contains a recovery token
+    const hash = location.hash;
+    if (hash) {
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const type = hashParams.get('type');
+      const accessToken = hashParams.get('access_token');
+      
+      // If this is a recovery link, redirect to update-password
+      if (type === 'recovery' && accessToken && location.pathname === '/auth') {
+        navigate('/update-password' + hash, { replace: true });
+      }
+    }
+  }, [location, navigate]);
+
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -143,9 +169,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/auth" element={<Auth />} />
+          <RecoveryRedirect>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/auth" element={<Auth />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             
             {/* Protected routes - wrapped in AppLayout */}
@@ -191,6 +218,7 @@ const App = () => (
             <Route path="/settings/labels" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><LabelTemplates /></RequireRole></AppLayout>} />
             <Route path="/settings/company" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><CompanySettings /></RequireRole></AppLayout>} />
             <Route path="/settings/email" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><EmailSettings /></RequireRole></AppLayout>} />
+            <Route path="/settings/email-templates" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'hr']}><EmailTemplateEditor /></RequireRole></AppLayout>} />
             <Route path="/settings/fixed-costs" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><FixedCosts /></RequireRole></AppLayout>} />
             <Route path="/settings/gl-accounts" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><GLAccounts /></RequireRole></AppLayout>} />
             <Route path="/settings/period-close" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PeriodClose /></RequireRole></AppLayout>} />
@@ -377,6 +405,7 @@ const App = () => (
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </RecoveryRedirect>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

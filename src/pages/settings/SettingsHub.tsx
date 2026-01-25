@@ -284,6 +284,13 @@ const settingsCategories: SettingCategory[] = [
         icon: Mail,
         status: 'active',
       },
+      {
+        title: 'Email Templates',
+        description: 'Customize the content of system emails with merge fields',
+        href: '/settings/email-templates',
+        icon: Mail,
+        status: 'active',
+      },
     ],
   },
 ];
