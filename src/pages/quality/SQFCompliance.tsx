@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Search, FileText, BookOpen, ClipboardCheck, Upload, Settings } from "lucide-react";
+import { Plus, Search, FileText, BookOpen, ClipboardCheck, Upload, Settings, Sparkles } from "lucide-react";
 import { useSQFEditions, useSQFCodes, useSQFComplianceAudits, useSQFComplianceSummary } from "@/hooks/useSQF";
 import { format, differenceInDays } from "date-fns";
 import SQFEditionUploadDialog from "@/components/sqf/SQFEditionUploadDialog";
 import SQFEditionSettingsDialog from "@/components/sqf/SQFEditionSettingsDialog";
+import PolicySQFMappingDialog from "@/components/sqf/PolicySQFMappingDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ export default function SQFCompliance() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedEdition, setSelectedEdition] = useState<any>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMappingOpen, setIsMappingOpen] = useState(false);
   
   const { data: editions } = useSQFEditions();
   const currentEdition = editions?.find(e => e.is_active);
@@ -83,6 +85,11 @@ export default function SQFCompliance() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><FileText className="mr-2 h-4 w-4" />Export Report</Button>
+          {isManager && currentEdition && (
+            <Button variant="outline" onClick={() => setIsMappingOpen(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />AI Policy Mapping
+            </Button>
+          )}
           {isManager && (
             <Button variant="outline" onClick={() => setIsUploadOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />Upload SQF Code
@@ -338,6 +345,15 @@ export default function SQFCompliance() {
         open={isSettingsOpen} 
         onOpenChange={setIsSettingsOpen} 
       />
+
+      {/* Policy SQF Mapping Dialog */}
+      {currentEdition && (
+        <PolicySQFMappingDialog
+          open={isMappingOpen}
+          onOpenChange={setIsMappingOpen}
+          editionId={currentEdition.id}
+        />
+      )}
     </div>
   );
 }
