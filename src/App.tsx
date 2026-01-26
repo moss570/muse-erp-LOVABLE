@@ -63,6 +63,7 @@ import GLAccounts from "./pages/settings/GLAccounts";
 import PeriodClose from "./pages/settings/PeriodClose";
 import ProfitLoss from "./pages/reports/ProfitLoss";
 import XeroConfiguration from "./pages/settings/XeroConfiguration";
+import IntegrationUsage from "./pages/settings/IntegrationUsage";
 import CategoryGLDefaults from "./pages/settings/CategoryGLDefaults";
 import ProductionDashboard from "./pages/manufacturing/ProductionDashboard";
 import ManufacturingKPIDashboard from "./pages/manufacturing/ManufacturingKPIDashboard";
@@ -240,6 +241,7 @@ const App = () => (
             <Route path="/settings/manufacturing-preferences" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ManufacturingPreferences /></RequireRole></AppLayout>} />
             <Route path="/settings/price-sheets" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PriceSheets /></RequireRole></AppLayout>} />
             <Route path="/settings/price-sheets/:id" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><PriceSheetDetail /></RequireRole></AppLayout>} />
+            <Route path="/settings/integration-usage" element={<AppLayout><RequireRole allowedRoles={['admin']}><IntegrationUsage /></RequireRole></AppLayout>} />
             <Route path="/settings/*" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><SettingsHub /></RequireRole></AppLayout>} />
             
             {/* Other placeholder routes */}
