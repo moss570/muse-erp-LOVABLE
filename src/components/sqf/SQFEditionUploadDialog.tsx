@@ -11,6 +11,7 @@ import { useCreateSQFEdition } from "@/hooks/useSQF";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SQFEditionUploadDialogProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface SQFEditionUploadDialogProps {
 }
 
 export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditionUploadDialogProps) {
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -147,6 +149,11 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
       }
 
       setUploadProgress(100);
+      
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["sqf-editions"] });
+      await queryClient.invalidateQueries({ queryKey: ["sqf-codes"] });
+      
       toast.success("SQF Edition created successfully");
       
       // Reset and close
