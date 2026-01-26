@@ -109,7 +109,18 @@ export default function BulkPolicyUploadDialog({
     const items = e.dataTransfer.items;
     const policyFiles: File[] = [];
 
-    // Handle folder drops
+    // Valid extensions for fallback check
+    const validExtensions = ['.pdf', '.doc', '.docx'];
+
+    // Check if file is valid by MIME type or extension
+    const isValidFile = (file: File): boolean => {
+      if (validTypes.includes(file.type)) return true;
+      // Fallback: check file extension for edge cases where MIME type is empty
+      const fileName = file.name.toLowerCase();
+      return validExtensions.some(ext => fileName.endsWith(ext));
+    };
+
+    // Handle folder drops - readEntries may not return all files in one call
     const traverseDirectory = async (entry: FileSystemEntry): Promise<File[]> => {
       const files: File[] = [];
       if (entry.isFile) {
@@ -117,15 +128,27 @@ export default function BulkPolicyUploadDialog({
         const file = await new Promise<File>((resolve) => {
           fileEntry.file(resolve);
         });
-        if (validTypes.includes(file.type)) {
+        if (isValidFile(file)) {
           files.push(file);
         }
       } else if (entry.isDirectory) {
         const dirEntry = entry as FileSystemDirectoryEntry;
         const reader = dirEntry.createReader();
-        const entries = await new Promise<FileSystemEntry[]>((resolve) => {
-          reader.readEntries(resolve);
-        });
+        
+        // readEntries must be called repeatedly until it returns empty array
+        const readAllEntries = async (): Promise<FileSystemEntry[]> => {
+          const allEntries: FileSystemEntry[] = [];
+          let batch: FileSystemEntry[];
+          do {
+            batch = await new Promise<FileSystemEntry[]>((resolve) => {
+              reader.readEntries(resolve);
+            });
+            allEntries.push(...batch);
+          } while (batch.length > 0);
+          return allEntries;
+        };
+
+        const entries = await readAllEntries();
         for (const childEntry of entries) {
           const childFiles = await traverseDirectory(childEntry);
           files.push(...childFiles);
