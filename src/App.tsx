@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { MobileModeProvider } from "@/contexts/MobileModeContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { RequireRole } from "@/components/auth/RequireRole";
 import Auth from "./pages/Auth";
@@ -136,6 +137,7 @@ import TaskAnalytics from "./pages/analytics/TaskAnalytics";
 import NCAnalytics from "./pages/quality/NCAnalytics";
 import Notifications from "./pages/Notifications";
 import NonConformities from "./pages/quality/NonConformities";
+import MobileLauncher from "./pages/mobile/MobileLauncher";
 
 const queryClient = new QueryClient();
 
@@ -166,11 +168,12 @@ function RecoveryRedirect({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <RecoveryRedirect>
+      <MobileModeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <RecoveryRedirect>
             <Routes>
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
@@ -404,12 +407,16 @@ const App = () => (
             {/* Notifications */}
             <Route path="/notifications" element={<AppLayout><Notifications /></AppLayout>} />
             
+            {/* Mobile Launcher routes - standalone without AppLayout */}
+            <Route path="/mobile" element={<MobileLauncher />} />
+            
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
           </RecoveryRedirect>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </MobileModeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
