@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lovable export files
+muse-erp-lovable-export-*.zip
