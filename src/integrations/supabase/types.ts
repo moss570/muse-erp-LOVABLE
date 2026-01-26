@@ -16619,6 +16619,15 @@ export type Database = {
           total_cost: number
         }[]
       }
+      get_storage_usage: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          bucket_name: string
+          file_count: number
+          total_size: number
+        }[]
+      }
       get_unapproved_recipe_materials: {
         Args: { p_recipe_id: string }
         Returns: {
