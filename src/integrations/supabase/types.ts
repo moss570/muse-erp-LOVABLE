@@ -16109,6 +16109,7 @@ export type Database = {
           codes_extracted: number | null
           created_at: string
           created_by: string | null
+          current_pass: number | null
           edition_date: string | null
           effective_date: string | null
           file_path: string | null
@@ -16119,6 +16120,7 @@ export type Database = {
           notes: string | null
           parsing_error: string | null
           parsing_status: string | null
+          pass_results: Json | null
           sections_found: number | null
           updated_at: string
           version: string
@@ -16127,6 +16129,7 @@ export type Database = {
           codes_extracted?: number | null
           created_at?: string
           created_by?: string | null
+          current_pass?: number | null
           edition_date?: string | null
           effective_date?: string | null
           file_path?: string | null
@@ -16137,6 +16140,7 @@ export type Database = {
           notes?: string | null
           parsing_error?: string | null
           parsing_status?: string | null
+          pass_results?: Json | null
           sections_found?: number | null
           updated_at?: string
           version: string
@@ -16145,6 +16149,7 @@ export type Database = {
           codes_extracted?: number | null
           created_at?: string
           created_by?: string | null
+          current_pass?: number | null
           edition_date?: string | null
           effective_date?: string | null
           file_path?: string | null
@@ -16155,6 +16160,7 @@ export type Database = {
           notes?: string | null
           parsing_error?: string | null
           parsing_status?: string | null
+          pass_results?: Json | null
           sections_found?: number | null
           updated_at?: string
           version?: string
