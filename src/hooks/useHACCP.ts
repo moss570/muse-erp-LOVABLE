@@ -330,7 +330,7 @@ export function useCreateHACCPCCP() {
       const { data: user } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("haccp_critical_control_points")
-        .insert({ ...ccp, created_by: user.user?.id })
+        .insert({ ...ccp, created_by: user.user?.id } as any)
         .select()
         .single();
       if (error) throw error;
@@ -463,7 +463,7 @@ export function useCreateHACCPCCPDeviation() {
       const { data: user } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("haccp_ccp_deviations")
-        .insert({ ...deviation, created_by: user.user?.id })
+        .insert({ ...deviation, created_by: user.user?.id } as any)
         .select()
         .single();
       if (error) throw error;

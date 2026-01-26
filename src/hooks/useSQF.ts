@@ -48,7 +48,7 @@ export function useCreateSQFEdition() {
       const { data: user } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("sqf_editions")
-        .insert({ ...edition, created_by: user.user?.id })
+        .insert({ ...edition, created_by: user.user?.id } as any)
         .select()
         .single();
       if (error) throw error;
@@ -215,7 +215,7 @@ export function useUpdatePolicySQFMapping() {
       const { data: user } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("policy_sqf_mappings")
-        .update({ ...updates, reviewed_by: user.user?.id, last_reviewed_at: new Date().toISOString() })
+        .update({ ...updates, reviewed_by: user.user?.id, last_reviewed_at: new Date().toISOString() } as any)
         .eq("id", id)
         .select()
         .single();
@@ -381,7 +381,7 @@ export function useCreateSQFAuditFinding() {
     }) => {
       const { data, error } = await supabase
         .from("sqf_audit_findings")
-        .insert(finding)
+        .insert(finding as any)
         .select()
         .single();
       if (error) throw error;
