@@ -85,6 +85,46 @@ export function useSQFCodes(editionId?: string) {
   });
 }
 
+// SQF Compliance Summary - aggregated from policy mappings
+export function useSQFComplianceSummary(editionId?: string) {
+  return useQuery({
+    queryKey: ["sqf-compliance-summary", editionId],
+    queryFn: async () => {
+      if (!editionId) return null;
+      
+      const { data, error } = await supabase
+        .from("sqf_compliance_summary")
+        .select("*")
+        .eq("edition_id", editionId);
+      
+      if (error) throw error;
+      
+      // Calculate aggregates
+      const total = data?.length || 0;
+      const compliant = data?.filter(d => d.overall_status === 'compliant').length || 0;
+      const partial = data?.filter(d => d.overall_status === 'partial').length || 0;
+      const gap = data?.filter(d => d.overall_status === 'gap').length || 0;
+      const notAddressed = data?.filter(d => d.overall_status === 'not_addressed').length || 0;
+      const mapped = compliant + partial + gap; // Codes with at least one policy linked
+      
+      const complianceScore = total > 0 
+        ? Math.round(((compliant + (partial * 0.5)) / total) * 100) 
+        : 0;
+      
+      return {
+        total,
+        compliant,
+        partial,
+        gap,
+        notAddressed,
+        mapped,
+        complianceScore,
+      };
+    },
+    enabled: !!editionId,
+  });
+}
+
 export function useSQFCode(id: string | undefined) {
   return useQuery({
     queryKey: ["sqf-code", id],
@@ -417,20 +457,6 @@ export function useUpdateSQFAuditFinding() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to update audit finding: ${error.message}`);
-    },
-  });
-}
-
-// SQF Compliance Summary (view)
-export function useSQFComplianceSummary() {
-  return useQuery({
-    queryKey: ["sqf-compliance-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sqf_compliance_summary")
-        .select("*");
-      if (error) throw error;
-      return data;
     },
   });
 }

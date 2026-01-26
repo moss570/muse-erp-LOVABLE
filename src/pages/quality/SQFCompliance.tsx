@@ -8,11 +8,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Plus, Search, FileText, BookOpen, ClipboardCheck, Upload, Settings } from "lucide-react";
-import { useSQFEditions, useSQFCodes, useSQFComplianceAudits } from "@/hooks/useSQF";
-import { format } from "date-fns";
+import { useSQFEditions, useSQFCodes, useSQFComplianceAudits, useSQFComplianceSummary } from "@/hooks/useSQF";
+import { format, differenceInDays } from "date-fns";
 import SQFEditionUploadDialog from "@/components/sqf/SQFEditionUploadDialog";
 import SQFEditionSettingsDialog from "@/components/sqf/SQFEditionSettingsDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function SQFCompliance() {
   const { isManager } = useAuth();
@@ -26,6 +28,37 @@ export default function SQFCompliance() {
   const currentEdition = editions?.find(e => e.is_active);
   const { data: codes } = useSQFCodes(currentEdition?.id);
   const { data: audits } = useSQFComplianceAudits();
+  const { data: complianceSummary } = useSQFComplianceSummary(currentEdition?.id);
+
+  // Fetch open findings count
+  const { data: openFindingsData } = useQuery({
+    queryKey: ["open-audit-findings-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("audit_findings")
+        .select("*", { count: "exact", head: true })
+        .neq("status", "closed");
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch next scheduled audit
+  const { data: nextAuditData } = useQuery({
+    queryKey: ["next-scheduled-audit"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audits")
+        .select("audit_date")
+        .eq("status", "scheduled")
+        .gte("audit_date", new Date().toISOString().split("T")[0])
+        .order("audit_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const filteredCodes = codes?.filter(code =>
     code.code_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -34,6 +67,12 @@ export default function SQFCompliance() {
 
   const totalCodes = codes?.length || 0;
   const mandatoryCodes = codes?.filter(c => c.is_mandatory).length || 0;
+  const mappedPolicies = complianceSummary?.mapped || 0;
+  const complianceScore = complianceSummary?.complianceScore || 0;
+  const openFindings = openFindingsData || 0;
+  const daysToNextAudit = nextAuditData?.audit_date 
+    ? differenceInDays(new Date(nextAuditData.audit_date), new Date())
+    : null;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -107,10 +146,50 @@ export default function SQFCompliance() {
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
-            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Compliance Score</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">87%</div><Progress value={87} className="mt-2" /></CardContent></Card>
-            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Mapped Policies</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">42</div><p className="text-xs text-muted-foreground">of {totalCodes} requirements</p></CardContent></Card>
-            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Open Findings</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-destructive">3</div><p className="text-xs text-muted-foreground">Requires action</p></CardContent></Card>
-            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Next Audit</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">15</div><p className="text-xs text-muted-foreground">days remaining</p></CardContent></Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Compliance Score</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{complianceScore}%</div>
+                <Progress value={complianceScore} className="mt-2" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Mapped Policies</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{mappedPolicies}</div>
+                <p className="text-xs text-muted-foreground">of {totalCodes} requirements</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Open Findings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold ${openFindings > 0 ? 'text-destructive' : ''}`}>
+                  {openFindings}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {openFindings > 0 ? "Requires action" : "All resolved"}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Next Audit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {daysToNextAudit !== null ? daysToNextAudit : "—"}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {daysToNextAudit !== null ? "days remaining" : "No audit scheduled"}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
