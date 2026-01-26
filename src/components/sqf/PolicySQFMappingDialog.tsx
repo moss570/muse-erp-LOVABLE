@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, DragEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -43,26 +43,55 @@ export default function PolicySQFMappingDialog({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{
     policy_summary: string;
     suggested_category: string;
     mappings: MappingResult[];
   } | null>(null);
 
+  const validTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+
+  const validateAndSetFile = (selectedFile: File) => {
+    if (!validTypes.includes(selectedFile.type)) {
+      toast.error("Please upload a PDF or Word document");
+      return;
+    }
+    setFile(selectedFile);
+    setAnalysisResult(null);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      validateAndSetFile(droppedFile);
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      const validTypes = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ];
-      if (!validTypes.includes(selectedFile.type)) {
-        toast.error("Please upload a PDF or Word document");
-        return;
-      }
-      setFile(selectedFile);
-      setAnalysisResult(null);
+      validateAndSetFile(selectedFile);
     }
   };
 
@@ -236,7 +265,14 @@ export default function PolicySQFMappingDialog({
                 />
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-accent/50 transition-colors"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragOver 
+                      ? 'border-primary bg-primary/10' 
+                      : 'hover:border-primary hover:bg-accent/50'
+                  }`}
                 >
                   {file ? (
                     <div className="flex items-center justify-center gap-2">
