@@ -152,6 +152,8 @@ const navItems: NavItem[] = [
     children: [
       { title: 'All Policies', href: '/policies' },
       { title: 'Create Policy', href: '/policies/new' },
+      { title: 'SQF Compliance', href: '/sqf/compliance' },
+      { title: 'SQF Code Library', href: '/sqf/codes' },
     ],
   },
   {
