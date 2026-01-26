@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Upload, FileText, Loader2, Sparkles, AlertCircle, CheckCircle } from "lucide-react";
 import { useCreateSQFEdition } from "@/hooks/useSQF";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,12 +18,20 @@ interface SQFEditionUploadDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const PASS_DESCRIPTIONS = [
+  { pass: 1, description: "Extracting System Elements (Module 2)..." },
+  { pass: 2, description: "Extracting Food Safety Plans (Modules 3-9)..." },
+  { pass: 3, description: "Extracting Good Manufacturing Practices (Modules 10-15)..." },
+];
+
 export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditionUploadDialogProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
+  const [currentPass, setCurrentPass] = useState(0);
+  const [passResults, setPassResults] = useState<{ pass: number; codes: number }[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [formData, setFormData] = useState({
     name: "",
@@ -60,7 +68,9 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
     }
 
     setIsUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(5);
+    setPassResults([]);
+    setCurrentPass(0);
 
     try {
       let filePath = null;
@@ -71,7 +81,7 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
         const fileExt = file.name.split(".").pop();
         filePath = `sqf-editions/${Date.now()}.${fileExt}`;
         
-        setUploadProgress(30);
+        setUploadProgress(10);
         
         const { error: uploadError } = await supabase.storage
           .from("policy-attachments")
@@ -87,7 +97,7 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
           fileUrl = urlData?.publicUrl;
         }
         
-        setUploadProgress(50);
+        setUploadProgress(15);
       }
 
       // Create edition record
@@ -99,12 +109,11 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
         is_active: formData.is_active,
       } as any);
 
-      setUploadProgress(70);
+      setUploadProgress(20);
 
       // Parse with AI if enabled and file was uploaded
       if (formData.parse_with_ai && file && edition?.id) {
         setIsParsing(true);
-        setUploadProgress(80);
 
         try {
           // Convert PDF to Base64 for multimodal AI processing
@@ -123,21 +132,59 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
           if (!pdfBase64) {
             toast.warning("Could not read PDF file. You may need to add codes manually.");
           } else {
-            const { data, error } = await supabase.functions.invoke("parse-sqf-document", {
-              body: { 
-                pdfBase64,
-                edition_id: edition.id,
-              },
-            });
+            // Sequential pass extraction - each pass is a separate function call
+            let totalCodesExtracted = 0;
+            let allPassesSuccessful = true;
 
-            if (error) {
-              console.error("AI parsing error:", error);
-              toast.warning("Edition created but AI parsing failed. You can add codes manually.");
-            } else if (data?.success) {
-              const codesExtracted = data.codes_extracted || 0;
-              toast.success(`AI extraction complete: ${codesExtracted} SQF codes found`);
-            } else if (data?.error) {
-              toast.warning(`Edition created: ${data.error}`);
+            for (let pass = 1; pass <= 3; pass++) {
+              setCurrentPass(pass);
+              // Progress: 20% (start) + pass contribution (each pass = ~25% of remaining 80%)
+              setUploadProgress(20 + (pass - 1) * 25);
+
+              try {
+                console.log(`Starting pass ${pass}...`);
+                
+                const { data, error } = await supabase.functions.invoke("parse-sqf-pass", {
+                  body: { 
+                    pdfBase64,
+                    edition_id: edition.id,
+                    pass_number: pass,
+                  },
+                });
+
+                if (error) {
+                  console.error(`Pass ${pass} error:`, error);
+                  toast.error(`Pass ${pass} failed: ${error.message}`);
+                  allPassesSuccessful = false;
+                  break;
+                }
+
+                if (data?.success) {
+                  const codesFromPass = data.codes_extracted || 0;
+                  totalCodesExtracted += codesFromPass;
+                  setPassResults(prev => [...prev, { pass, codes: codesFromPass }]);
+                  console.log(`Pass ${pass} complete: ${codesFromPass} codes extracted`);
+                  
+                  // Update progress after each successful pass
+                  setUploadProgress(20 + pass * 25);
+                } else {
+                  console.error(`Pass ${pass} returned error:`, data?.error);
+                  toast.error(`Pass ${pass} failed: ${data?.error || "Unknown error"}`);
+                  allPassesSuccessful = false;
+                  break;
+                }
+              } catch (passError) {
+                console.error(`Pass ${pass} exception:`, passError);
+                toast.error(`Pass ${pass} failed unexpectedly`);
+                allPassesSuccessful = false;
+                break;
+              }
+            }
+
+            if (allPassesSuccessful) {
+              toast.success(`AI extraction complete: ${totalCodesExtracted} SQF codes extracted`);
+            } else {
+              toast.warning(`Partial extraction: ${totalCodesExtracted} codes extracted before failure`);
             }
           }
         } catch (parseError) {
@@ -167,6 +214,8 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
         is_active: true,
         parse_with_ai: true,
       });
+      setCurrentPass(0);
+      setPassResults([]);
       onOpenChange(false);
 
     } catch (error) {
@@ -177,6 +226,12 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
       setIsParsing(false);
       setUploadProgress(0);
     }
+  };
+
+  const getCurrentPassDescription = () => {
+    if (currentPass === 0) return "Preparing...";
+    const passInfo = PASS_DESCRIPTIONS.find(p => p.pass === currentPass);
+    return passInfo?.description || `Processing pass ${currentPass}...`;
   };
 
   return (
@@ -314,27 +369,60 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
 
           {/* Progress */}
           {(isUploading || isParsing) && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Progress value={uploadProgress} />
               <p className="text-sm text-center text-muted-foreground">
-                {isParsing ? "AI is extracting SQF codes..." : "Uploading..."}
+                {isParsing ? getCurrentPassDescription() : "Uploading..."}
               </p>
+              
+              {/* Pass Progress Indicators */}
+              {isParsing && (
+                <div className="space-y-2 pt-2">
+                  {PASS_DESCRIPTIONS.map(({ pass, description }) => {
+                    const passResult = passResults.find(r => r.pass === pass);
+                    const isActive = currentPass === pass;
+                    const isComplete = passResult !== undefined;
+                    
+                    return (
+                      <div 
+                        key={pass}
+                        className={`flex items-center gap-2 text-sm ${
+                          isActive ? 'text-primary font-medium' : 
+                          isComplete ? 'text-muted-foreground' : 'text-muted-foreground/50'
+                        }`}
+                      >
+                        {isComplete ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : isActive ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full border border-muted-foreground/30" />
+                        )}
+                        <span>
+                          Pass {pass}: {description.replace('...', '')}
+                          {isComplete && ` (${passResult.codes} codes)`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
           {/* AI Note */}
-          {file && formData.parse_with_ai && (
+          {file && formData.parse_with_ai && !isParsing && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                AI extraction may take 30-60 seconds depending on document size.
+                AI extraction uses 3 sequential passes (3-5 minutes total) to ensure all modules are captured.
               </AlertDescription>
             </Alert>
           )}
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading || isParsing}>
             Cancel
           </Button>
           <Button 
@@ -344,7 +432,7 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
             {isUploading || isParsing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {isParsing ? "Parsing..." : "Uploading..."}
+                {isParsing ? `Pass ${currentPass}/3...` : "Uploading..."}
               </>
             ) : (
               <>

@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.parse-sqf-document]
 verify_jwt = false
+
+[functions.parse-sqf-pass]
+verify_jwt = false
