@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Grid, List, Table as TableIcon, FileText, Eye, Edit, Trash2, Archive } from "lucide-react";
+import { Plus, Search, Filter, Grid, List, Table as TableIcon, FileText, Eye, Edit, Trash2, Archive, FolderUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { usePolicies, usePolicyCategories, usePolicyTypes, useDeletePolicy, useA
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
+import BulkPolicyUploadDialog from "@/components/policies/BulkPolicyUploadDialog";
 
 type ViewMode = "grid" | "list" | "table";
 
@@ -32,6 +33,7 @@ export default function Policies() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   
   const { data: policies, isLoading } = usePolicies({
@@ -117,10 +119,16 @@ export default function Policies() {
           <p className="text-muted-foreground">Manage your organization's policies, procedures, and documentation</p>
         </div>
         {isManager && (
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Policy
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+              <FolderUp className="h-4 w-4 mr-2" />
+              Bulk Import
+            </Button>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Policy
+            </Button>
+          </div>
         )}
       </div>
 
@@ -299,6 +307,14 @@ export default function Policies() {
       <PolicyFormDialog 
         open={isCreateOpen} 
         onOpenChange={setIsCreateOpen}
+        categories={categories || []}
+        types={types || []}
+      />
+
+      {/* Bulk Upload Dialog */}
+      <BulkPolicyUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
         categories={categories || []}
         types={types || []}
       />
