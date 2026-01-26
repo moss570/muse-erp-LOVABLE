@@ -105,18 +105,31 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
         setUploadProgress(80);
 
         try {
-          const { data, error } = await supabase.functions.invoke("parse-sqf-document", {
-            body: { 
-              edition_id: edition.id,
-              file_url: fileUrl,
-            },
-          });
+          // Read file content as text for AI parsing
+          const fileText = await file.text();
+          
+          if (!fileText || fileText.length < 10) {
+            toast.warning("Could not extract text from PDF. You may need to add codes manually.");
+          } else {
+            const { data, error } = await supabase.functions.invoke("parse-sqf-document", {
+              body: { 
+                documentText: fileText,
+                documentType: "sqf_code",
+                edition_id: edition.id,
+              },
+            });
 
-          if (error) {
-            console.error("AI parsing error:", error);
-            toast.warning("Edition created but AI parsing failed. You can add codes manually.");
-          } else if (data?.codes_extracted) {
-            toast.success(`AI extracted ${data.codes_extracted} SQF codes from the document`);
+            if (error) {
+              console.error("AI parsing error:", error);
+              toast.warning("Edition created but AI parsing failed. You can add codes manually.");
+            } else if (data?.success && data?.data) {
+              const extracted = data.data;
+              toast.success(`AI analysis complete: ${extracted.title || "Document parsed"}`);
+              // Log extracted data for debugging
+              console.log("Extracted SQF data:", extracted);
+            } else if (data?.error) {
+              toast.warning(`Edition created: ${data.error}`);
+            }
           }
         } catch (parseError) {
           console.error("Parse error:", parseError);
