@@ -45,6 +45,18 @@ interface SQFMapping {
   selected: boolean;
 }
 
+interface DocumentMetadata {
+  extracted_title?: string;
+  extracted_policy_number?: string;
+  extracted_version?: string;
+  extracted_effective_date?: string;
+  extracted_review_date?: string;
+  suggested_document_type?: "policy" | "sop" | "work_instruction" | "form" | "manual" | "other";
+  suggested_category?: "food_safety" | "quality" | "operations" | "hr" | "health_safety" | "compliance" | "other";
+  extracted_department?: string;
+  extracted_author?: string;
+}
+
 export default function PolicyFormDialog({ 
   open, 
   onOpenChange, 
@@ -80,6 +92,7 @@ export default function PolicyFormDialog({
   const [policySummary, setPolicySummary] = useState<string>("");
   const [analyzedFileName, setAnalyzedFileName] = useState<string>("");
   const [isDragOver, setIsDragOver] = useState(false);
+  const [extractedMetadata, setExtractedMetadata] = useState<DocumentMetadata | null>(null);
 
   const { data: policyNumber } = useGeneratePolicyNumber(formData.type_id || undefined);
   const { data: sqfEditions } = useSQFEditions();
@@ -139,6 +152,7 @@ export default function PolicyFormDialog({
       setSqfMappings([]);
       setPolicySummary("");
       setAnalyzedFileName("");
+      setExtractedMetadata(null);
     }
   }, [policy, open]);
 
@@ -256,12 +270,109 @@ export default function PolicyFormDialog({
         setSqfMappings(mappingsWithSelection);
         setPolicySummary(data.policy_summary || "");
         
-        // Auto-fill summary if empty
-        if (!formData.summary && data.policy_summary) {
-          setFormData(prev => ({ ...prev, summary: data.policy_summary }));
-        }
+        // Store extracted metadata
+        const metadata: DocumentMetadata = data.document_metadata || {};
+        setExtractedMetadata(metadata);
         
-        toast.success(`AI found ${data.mappings.length} SQF code mappings`);
+        // Auto-fill form fields from extracted metadata
+        setFormData(prev => {
+          const updates: Partial<typeof prev> = {};
+          
+          // Auto-fill title if empty
+          if (!prev.title && metadata.extracted_title) {
+            updates.title = metadata.extracted_title;
+          }
+          
+          // Auto-fill policy number if empty
+          if (!prev.policy_number && metadata.extracted_policy_number) {
+            updates.policy_number = metadata.extracted_policy_number;
+          }
+          
+          // Auto-fill summary if empty
+          if (!prev.summary && data.policy_summary) {
+            updates.summary = data.policy_summary;
+          }
+          
+          // Auto-fill effective date if empty and valid
+          if (!prev.effective_date && metadata.extracted_effective_date) {
+            // Validate date format
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (dateRegex.test(metadata.extracted_effective_date)) {
+              updates.effective_date = metadata.extracted_effective_date;
+            }
+          }
+          
+          // Auto-fill review date if empty and valid
+          if (!prev.review_date && metadata.extracted_review_date) {
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (dateRegex.test(metadata.extracted_review_date)) {
+              updates.review_date = metadata.extracted_review_date;
+            }
+          }
+          
+          // Auto-select document type based on AI suggestion
+          if (!prev.type_id && metadata.suggested_document_type) {
+            const typeMap: Record<string, string> = {
+              policy: "POL",
+              sop: "SOP",
+              work_instruction: "WI",
+              form: "FRM",
+              manual: "MAN",
+            };
+            const prefix = typeMap[metadata.suggested_document_type];
+            if (prefix) {
+              const matchingType = types.find(t => t.code_prefix === prefix);
+              if (matchingType) {
+                updates.type_id = matchingType.id;
+              }
+            }
+          }
+          
+          // Auto-select category based on AI suggestion
+          if (!prev.category_id && metadata.suggested_category) {
+            const categoryMap: Record<string, string> = {
+              food_safety: "Food Safety",
+              quality: "Quality",
+              operations: "Operations",
+              hr: "Human Resources",
+              health_safety: "Health & Safety",
+              compliance: "Compliance",
+            };
+            const categoryName = categoryMap[metadata.suggested_category];
+            if (categoryName) {
+              const matchingCategory = categories.find(c => c.name === categoryName);
+              if (matchingCategory) {
+                updates.category_id = matchingCategory.id;
+              }
+            }
+          }
+          
+          // Auto-select department if mentioned
+          if (!prev.department_id && metadata.extracted_department && departments) {
+            const matchingDept = departments.find(d => 
+              d.name.toLowerCase().includes(metadata.extracted_department!.toLowerCase()) ||
+              metadata.extracted_department!.toLowerCase().includes(d.name.toLowerCase())
+            );
+            if (matchingDept) {
+              updates.department_id = matchingDept.id;
+            }
+          }
+          
+          return { ...prev, ...updates };
+        });
+        
+        const fieldsFilledCount = [
+          metadata.extracted_title,
+          metadata.extracted_policy_number,
+          metadata.suggested_document_type,
+          metadata.suggested_category,
+          metadata.extracted_effective_date,
+          metadata.extracted_review_date,
+        ].filter(Boolean).length;
+        
+        toast.success(
+          `AI found ${data.mappings.length} SQF code mappings${fieldsFilledCount > 0 ? ` and auto-filled ${fieldsFilledCount} form fields` : ""}`
+        );
         setActiveTab("sqf-mapping");
       } else if (data?.error) {
         toast.error(data.error);
@@ -404,9 +515,26 @@ export default function PolicyFormDialog({
         <DialogHeader>
           <DialogTitle>{policy ? "Edit Policy" : "Create New Policy"}</DialogTitle>
           <DialogDescription>
-            Create a new policy document. Upload a PDF or Word file to automatically analyze SQF compliance mappings.
+            Create a new policy document. Upload a PDF or Word file to automatically extract metadata and analyze SQF compliance mappings.
           </DialogDescription>
         </DialogHeader>
+
+        {extractedMetadata && Object.keys(extractedMetadata).some(k => extractedMetadata[k as keyof DocumentMetadata]) && (
+          <Alert className="bg-primary/10 border-primary/30">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              <strong>AI Auto-filled fields from document:</strong>{" "}
+              {[
+                extractedMetadata.extracted_title && "Title",
+                extractedMetadata.extracted_policy_number && "Policy Number",
+                extractedMetadata.suggested_document_type && "Document Type",
+                extractedMetadata.suggested_category && "Category",
+                extractedMetadata.extracted_effective_date && "Effective Date",
+                extractedMetadata.extracted_review_date && "Review Date",
+              ].filter(Boolean).join(", ") || "Summary"}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">

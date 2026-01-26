@@ -113,10 +113,23 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert food safety compliance analyst specializing in SQF (Safe Quality Food) certification.
 
-Your task is to analyze a policy document and identify which SQF codes it addresses or satisfies.
+Your task is to analyze a policy document and:
+1. Extract metadata from the document header/title page (title, document number, version, dates, etc.)
+2. Identify which SQF codes it addresses or satisfies
 
 Available SQF Codes:
 ${sqfCodesSummary}
+
+For the document metadata extraction, look for:
+- Document title (usually at the top or on a title page)
+- Document/Policy number (often formatted like "POL-001", "SOP-2023-01", etc.)
+- Version number (e.g., "Rev 1.0", "Version 2", etc.)
+- Effective date or implementation date
+- Review date or next review date
+- Document type (Policy, SOP, Work Instruction, Form, Manual)
+- Category (Food Safety, Quality, Operations, HR, Health & Safety, Compliance)
+- Department responsible
+- Author or prepared by
 
 For each SQF code that the policy document addresses, determine:
 1. The code number it maps to
@@ -144,7 +157,11 @@ Only include codes that the policy document clearly relates to. Be thorough but 
         { role: "system", content: systemPrompt },
         { 
           role: "user", 
-          content: `Analyze this policy document "${fileName}" and identify all SQF codes it addresses. Return the mapping results.
+          content: `Analyze this policy document "${fileName}" and:
+1. Extract all metadata from the document header/title page
+2. Identify all SQF codes it addresses
+
+Return both the extracted metadata and the SQF mapping results.
 
 POLICY DOCUMENT CONTENT:
 ---
@@ -162,7 +179,11 @@ ${extractedText}
           content: [
             { 
               type: "text", 
-              text: `Analyze this policy document "${fileName}" and identify all SQF codes it addresses. Return the mapping results.` 
+              text: `Analyze this policy document "${fileName}" and:
+1. Extract all metadata from the document header/title page
+2. Identify all SQF codes it addresses
+
+Return both the extracted metadata and the SQF mapping results.` 
             },
             { 
               type: "image_url", 
@@ -192,13 +213,57 @@ ${extractedText}
             type: "function",
             function: {
               name: "map_policy_to_sqf_codes",
-              description: "Map the analyzed policy to relevant SQF codes",
+              description: "Extract document metadata and map the analyzed policy to relevant SQF codes",
               parameters: {
                 type: "object",
                 properties: {
+                  document_metadata: {
+                    type: "object",
+                    description: "Metadata extracted from the document header/title page",
+                    properties: {
+                      extracted_title: {
+                        type: "string",
+                        description: "The document title as found in the document header",
+                      },
+                      extracted_policy_number: {
+                        type: "string",
+                        description: "The document/policy number if present (e.g., 'POL-001', 'SOP-2023-01')",
+                      },
+                      extracted_version: {
+                        type: "string",
+                        description: "Version or revision number if present (e.g., '1.0', 'Rev 2')",
+                      },
+                      extracted_effective_date: {
+                        type: "string",
+                        description: "Effective date in YYYY-MM-DD format if found",
+                      },
+                      extracted_review_date: {
+                        type: "string",
+                        description: "Review/next review date in YYYY-MM-DD format if found",
+                      },
+                      suggested_document_type: {
+                        type: "string",
+                        enum: ["policy", "sop", "work_instruction", "form", "manual", "other"],
+                        description: "The type of document based on content and header",
+                      },
+                      suggested_category: {
+                        type: "string",
+                        enum: ["food_safety", "quality", "operations", "hr", "health_safety", "compliance", "other"],
+                        description: "Suggested category based on document content",
+                      },
+                      extracted_department: {
+                        type: "string",
+                        description: "Department name if mentioned in the document",
+                      },
+                      extracted_author: {
+                        type: "string",
+                        description: "Author or 'Prepared by' name if present",
+                      },
+                    },
+                  },
                   policy_summary: {
                     type: "string",
-                    description: "A brief summary of what the policy document covers",
+                    description: "A brief summary of what the policy document covers (2-3 sentences)",
                   },
                   mappings: {
                     type: "array",
@@ -227,12 +292,8 @@ ${extractedText}
                     },
                     description: "Array of SQF codes this policy addresses",
                   },
-                  suggested_category: {
-                    type: "string",
-                    description: "Suggested policy category based on content",
-                  },
                 },
-                required: ["policy_summary", "mappings"],
+                required: ["document_metadata", "policy_summary", "mappings"],
               },
             },
           },
@@ -287,8 +348,8 @@ ${extractedText}
     return new Response(
       JSON.stringify({
         success: true,
+        document_metadata: analysisResult.document_metadata || {},
         policy_summary: analysisResult.policy_summary,
-        suggested_category: analysisResult.suggested_category,
         mappings: enrichedMappings,
         total_mappings: enrichedMappings.length,
       }),
