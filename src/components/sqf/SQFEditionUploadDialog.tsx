@@ -105,16 +105,25 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
         setUploadProgress(80);
 
         try {
-          // Read file content as text for AI parsing
-          const fileText = await file.text();
+          // Convert PDF to Base64 for multimodal AI processing
+          const pdfBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              // Remove data URL prefix (e.g., "data:application/pdf;base64,")
+              const base64 = result.split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
           
-          if (!fileText || fileText.length < 10) {
-            toast.warning("Could not extract text from PDF. You may need to add codes manually.");
+          if (!pdfBase64) {
+            toast.warning("Could not read PDF file. You may need to add codes manually.");
           } else {
             const { data, error } = await supabase.functions.invoke("parse-sqf-document", {
               body: { 
-                documentText: fileText,
-                documentType: "sqf_code",
+                pdfBase64,
                 edition_id: edition.id,
               },
             });
@@ -122,11 +131,9 @@ export default function SQFEditionUploadDialog({ open, onOpenChange }: SQFEditio
             if (error) {
               console.error("AI parsing error:", error);
               toast.warning("Edition created but AI parsing failed. You can add codes manually.");
-            } else if (data?.success && data?.data) {
-              const extracted = data.data;
-              toast.success(`AI analysis complete: ${extracted.title || "Document parsed"}`);
-              // Log extracted data for debugging
-              console.log("Extracted SQF data:", extracted);
+            } else if (data?.success) {
+              const codesExtracted = data.codes_extracted || 0;
+              toast.success(`AI extraction complete: ${codesExtracted} SQF codes found`);
             } else if (data?.error) {
               toast.warning(`Edition created: ${data.error}`);
             }
