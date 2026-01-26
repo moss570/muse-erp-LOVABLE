@@ -31,6 +31,7 @@ import {
   FolderTree,
   Mail,
   Clock,
+  Activity,
 } from 'lucide-react';
 
 interface SettingItem {
@@ -289,6 +290,13 @@ const settingsCategories: SettingCategory[] = [
         description: 'Customize the content of system emails with merge fields',
         href: '/settings/email-templates',
         icon: Mail,
+        status: 'active',
+      },
+      {
+        title: 'Integration Usage',
+        description: 'Monitor API calls, database usage, and integration activity',
+        href: '/settings/integration-usage',
+        icon: Activity,
         status: 'active',
       },
     ],
