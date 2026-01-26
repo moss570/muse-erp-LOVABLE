@@ -72,7 +72,7 @@ const PutawayTask = () => {
           transactions:putaway_transactions(
             id,
             quantity,
-            location:locations!putaway_transactions_location_id_fkey(id, name, zone)
+            location:locations!putaway_transactions_location_id_fkey(id, name, location_code, location_type)
           )
         `)
         .eq('id', taskId)
@@ -556,7 +556,7 @@ const PutawayTask = () => {
             {task.transactions.map((tx: any) => (
               <div key={tx.id} className="flex justify-between text-sm py-1 border-b last:border-0">
                 <span className="text-muted-foreground">
-                  {tx.location?.zone ? `${tx.location.zone} - ` : ''}{tx.location?.name}
+                  {tx.location?.location_code ? `${tx.location.location_code} - ` : ''}{tx.location?.name}
                 </span>
                 <span className="font-mono">{tx.quantity} {task.receiving_lot?.unit?.code}</span>
               </div>
