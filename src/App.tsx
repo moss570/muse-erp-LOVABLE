@@ -318,6 +318,9 @@ const App = () => (
             <Route path="/quality/mock-recall-drills" element={<AppLayout><MockRecallDrills /></AppLayout>} />
             <Route path="/quality/non-conformities" element={<AppLayout><NonConformities /></AppLayout>} />
             <Route path="/quality/nc-analytics" element={<AppLayout><NCAnalytics /></AppLayout>} />
+            <Route path="/quality/sqf" element={<AppLayout><SQFCompliance /></AppLayout>} />
+            <Route path="/quality/haccp" element={<AppLayout><HACCPPlans /></AppLayout>} />
+            <Route path="/quality/training" element={<AppLayout><PolicyTraining /></AppLayout>} />
             <Route path="/qa/receiving-inspections" element={<AppLayout><ReceivingInspections /></AppLayout>} />
             <Route path="/qa/receiving-inspection/:sessionId" element={<AppLayout><ReceivingInspection /></AppLayout>} />
             <Route
