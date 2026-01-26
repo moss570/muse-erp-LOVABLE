@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,11 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { documentText, documentType = "policy" } = await req.json();
+    const { pdfBase64, edition_id } = await req.json();
 
-    if (!documentText) {
+    if (!pdfBase64) {
       return new Response(
-        JSON.stringify({ error: "Document text is required" }),
+        JSON.stringify({ error: "PDF Base64 data is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!edition_id) {
+      return new Response(
+        JSON.stringify({ error: "Edition ID is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -25,42 +33,35 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are an expert in food safety standards, particularly SQF (Safe Quality Food) certification requirements. 
-Your task is to analyze documents and extract relevant information for compliance tracking.
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-For policy documents, extract:
-- Title and summary
-- Key requirements and procedures
-- Relevant SQF code references (e.g., 2.4.1, 11.2.1)
-- HACCP considerations if applicable
-- Training requirements
-- Document control information (version, effective date, review date)
+    // Update edition to parsing status
+    await supabase
+      .from("sqf_editions")
+      .update({ parsing_status: "parsing" })
+      .eq("id", edition_id);
 
-For SQF audit documents, extract:
-- Audit findings and observations
-- Non-conformances (major/minor)
-- Corrective action requirements
-- SQF code references for each finding
-- Auditor recommendations
+    console.log("Starting SQF code extraction for edition:", edition_id);
 
-For HACCP plans, extract:
-- Process steps
-- Hazard identification (biological, chemical, physical, allergen)
-- Critical control points
-- Critical limits
-- Monitoring procedures
-- Corrective actions
-- Verification activities
+    const systemPrompt = `You are an expert in SQF (Safe Quality Food) certification standards. 
+Your task is to extract ALL SQF code requirements from the provided PDF document.
 
-Provide structured output that can be used to populate database records.`;
+For each SQF code, extract:
+- code_number: The code number (e.g., "2.1.1", "11.2.1.1")
+- title: The code title/heading
+- category: The module or section name (e.g., "Food Safety Fundamentals", "System Elements")
+- requirement_text: The full requirement text
+- is_mandatory: Whether this is a mandatory requirement (look for "shall" vs "should")
+- guidance_notes: Any guidance or notes if available
 
-    const userPrompt = `Analyze the following ${documentType} document and extract structured information:
-
----
-${documentText.substring(0, 15000)}
----
-
-Provide a JSON response with the extracted information.`;
+IMPORTANT: 
+- Extract EVERY code from the document, not just a sample
+- Include all sub-codes (e.g., 2.1.1.1, 2.1.1.2, etc.)
+- Preserve the exact code numbering from the document
+- The requirement_text should be the complete requirement, not summarized`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -69,117 +70,102 @@ Provide a JSON response with the extracted information.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { 
+            role: "user", 
+            content: [
+              { 
+                type: "text", 
+                text: "Extract ALL SQF codes and requirements from this SQF Code document. Return every code with its full details." 
+              },
+              { 
+                type: "image_url", 
+                image_url: { 
+                  url: `data:application/pdf;base64,${pdfBase64}` 
+                } 
+              }
+            ]
+          },
         ],
         tools: [
           {
             type: "function",
             function: {
-              name: "extract_document_info",
-              description: "Extract structured information from the document",
+              name: "extract_sqf_codes",
+              description: "Extract all SQF codes from the document",
               parameters: {
                 type: "object",
                 properties: {
-                  document_type: {
-                    type: "string",
-                    enum: ["policy", "sop", "haccp_plan", "audit_report", "training_material"],
-                    description: "The type of document detected",
-                  },
-                  title: {
-                    type: "string",
-                    description: "Document title",
-                  },
-                  summary: {
-                    type: "string",
-                    description: "Brief summary of the document (2-3 sentences)",
-                  },
-                  sqf_codes: {
+                  codes: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        code: { type: "string", description: "SQF code number (e.g., 2.4.1)" },
-                        title: { type: "string", description: "Code title" },
-                        relevance: { type: "string", enum: ["primary", "secondary", "reference"] },
-                      },
-                      required: ["code"],
-                    },
-                    description: "Relevant SQF code references",
-                  },
-                  haccp_elements: {
-                    type: "object",
-                    properties: {
-                      has_ccp: { type: "boolean" },
-                      hazard_types: {
-                        type: "array",
-                        items: { type: "string", enum: ["biological", "chemical", "physical", "allergen", "radiological"] },
-                      },
-                      process_steps: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            step_number: { type: "number" },
-                            name: { type: "string" },
-                            is_ccp: { type: "boolean" },
-                          },
+                        code_number: { 
+                          type: "string", 
+                          description: "The SQF code number (e.g., '2.1.1', '11.2.1.1')" 
+                        },
+                        title: { 
+                          type: "string", 
+                          description: "The code title or heading" 
+                        },
+                        category: { 
+                          type: "string", 
+                          description: "The module or section name" 
+                        },
+                        requirement_text: { 
+                          type: "string", 
+                          description: "The full requirement text" 
+                        },
+                        is_mandatory: { 
+                          type: "boolean", 
+                          description: "True if mandatory (uses 'shall'), false if recommended (uses 'should')" 
+                        },
+                        guidance_notes: { 
+                          type: "string", 
+                          description: "Any guidance notes or additional information" 
                         },
                       },
+                      required: ["code_number", "title", "requirement_text"],
                     },
-                    description: "HACCP-related elements if applicable",
+                    description: "Array of all SQF codes extracted from the document",
                   },
-                  training_requirements: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        topic: { type: "string" },
-                        frequency: { type: "string" },
-                        roles: { type: "array", items: { type: "string" } },
-                      },
-                    },
-                    description: "Training requirements mentioned in the document",
-                  },
-                  audit_findings: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        finding_type: { type: "string", enum: ["major_nc", "minor_nc", "observation", "opportunity"] },
-                        sqf_code: { type: "string" },
-                        description: { type: "string" },
-                        corrective_action: { type: "string" },
-                      },
-                    },
-                    description: "Audit findings if this is an audit document",
-                  },
-                  key_requirements: {
+                  sections_found: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Key requirements or procedures from the document",
+                    description: "List of main sections/modules found in the document",
                   },
-                  suggested_category: {
-                    type: "string",
-                    description: "Suggested policy category (e.g., Food Safety, Quality, Sanitation)",
-                  },
-                  confidence_score: {
-                    type: "number",
-                    description: "Confidence in the extraction (0-1)",
+                  edition_info: {
+                    type: "object",
+                    properties: {
+                      edition_number: { type: "string" },
+                      effective_date: { type: "string" },
+                      title: { type: "string" },
+                    },
+                    description: "Information about the SQF edition",
                   },
                 },
-                required: ["document_type", "title", "summary", "confidence_score"],
+                required: ["codes"],
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "extract_document_info" } },
+        tool_choice: { type: "function", function: { name: "extract_sqf_codes" } },
       }),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      
+      // Update edition with failed status
+      await supabase
+        .from("sqf_editions")
+        .update({ parsing_status: "failed" })
+        .eq("id", edition_id);
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
@@ -192,24 +178,69 @@ Provide a JSON response with the extracted information.`;
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
       throw new Error("Failed to process document with AI");
     }
 
     const aiResponse = await response.json();
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
 
-    if (!toolCall || toolCall.function.name !== "extract_document_info") {
+    if (!toolCall || toolCall.function.name !== "extract_sqf_codes") {
+      console.error("Unexpected AI response:", JSON.stringify(aiResponse));
+      await supabase
+        .from("sqf_editions")
+        .update({ parsing_status: "failed" })
+        .eq("id", edition_id);
       throw new Error("Unexpected AI response format");
     }
 
-    const extractedInfo = JSON.parse(toolCall.function.arguments);
+    const extractedData = JSON.parse(toolCall.function.arguments);
+    const codes = extractedData.codes || [];
+    const sectionsFound = extractedData.sections_found || [];
+
+    console.log(`Extracted ${codes.length} SQF codes from document`);
+
+    // Insert extracted codes into sqf_codes table
+    if (codes.length > 0) {
+      const codesToInsert = codes.map((code: any) => ({
+        edition_id,
+        code_number: code.code_number,
+        title: code.title || "",
+        category: code.category || null,
+        requirement_text: code.requirement_text || "",
+        is_mandatory: code.is_mandatory ?? true,
+        guidance_notes: code.guidance_notes || null,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("sqf_codes")
+        .insert(codesToInsert);
+
+      if (insertError) {
+        console.error("Error inserting codes:", insertError);
+        // Continue anyway, update edition status
+      }
+    }
+
+    // Update edition with parsing results
+    const { error: updateError } = await supabase
+      .from("sqf_editions")
+      .update({
+        parsing_status: "completed",
+        codes_extracted: codes.length,
+        sections_found: sectionsFound.length,
+      })
+      .eq("id", edition_id);
+
+    if (updateError) {
+      console.error("Error updating edition:", updateError);
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        data: extractedInfo,
+        codes_extracted: codes.length,
+        sections_found: sectionsFound.length,
+        edition_info: extractedData.edition_info,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
