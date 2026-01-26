@@ -11,6 +11,7 @@ import { Plus, Search, FileText, BookOpen, ClipboardCheck, Upload, Settings } fr
 import { useSQFEditions, useSQFCodes, useSQFComplianceAudits } from "@/hooks/useSQF";
 import { format } from "date-fns";
 import SQFEditionUploadDialog from "@/components/sqf/SQFEditionUploadDialog";
+import SQFEditionSettingsDialog from "@/components/sqf/SQFEditionSettingsDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SQFCompliance() {
@@ -18,6 +19,8 @@ export default function SQFCompliance() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [selectedEdition, setSelectedEdition] = useState<any>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const { data: editions } = useSQFEditions();
   const currentEdition = editions?.find(e => e.is_active);
@@ -197,7 +200,14 @@ export default function SQFCompliance() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedEdition(edition);
+                            setIsSettingsOpen(true);
+                          }}
+                        >
                           <Settings className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -242,6 +252,13 @@ export default function SQFCompliance() {
 
       {/* Upload Dialog */}
       <SQFEditionUploadDialog open={isUploadOpen} onOpenChange={setIsUploadOpen} />
+      
+      {/* Edition Settings Dialog */}
+      <SQFEditionSettingsDialog 
+        edition={selectedEdition} 
+        open={isSettingsOpen} 
+        onOpenChange={setIsSettingsOpen} 
+      />
     </div>
   );
 }
