@@ -135,6 +135,11 @@ import TaskAnalytics from "./pages/analytics/TaskAnalytics";
 import NCAnalytics from "./pages/quality/NCAnalytics";
 import Notifications from "./pages/Notifications";
 import NonConformities from "./pages/quality/NonConformities";
+import PoliciesIndex from "./pages/policies/PoliciesIndex";
+import PolicyDetail from "./pages/policies/PolicyDetail";
+import PolicyForm from "./pages/policies/PolicyForm";
+import CategoryManagement from "./pages/settings/CategoryManagement";
+import TypeManagement from "./pages/settings/TypeManagement";
 
 const queryClient = new QueryClient();
 
@@ -234,6 +239,8 @@ const App = () => (
             <Route path="/settings/audits" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><AuditSettings /></RequireRole></AppLayout>} />
             <Route path="/settings/recall-contacts" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><RecallContacts /></RequireRole></AppLayout>} />
             <Route path="/settings/task-templates" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><TaskTemplates /></RequireRole></AppLayout>} />
+            <Route path="/settings/policy-categories" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><CategoryManagement /></RequireRole></AppLayout>} />
+            <Route path="/settings/policy-types" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><TypeManagement /></RequireRole></AppLayout>} />
             <Route path="/settings/production-lines" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductionLinesSettings /></RequireRole></AppLayout>} />
             <Route path="/settings/production-stages" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><ProductionStagesSettings /></RequireRole></AppLayout>} />
             <Route path="/settings/daily-production-targets" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'supervisor', 'hr']}><DailyProductionTargets /></RequireRole></AppLayout>} />
@@ -294,6 +301,12 @@ const App = () => (
                 </AppLayout>
               }
             />
+            {/* Policy routes */}
+            <Route path="/policies" element={<AppLayout><PoliciesIndex /></AppLayout>} />
+            <Route path="/policies/new" element={<AppLayout><PolicyForm /></AppLayout>} />
+            <Route path="/policies/:id" element={<AppLayout><PolicyDetail /></AppLayout>} />
+            <Route path="/policies/:id/edit" element={<AppLayout><PolicyForm /></AppLayout>} />
+
             {/* Quality routes */}
             <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
             <Route path="/quality/work-queue" element={<AppLayout><QAWorkQueue /></AppLayout>} />
