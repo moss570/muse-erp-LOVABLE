@@ -165,7 +165,7 @@ export function useAssignPolicyTraining() {
     }) => {
       const { data, error } = await supabase
         .from("employee_policy_training")
-        .insert(training)
+        .insert(training as any)
         .select()
         .single();
       if (error) throw error;
@@ -279,7 +279,7 @@ export function useBulkAssignTraining() {
       
       const { data, error } = await supabase
         .from("employee_policy_training")
-        .insert(trainings)
+        .insert(trainings as any)
         .select();
       if (error) throw error;
       return data;
