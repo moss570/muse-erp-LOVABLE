@@ -9156,6 +9156,611 @@ export type Database = {
           },
         ]
       }
+      policies: {
+        Row: {
+          acknowledgement_frequency_days: number | null
+          approved_at: string | null
+          approved_by: string | null
+          approver_id: string | null
+          category_id: string | null
+          content: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          effective_date: string | null
+          expiry_date: string | null
+          id: string
+          is_template: boolean | null
+          owner_id: string | null
+          policy_number: string
+          requires_acknowledgement: boolean | null
+          review_date: string | null
+          reviewer_id: string | null
+          status: string
+          summary: string | null
+          supersedes_id: string | null
+          title: string
+          type_id: string | null
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          acknowledgement_frequency_days?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          category_id?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_template?: boolean | null
+          owner_id?: string | null
+          policy_number: string
+          requires_acknowledgement?: boolean | null
+          review_date?: string | null
+          reviewer_id?: string | null
+          status?: string
+          summary?: string | null
+          supersedes_id?: string | null
+          title: string
+          type_id?: string | null
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          acknowledgement_frequency_days?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          category_id?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_template?: boolean | null
+          owner_id?: string | null
+          policy_number?: string
+          requires_acknowledgement?: boolean | null
+          review_date?: string | null
+          reviewer_id?: string | null
+          status?: string
+          summary?: string | null
+          supersedes_id?: string | null
+          title?: string
+          type_id?: string | null
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "policy_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "policy_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          employee_id: string
+          expires_at: string | null
+          id: string
+          ip_address: string | null
+          notes: string | null
+          policy_id: string
+          policy_version: number
+          signature_data: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          employee_id: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          notes?: string | null
+          policy_id: string
+          policy_version: number
+          signature_data?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          employee_id?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          notes?: string | null
+          policy_id?: string
+          policy_version?: number
+          signature_data?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_acknowledgements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_attachments: {
+        Row: {
+          description: string | null
+          file_name: string
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          policy_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          policy_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          policy_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_attachments_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_id: string | null
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_id?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_id?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "policy_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_comments: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_resolved: boolean | null
+          parent_id: string | null
+          policy_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          parent_id?: string | null
+          policy_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          parent_id?: string | null
+          policy_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "policy_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_comments_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_comments_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_related: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          policy_id: string
+          related_policy_id: string
+          relationship_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          policy_id: string
+          related_policy_id: string
+          relationship_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          policy_id?: string
+          related_policy_id?: string
+          relationship_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_related_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_related_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_related_related_policy_id_fkey"
+            columns: ["related_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_tag_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          policy_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          policy_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          policy_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_tag_mappings_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_tag_mappings_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "policy_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_tags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_types: {
+        Row: {
+          code_prefix: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          next_sequence: number | null
+          number_format: string | null
+          updated_at: string
+        }
+        Insert: {
+          code_prefix: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          next_sequence?: number | null
+          number_format?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code_prefix?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          next_sequence?: number | null
+          number_format?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_types_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_versions: {
+        Row: {
+          change_notes: string | null
+          content: string | null
+          created_at: string
+          created_by: string | null
+          effective_date: string | null
+          id: string
+          policy_id: string
+          snapshot: Json | null
+          status: string
+          summary: string | null
+          title: string
+          version_number: number
+        }
+        Insert: {
+          change_notes?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          id?: string
+          policy_id: string
+          snapshot?: Json | null
+          status: string
+          summary?: string | null
+          title: string
+          version_number: number
+        }
+        Update: {
+          change_notes?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          id?: string
+          policy_id?: string
+          snapshot?: Json | null
+          status?: string
+          summary?: string | null
+          title?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_versions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_sheet_items: {
         Row: {
           created_at: string
