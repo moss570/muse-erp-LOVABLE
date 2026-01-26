@@ -184,11 +184,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Update edition to parsing status
-    await supabase
+    // Update edition to processing status (must match DB constraint)
+    const { error: statusError } = await supabase
       .from("sqf_editions")
-      .update({ parsing_status: "parsing" })
+      .update({
+        parsing_status: "processing",
+        parsing_error: null,
+        codes_extracted: 0,
+        sections_found: 0,
+      })
       .eq("id", edition_id);
+
+    if (statusError) {
+      console.error("Error updating edition status to processing:", statusError);
+    }
 
     console.log("Starting multi-pass SQF code extraction for edition:", edition_id);
 
@@ -280,21 +289,28 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error parsing SQF document:", error);
-    
-    // Try to update edition status to failed
+
+    // Best-effort: mark edition as failed + persist the error
     try {
-      const { edition_id } = await (await fetch(error as any)).json().catch(() => ({}));
+      const cloned = req.clone();
+      const body = await cloned.json().catch(() => ({} as any));
+      const edition_id = body?.edition_id;
       if (edition_id) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         await supabase
           .from("sqf_editions")
-          .update({ parsing_status: "failed" })
+          .update({
+            parsing_status: "failed",
+            parsing_error: error instanceof Error ? error.message : "Unknown error occurred",
+          })
           .eq("id", edition_id);
       }
-    } catch {}
-    
+    } catch (e) {
+      console.error("Failed to update edition failure status:", e);
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
