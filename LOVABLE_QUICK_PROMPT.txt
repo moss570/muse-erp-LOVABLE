@@ -1,0 +1,39 @@
+Please perform a comprehensive verification of the Muse ERP system and implement any missing features.
+
+I need you to:
+
+1. VERIFY ALL FEATURES - Check that every module and feature listed in LOVABLE_VERIFICATION_PROMPT.md is fully implemented and functional.
+
+2. IDENTIFY GAPS - Create a report showing:
+   ✅ Features that are complete
+   ⚠️ Features that are partially implemented
+   ❌ Features that are missing entirely
+
+3. IMPLEMENT MISSING FEATURES - For any missing or incomplete features, implement them according to the specifications in LOVABLE_VERIFICATION_PROMPT.md
+
+4. PRIORITIZE CRITICAL FEATURES - Focus on Priority 1 and 2 items first:
+   - Authentication and user management
+   - Manufacturing (lots, recipes, production execution)
+   - Inventory tracking and transactions
+   - Purchase orders and receiving
+   - Sales orders and invoicing
+   - Quality checks and inspections
+   - Warehouse operations
+
+5. VERIFY INTEGRATIONS - Ensure all Supabase Edge Functions are working:
+   - Email functions (PO, invoice, employee welcome)
+   - Xero integration functions
+   - PDF extraction functions
+   - User management functions
+
+6. CHECK DATABASE SCHEMA - Verify all required tables exist with proper relationships
+
+7. TEST KEY WORKFLOWS - Test these end-to-end:
+   - Create manufacturing lot → Execute production → Complete lot
+   - Create PO → Receive goods → QA inspection → Putaway
+   - Create sales order → Allocate inventory → Create invoice
+   - Employee clock in/out → Timesheet approval
+
+Please start by providing a detailed status report of what exists, what's missing, and what needs to be completed. Then proceed with implementing any missing critical features.
+
+Refer to LOVABLE_VERIFICATION_PROMPT.md for the complete feature checklist and requirements.
