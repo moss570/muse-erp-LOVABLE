@@ -1,10 +1,57 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Extract text from Word document (.docx)
+async function extractTextFromDocx(base64Data: string): Promise<string> {
+  try {
+    // Decode base64 to binary
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Load the docx as a zip file
+    const zip = await JSZip.loadAsync(bytes);
+    
+    // Get the document.xml file which contains the main content
+    const documentXml = await zip.file("word/document.xml")?.async("text");
+    
+    if (!documentXml) {
+      throw new Error("Could not find document.xml in the Word file");
+    }
+
+    // Extract text content from XML by removing tags
+    // Word uses <w:t> tags for text content
+    const textMatches = documentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+    const extractedText = textMatches
+      .map(match => {
+        const textContent = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
+        return textContent;
+      })
+      .join(" ");
+
+    // Also extract paragraph breaks for better formatting
+    const formattedText = documentXml
+      .replace(/<w:p[^>]*>/g, "\n")
+      .replace(/<w:t[^>]*>/g, "")
+      .replace(/<\/w:t>/g, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\n\s*\n/g, "\n\n")
+      .trim();
+
+    return formattedText || extractedText;
+  } catch (error) {
+    console.error("Error extracting text from docx:", error);
+    throw new Error("Failed to extract text from Word document");
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -78,10 +125,58 @@ For each SQF code that the policy document addresses, determine:
 
 Only include codes that the policy document clearly relates to. Be thorough but accurate.`;
 
-    // Determine the correct MIME type for the AI request
-    const dataUrl = mimeType.includes("pdf") 
-      ? `data:application/pdf;base64,${fileBase64}`
-      : `data:${mimeType};base64,${fileBase64}`;
+    // Determine if we're dealing with a Word document or PDF
+    const isWordDocument = mimeType.includes("word") || 
+                           mimeType.includes("openxmlformats-officedocument") ||
+                           fileName.endsWith(".docx") ||
+                           fileName.endsWith(".doc");
+    const isPdf = mimeType.includes("pdf") || fileName.endsWith(".pdf");
+
+    let messages: any[];
+
+    if (isWordDocument) {
+      // Extract text from Word document and send as text
+      console.log("Extracting text from Word document...");
+      const extractedText = await extractTextFromDocx(fileBase64);
+      console.log(`Extracted ${extractedText.length} characters from Word document`);
+
+      messages = [
+        { role: "system", content: systemPrompt },
+        { 
+          role: "user", 
+          content: `Analyze this policy document "${fileName}" and identify all SQF codes it addresses. Return the mapping results.
+
+POLICY DOCUMENT CONTENT:
+---
+${extractedText}
+---` 
+        },
+      ];
+    } else if (isPdf) {
+      // Use multimodal for PDF
+      const dataUrl = `data:application/pdf;base64,${fileBase64}`;
+      messages = [
+        { role: "system", content: systemPrompt },
+        { 
+          role: "user", 
+          content: [
+            { 
+              type: "text", 
+              text: `Analyze this policy document "${fileName}" and identify all SQF codes it addresses. Return the mapping results.` 
+            },
+            { 
+              type: "image_url", 
+              image_url: { url: dataUrl } 
+            }
+          ]
+        },
+      ];
+    } else {
+      return new Response(
+        JSON.stringify({ error: "Unsupported file type. Please upload a PDF or Word document (.docx)." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -91,22 +186,7 @@ Only include codes that the policy document clearly relates to. Be thorough but 
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { 
-            role: "user", 
-            content: [
-              { 
-                type: "text", 
-                text: `Analyze this policy document "${fileName}" and identify all SQF codes it addresses. Return the mapping results.` 
-              },
-              { 
-                type: "image_url", 
-                image_url: { url: dataUrl } 
-              }
-            ]
-          },
-        ],
+        messages,
         tools: [
           {
             type: "function",
