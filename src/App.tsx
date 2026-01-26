@@ -137,6 +137,8 @@ import TaskAnalytics from "./pages/analytics/TaskAnalytics";
 import NCAnalytics from "./pages/quality/NCAnalytics";
 import Notifications from "./pages/Notifications";
 import NonConformities from "./pages/quality/NonConformities";
+import Policies from "./pages/quality/Policies";
+import PolicyDetail from "./pages/quality/PolicyDetail";
 import MobileLauncher from "./pages/mobile/MobileLauncher";
 
 const queryClient = new QueryClient();
@@ -301,6 +303,8 @@ const App = () => (
             />
             {/* Quality routes */}
             <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
+            <Route path="/quality/policies" element={<AppLayout><Policies /></AppLayout>} />
+            <Route path="/quality/policies/:id" element={<AppLayout><PolicyDetail /></AppLayout>} />
             <Route path="/quality/work-queue" element={<AppLayout><QAWorkQueue /></AppLayout>} />
             <Route path="/quality/capa" element={<AppLayout><CapaManagement /></AppLayout>} />
             <Route path="/quality/capa-analytics" element={<AppLayout><CapaAnalytics /></AppLayout>} />
