@@ -41,6 +41,7 @@ export default function PolicyFormDialog({
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    policy_number: "",
     title: "",
     summary: "",
     content: "",
@@ -71,6 +72,7 @@ export default function PolicyFormDialog({
   useEffect(() => {
     if (policy) {
       setFormData({
+        policy_number: policy.policy_number || "",
         title: policy.title,
         summary: policy.summary || "",
         content: policy.content || "",
@@ -84,6 +86,7 @@ export default function PolicyFormDialog({
       });
     } else {
       setFormData({
+        policy_number: "",
         title: "",
         summary: "",
         content: "",
@@ -98,6 +101,13 @@ export default function PolicyFormDialog({
       setPendingFiles([]);
     }
   }, [policy, open]);
+
+  // Auto-fill policy number when type changes (only if user hasn't entered a custom one)
+  useEffect(() => {
+    if (policyNumber && !policy && !formData.policy_number) {
+      setFormData(prev => ({ ...prev, policy_number: policyNumber }));
+    }
+  }, [policyNumber, policy]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -134,7 +144,7 @@ export default function PolicyFormDialog({
       const newPolicy = await new Promise<any>((resolve, reject) => {
         createPolicy.mutate(
           {
-            policy_number: policyNumber || `POL-${Date.now()}`,
+            policy_number: formData.policy_number || policyNumber || `POL-${Date.now()}`,
             title: formData.title,
             summary: formData.summary || null,
             content: formData.content || null,
@@ -260,12 +270,19 @@ export default function PolicyFormDialog({
                 </Select>
               </div>
 
-              {policyNumber && (
-                <div className="col-span-2">
-                  <Label>Policy Number (Auto-generated)</Label>
-                  <Input value={policyNumber} disabled className="font-mono" />
-                </div>
-              )}
+              <div className="col-span-2">
+                <Label htmlFor="policy_number">Policy Number</Label>
+                <Input 
+                  id="policy_number"
+                  value={formData.policy_number} 
+                  onChange={(e) => setFormData({ ...formData, policy_number: e.target.value })}
+                  placeholder={policyNumber || "Enter policy number"}
+                  className="font-mono" 
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave blank to auto-generate based on policy type
+                </p>
+              </div>
 
               <div>
                 <Label htmlFor="department">Department</Label>
