@@ -139,6 +139,9 @@ import Notifications from "./pages/Notifications";
 import NonConformities from "./pages/quality/NonConformities";
 import Policies from "./pages/quality/Policies";
 import PolicyDetail from "./pages/quality/PolicyDetail";
+import SQFCompliance from "./pages/quality/SQFCompliance";
+import HACCPPlans from "./pages/quality/HACCPPlans";
+import PolicyTraining from "./pages/quality/PolicyTraining";
 import MobileLauncher from "./pages/mobile/MobileLauncher";
 
 const queryClient = new QueryClient();
