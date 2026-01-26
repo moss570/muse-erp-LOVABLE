@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCreatePolicy, useGeneratePolicyNumber, type Policy, type PolicyCategory, type PolicyType } from "@/hooks/usePolicies";
 import { useUploadPolicyAttachment } from "@/hooks/usePolicyAttachments";
+import { useSQFEditions } from "@/hooks/useSQF";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, X, Paperclip, Loader2 } from "lucide-react";
+import { Upload, FileText, X, Paperclip, Loader2, Sparkles, Check, AlertTriangle, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 
 interface PolicyFormDialogProps {
@@ -28,6 +34,17 @@ interface PendingFile {
   description?: string;
 }
 
+interface SQFMapping {
+  code_number: string;
+  sqf_code_id: string;
+  sqf_code_title: string;
+  compliance_status: "compliant" | "partial" | "gap";
+  explanation: string;
+  gap_description?: string;
+  is_mandatory: boolean;
+  selected: boolean;
+}
+
 export default function PolicyFormDialog({ 
   open, 
   onOpenChange, 
@@ -36,6 +53,7 @@ export default function PolicyFormDialog({
   policy 
 }: PolicyFormDialogProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("metadata");
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
@@ -54,7 +72,19 @@ export default function PolicyFormDialog({
     acknowledgement_frequency_days: 365,
   });
 
+  // SQF Mapping state
+  const [selectedEditionId, setSelectedEditionId] = useState<string>("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [sqfMappings, setSqfMappings] = useState<SQFMapping[]>([]);
+  const [policySummary, setPolicySummary] = useState<string>("");
+  const [analyzedFileName, setAnalyzedFileName] = useState<string>("");
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const { data: policyNumber } = useGeneratePolicyNumber(formData.type_id || undefined);
+  const { data: sqfEditions } = useSQFEditions();
+  const activeEdition = sqfEditions?.find(e => e.is_active);
+  
   const { data: departments } = useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
@@ -68,6 +98,13 @@ export default function PolicyFormDialog({
   });
   const createPolicy = useCreatePolicy();
   const uploadAttachment = useUploadPolicyAttachment();
+
+  // Set active edition as default
+  useEffect(() => {
+    if (activeEdition && !selectedEditionId) {
+      setSelectedEditionId(activeEdition.id);
+    }
+  }, [activeEdition, selectedEditionId]);
 
   useEffect(() => {
     if (policy) {
@@ -99,10 +136,13 @@ export default function PolicyFormDialog({
         acknowledgement_frequency_days: 365,
       });
       setPendingFiles([]);
+      setSqfMappings([]);
+      setPolicySummary("");
+      setAnalyzedFileName("");
     }
   }, [policy, open]);
 
-  // Auto-fill policy number when type changes (only if user hasn't entered a custom one)
+  // Auto-fill policy number when type changes
   useEffect(() => {
     if (policyNumber && !policy && !formData.policy_number) {
       setFormData(prev => ({ ...prev, policy_number: policyNumber }));
@@ -117,11 +157,130 @@ export default function PolicyFormDialog({
         description: "",
       }));
       setPendingFiles(prev => [...prev, ...newFiles]);
+      
+      // Auto-analyze first policy document
+      const policyDoc = Array.from(files).find(f => 
+        f.type.includes("pdf") || f.type.includes("word") || f.name.endsWith(".docx")
+      );
+      if (policyDoc && selectedEditionId && sqfMappings.length === 0) {
+        analyzeDocument(policyDoc);
+      }
     }
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files) {
+      const newFiles: PendingFile[] = Array.from(files).map(file => ({
+        file,
+        description: "",
+      }));
+      setPendingFiles(prev => [...prev, ...newFiles]);
+      
+      // Auto-analyze first policy document
+      const policyDoc = Array.from(files).find(f => 
+        f.type.includes("pdf") || f.type.includes("word") || f.name.endsWith(".docx")
+      );
+      if (policyDoc && selectedEditionId && sqfMappings.length === 0) {
+        analyzeDocument(policyDoc);
+      }
+    }
+  };
+
+  const analyzeDocument = async (file: File) => {
+    if (!selectedEditionId) {
+      toast.error("Please select an SQF Edition first");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisProgress(10);
+    setAnalyzedFileName(file.name);
+
+    try {
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      setAnalysisProgress(30);
+
+      const { data, error } = await supabase.functions.invoke("analyze-policy-sqf", {
+        body: {
+          fileBase64,
+          fileName: file.name,
+          mimeType: file.type,
+          editionId: selectedEditionId,
+        },
+      });
+
+      setAnalysisProgress(80);
+
+      if (error) {
+        console.error("Analysis error:", error);
+        toast.error("Failed to analyze document");
+        return;
+      }
+
+      if (data?.success && data?.mappings) {
+        const mappingsWithSelection = data.mappings.map((m: SQFMapping) => ({
+          ...m,
+          selected: true,
+        }));
+        
+        setSqfMappings(mappingsWithSelection);
+        setPolicySummary(data.policy_summary || "");
+        
+        // Auto-fill summary if empty
+        if (!formData.summary && data.policy_summary) {
+          setFormData(prev => ({ ...prev, summary: data.policy_summary }));
+        }
+        
+        toast.success(`AI found ${data.mappings.length} SQF code mappings`);
+        setActiveTab("sqf-mapping");
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+
+      setAnalysisProgress(100);
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast.error("Failed to analyze document");
+    } finally {
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+    }
+  };
+
+  const toggleMapping = (index: number) => {
+    const updated = [...sqfMappings];
+    updated[index].selected = !updated[index].selected;
+    setSqfMappings(updated);
   };
 
   const removeFile = (index: number) => {
@@ -175,9 +334,39 @@ export default function PolicyFormDialog({
             });
           } catch (err) {
             console.error("Failed to upload attachment:", err);
-            // Continue with other files
           }
         }
+      }
+
+      // Save SQF mappings
+      const selectedMappings = sqfMappings.filter(m => m.selected);
+      if (selectedMappings.length > 0) {
+        const { data: user } = await supabase.auth.getUser();
+        
+        const mappingsToInsert = selectedMappings.map(m => ({
+          policy_id: newPolicy.id,
+          sqf_code_id: m.sqf_code_id,
+          compliance_status: m.compliance_status,
+          gap_description: m.gap_description || null,
+          notes: m.explanation,
+          created_by: user.user?.id,
+        }));
+
+        const { error: mappingError } = await supabase
+          .from("policy_sqf_mappings")
+          .upsert(mappingsToInsert as any, {
+            onConflict: "policy_id,sqf_code_id",
+          });
+
+        if (mappingError) {
+          console.error("Failed to save SQF mappings:", mappingError);
+          toast.error("Policy created but SQF mappings failed to save");
+        } else {
+          toast.success(`Policy created with ${selectedMappings.length} SQF mappings`);
+        }
+        
+        await queryClient.invalidateQueries({ queryKey: ["policy-sqf-mappings"] });
+        await queryClient.invalidateQueries({ queryKey: ["sqf-compliance-summary"] });
       }
 
       onOpenChange(false);
@@ -196,18 +385,31 @@ export default function PolicyFormDialog({
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "compliant":
+        return <Badge className="bg-primary"><Check className="h-3 w-3 mr-1" />Compliant</Badge>;
+      case "partial":
+        return <Badge variant="secondary"><AlertTriangle className="h-3 w-3 mr-1" />Partial</Badge>;
+      case "gap":
+        return <Badge variant="destructive"><X className="h-3 w-3 mr-1" />Gap</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{policy ? "Edit Policy" : "Create New Policy"}</DialogTitle>
           <DialogDescription>
-            Create a new policy document. You can attach supporting files like PDFs or Word documents.
+            Create a new policy document. Upload a PDF or Word file to automatically analyze SQF compliance mappings.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="metadata">Details</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="attachments">
@@ -215,6 +417,14 @@ export default function PolicyFormDialog({
               {pendingFiles.length > 0 && (
                 <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5">
                   {pendingFiles.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="sqf-mapping">
+              SQF Mapping
+              {sqfMappings.length > 0 && (
+                <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5">
+                  {sqfMappings.filter(m => m.selected).length}
                 </span>
               )}
             </TabsTrigger>
@@ -329,19 +539,20 @@ export default function PolicyFormDialog({
                   id="summary"
                   value={formData.summary}
                   onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                  placeholder="Brief description of this policy"
-                  rows={2}
+                  placeholder="Brief description of the policy..."
+                  rows={3}
                 />
               </div>
 
-              <div className="col-span-2 flex items-center justify-between border rounded-lg p-4">
-                <div>
-                  <Label>Requires Acknowledgement</Label>
+              <div className="col-span-2 flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label htmlFor="requires_ack">Requires Acknowledgement</Label>
                   <p className="text-sm text-muted-foreground">
-                    Employees must acknowledge they have read this policy
+                    Employees must acknowledge reading this policy
                   </p>
                 </div>
                 <Switch
+                  id="requires_ack"
                   checked={formData.requires_acknowledgement}
                   onCheckedChange={(checked) => setFormData({ ...formData, requires_acknowledgement: checked })}
                 />
@@ -379,7 +590,7 @@ export default function PolicyFormDialog({
             <div>
               <Label>Upload Files</Label>
               <p className="text-sm text-muted-foreground mb-3">
-                Attach supporting documents like PDFs, Word files, or images.
+                Attach supporting documents. PDF/Word files will be automatically analyzed for SQF compliance.
               </p>
               
               <input
@@ -393,7 +604,14 @@ export default function PolicyFormDialog({
               
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-accent/50 transition-colors"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  isDragOver 
+                    ? 'border-primary bg-primary/10' 
+                    : 'hover:border-primary hover:bg-accent/50'
+                }`}
               >
                 <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
@@ -405,7 +623,15 @@ export default function PolicyFormDialog({
               </div>
             </div>
 
-            {/* Pending Files List */}
+            {isAnalyzing && (
+              <div className="space-y-2">
+                <Progress value={analysisProgress} />
+                <p className="text-sm text-center text-muted-foreground">
+                  AI is analyzing "{analyzedFileName}" for SQF compliance...
+                </p>
+              </div>
+            )}
+
             {pendingFiles.length > 0 && (
               <div className="space-y-2">
                 <Label>Files to upload ({pendingFiles.length})</Label>
@@ -439,11 +665,121 @@ export default function PolicyFormDialog({
               </div>
             )}
 
-            {pendingFiles.length === 0 && (
+            {pendingFiles.length === 0 && !isAnalyzing && (
               <div className="text-center py-8 text-muted-foreground">
                 <Paperclip className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No files attached yet</p>
                 <p className="text-xs">Files will be uploaded when you create the policy</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="sqf-mapping" className="mt-4 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label>SQF Edition</Label>
+                <Select value={selectedEditionId} onValueChange={setSelectedEditionId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select SQF Edition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sqfEditions?.map((edition) => (
+                      <SelectItem key={edition.id} value={edition.id}>
+                        {edition.name} {edition.version} {edition.is_active && "(Active)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {pendingFiles.length > 0 && sqfMappings.length === 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const policyDoc = pendingFiles.find(pf => 
+                      pf.file.type.includes("pdf") || pf.file.type.includes("word") || pf.file.name.endsWith(".docx")
+                    );
+                    if (policyDoc) {
+                      analyzeDocument(policyDoc.file);
+                    } else {
+                      toast.error("Please attach a PDF or Word document first");
+                    }
+                  }}
+                  disabled={isAnalyzing || !selectedEditionId}
+                  className="mt-6"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Analyze Document
+                </Button>
+              )}
+            </div>
+
+            {sqfMappings.length === 0 && !isAnalyzing && (
+              <Alert>
+                <FileSearch className="h-4 w-4" />
+                <AlertDescription>
+                  Upload a PDF or Word document in the Attachments tab to automatically analyze which SQF codes it addresses.
+                  You can also manually map codes after creating the policy.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {policySummary && (
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium mb-2">AI Policy Summary</h4>
+                <p className="text-sm text-muted-foreground">{policySummary}</p>
+              </div>
+            )}
+
+            {sqfMappings.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">SQF Code Mappings ({sqfMappings.length})</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {sqfMappings.filter(m => m.selected).length} selected
+                  </p>
+                </div>
+                
+                <ScrollArea className="h-[250px] border rounded-lg">
+                  <div className="p-2 space-y-2">
+                    {sqfMappings.map((mapping, index) => (
+                      <div 
+                        key={mapping.sqf_code_id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          mapping.selected ? 'bg-primary/5 border-primary/30' : 'bg-background hover:bg-muted/50'
+                        }`}
+                        onClick={() => toggleMapping(index)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Checkbox 
+                            checked={mapping.selected}
+                            onCheckedChange={() => toggleMapping(index)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-medium">{mapping.code_number}</span>
+                              {getStatusBadge(mapping.compliance_status)}
+                              {mapping.is_mandatory && (
+                                <Badge variant="outline" className="text-xs">Mandatory</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm font-medium mt-1">{mapping.sqf_code_title}</p>
+                            <p className="text-sm text-muted-foreground mt-1">{mapping.explanation}</p>
+                            {mapping.gap_description && (
+                              <p className="text-sm text-destructive mt-1">
+                                <strong>Gap:</strong> {mapping.gap_description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             )}
           </TabsContent>
@@ -464,8 +800,13 @@ export default function PolicyFormDialog({
               </>
             ) : (
               <>
-                {pendingFiles.length > 0 && <Paperclip className="h-4 w-4 mr-2" />}
+                {(pendingFiles.length > 0 || sqfMappings.filter(m => m.selected).length > 0) && (
+                  <Paperclip className="h-4 w-4 mr-2" />
+                )}
                 Create Policy
+                {sqfMappings.filter(m => m.selected).length > 0 && (
+                  <span className="ml-1">+ {sqfMappings.filter(m => m.selected).length} Mappings</span>
+                )}
               </>
             )}
           </Button>
