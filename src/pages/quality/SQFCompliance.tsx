@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -227,7 +228,19 @@ export default function SQFCompliance() {
                         <TableCell><div className="font-medium">{code.title}</div></TableCell>
                         <TableCell>{code.category || "—"}</TableCell>
                         <TableCell>{code.is_mandatory ? <Badge variant="destructive">Required</Badge> : <Badge variant="outline">Optional</Badge>}</TableCell>
-                        <TableCell><Button variant="ghost" size="sm"><ClipboardCheck className="h-4 w-4" /></Button></TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(code.code_number);
+                              toast.success(`Copied ${code.code_number} to clipboard`);
+                            }}
+                            title="Copy code number"
+                          >
+                            <ClipboardCheck className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                     {(!filteredCodes || filteredCodes.length === 0) && (
