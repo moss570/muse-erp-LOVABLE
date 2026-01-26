@@ -34,10 +34,10 @@ export default function SQFCompliance() {
 
   // Fetch open findings count
   const { data: openFindingsData } = useQuery({
-    queryKey: ["open-audit-findings-count"],
+    queryKey: ["sqf-open-findings-count"],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from("audit_findings")
+        .from("sqf_audit_findings")
         .select("*", { count: "exact", head: true })
         .neq("status", "closed");
       if (error) throw error;
