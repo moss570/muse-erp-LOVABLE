@@ -20,7 +20,10 @@ import {
   Zap,
   FileText,
   Brain,
+  HardDrive,
+  FolderOpen,
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function IntegrationUsage() {
@@ -190,11 +193,56 @@ export default function IntegrationUsage() {
     },
   });
 
+  // Fetch storage usage stats
+  const { data: storageStats, isLoading: storageLoading } = useQuery({
+    queryKey: ['storage-usage-stats', refreshKey],
+    queryFn: async () => {
+      // Query storage.objects to get file counts and sizes per bucket
+      const { data: bucketStats, error } = await (supabase as any)
+        .rpc('get_storage_usage');
+
+      if (error) {
+        // Fallback: just get bucket list if RPC doesn't exist
+        console.log('Storage RPC not available, using fallback');
+        return {
+          buckets: [],
+          totalSize: 0,
+          totalFiles: 0,
+          limitGB: 1, // Free tier default
+        };
+      }
+
+      const buckets = bucketStats || [];
+      const totalSize = buckets.reduce((sum: number, b: any) => sum + (Number(b.total_size) || 0), 0);
+      const totalFiles = buckets.reduce((sum: number, b: any) => sum + (Number(b.file_count) || 0), 0);
+
+      return {
+        buckets,
+        totalSize,
+        totalFiles,
+        limitGB: 1, // Supabase free tier = 1GB
+      };
+    },
+  });
+
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
 
-  const isLoading = emailLoading || xeroLoading || dbLoading || webhookLoading || functionLoading;
+  const isLoading = emailLoading || xeroLoading || dbLoading || webhookLoading || functionLoading || storageLoading;
+
+  // Helper to format bytes
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Calculate storage percentage
+  const storageUsedGB = (storageStats?.totalSize || 0) / (1024 * 1024 * 1024);
+  const storagePercentage = Math.min((storageUsedGB / (storageStats?.limitGB || 1)) * 100, 100);
 
   return (
     <div className="space-y-6">
@@ -214,7 +262,7 @@ export default function IntegrationUsage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Emails Sent (30d)</CardTitle>
@@ -264,6 +312,21 @@ export default function IntegrationUsage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
+            <HardDrive className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatBytes(storageStats?.totalSize || 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {storageStats?.totalFiles || 0} files in {storageStats?.buckets?.length || 0} buckets
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Webhooks (30d)</CardTitle>
             <Webhook className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -283,6 +346,7 @@ export default function IntegrationUsage() {
           <TabsTrigger value="email">Email (Resend)</TabsTrigger>
           <TabsTrigger value="xero">Xero</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
+          <TabsTrigger value="storage">Storage</TabsTrigger>
           <TabsTrigger value="functions">Edge Functions</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
         </TabsList>
@@ -440,6 +504,96 @@ export default function IntegrationUsage() {
                   <span className="font-medium">Total Records</span>
                   <span className="text-2xl font-bold">{dbStats?.totalRows?.toLocaleString() || 0}</span>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Storage Tab */}
+        <TabsContent value="storage" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5" />
+                File Storage
+              </CardTitle>
+              <CardDescription>
+                Storage usage across all buckets
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Storage Limit Progress */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Storage Usage</span>
+                  <span className="text-sm text-muted-foreground">
+                    {formatBytes(storageStats?.totalSize || 0)} / {storageStats?.limitGB || 1} GB
+                  </span>
+                </div>
+                <Progress value={storagePercentage} className="h-3" />
+                <div className="flex items-center gap-2 text-sm">
+                  {storagePercentage >= 80 ? (
+                    <>
+                      <AlertTriangle className="h-4 w-4 text-warning" />
+                      <span className="text-warning">
+                        {storagePercentage >= 95 
+                          ? 'Critical: Storage nearly full!'
+                          : 'Warning: Approaching storage limit'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span className="text-muted-foreground">
+                        {(100 - storagePercentage).toFixed(1)}% storage remaining
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Bucket Breakdown */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground">Storage by Bucket</h4>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {storageStats?.buckets?.map((bucket: any) => (
+                    <div key={bucket.bucket_id} className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{bucket.bucket_name}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{bucket.file_count} files</span>
+                        <Badge variant="secondary">{formatBytes(Number(bucket.total_size))}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="rounded-lg bg-muted/50 p-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{storageStats?.buckets?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground">Total Buckets</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{storageStats?.totalFiles || 0}</p>
+                    <p className="text-xs text-muted-foreground">Total Files</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{formatBytes(storageStats?.totalSize || 0)}</p>
+                    <p className="text-xs text-muted-foreground">Total Size</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                <p className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Storage buckets: {storageStats?.buckets?.map((b: any) => b.bucket_name).join(', ') || 'None'}
+                </p>
               </div>
             </CardContent>
           </Card>
