@@ -43,30 +43,30 @@ export function AssignTrainingDialog({
   const bulkAssign = useBulkAssignTraining();
 
   // Fetch active employees
-  const { data: employees, isLoading } = useQuery({
+  const { data: employees, isLoading } = useQuery<Employee[]>({
     queryKey: ["employees-for-training"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
+    queryFn: async (): Promise<Employee[]> => {
+      const { data, error } = await (supabase
+        .from("employees") as any)
         .select("id, first_name, last_name, employee_number, department:departments(name)")
         .eq("status", "active")
         .order("last_name", { ascending: true });
       if (error) throw error;
-      return data as any as Employee[];
+      return (data || []) as Employee[];
     },
     enabled: open,
   });
 
   // Fetch employees who already have this training assigned
-  const { data: existingAssignments } = useQuery({
+  const { data: existingAssignments } = useQuery<Set<string>>({
     queryKey: ["existing-training-assignments", policyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employee_policy_training")
+    queryFn: async (): Promise<Set<string>> => {
+      const { data, error } = await (supabase
+        .from("employee_policy_training") as any)
         .select("employee_id")
         .eq("policy_id", policyId);
       if (error) throw error;
-      return new Set(data.map(d => d.employee_id));
+      return new Set((data || []).map((d: { employee_id: string }) => d.employee_id));
     },
     enabled: open && !!policyId,
   });
@@ -197,7 +197,7 @@ export function AssignTrainingDialog({
               </div>
             ) : availableEmployees?.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <CheckCircle className="h-8 w-8 mb-2 text-green-500" />
+                <CheckCircle className="h-8 w-8 mb-2 text-success" />
                 <p>All employees are already assigned</p>
               </div>
             ) : (
