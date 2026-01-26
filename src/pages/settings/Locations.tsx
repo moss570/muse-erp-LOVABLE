@@ -40,7 +40,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Trash2, MapPin, Thermometer, Snowflake, Mail } from 'lucide-react';
+import { Pencil, Trash2, MapPin, Thermometer, Snowflake, Mail, Printer } from 'lucide-react';
+import { LocationLabelPrint } from '@/components/locations/LocationLabelPrint';
 import { RequireRole } from '@/components/auth/RequireRole';
 import { DataTableHeader, StatusIndicator } from '@/components/ui/data-table';
 import { DataTablePagination } from '@/components/ui/data-table/DataTablePagination';
@@ -130,6 +131,7 @@ function LocationsContent() {
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [printLocation, setPrintLocation] = useState<Location | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -437,6 +439,18 @@ function LocationsContent() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Print Label"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPrintLocation(location);
+                            }}
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -809,6 +823,16 @@ function LocationsContent() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Location Label Print Dialog */}
+      <LocationLabelPrint
+        open={!!printLocation}
+        onOpenChange={(open) => !open && setPrintLocation(null)}
+        locationCode={printLocation?.location_code || ''}
+        locationName={printLocation?.name || ''}
+        locationBarcode={printLocation?.location_barcode || ''}
+        locationType={printLocation?.location_type}
+      />
     </div>
   );
 }

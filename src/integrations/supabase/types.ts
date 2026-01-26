@@ -11793,6 +11793,8 @@ export type Database = {
           putaway_task_id: string
           quantity: number
           receiving_lot_id: string
+          source_location_barcode_scanned: string | null
+          source_location_id: string | null
           unit_id: string | null
         }
         Insert: {
@@ -11806,6 +11808,8 @@ export type Database = {
           putaway_task_id: string
           quantity: number
           receiving_lot_id: string
+          source_location_barcode_scanned?: string | null
+          source_location_id?: string | null
           unit_id?: string | null
         }
         Update: {
@@ -11819,6 +11823,8 @@ export type Database = {
           putaway_task_id?: string
           quantity?: number
           receiving_lot_id?: string
+          source_location_barcode_scanned?: string | null
+          source_location_id?: string | null
           unit_id?: string | null
         }
         Relationships: [
@@ -11855,6 +11861,13 @@ export type Database = {
             columns: ["receiving_lot_id"]
             isOneToOne: false
             referencedRelation: "receiving_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "putaway_transactions_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -16604,6 +16617,15 @@ export type Database = {
           nc_count: number
           percentage: number
           total_cost: number
+        }[]
+      }
+      get_storage_usage: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          bucket_name: string
+          file_count: number
+          total_size: number
         }[]
       }
       get_unapproved_recipe_materials: {
