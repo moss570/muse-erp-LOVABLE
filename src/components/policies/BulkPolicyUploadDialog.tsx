@@ -120,6 +120,11 @@ export default function BulkPolicyUploadDialog({
       return validExtensions.some(ext => fileName.endsWith(ext));
     };
 
+    // Support dragging multiple files directly (not folders). Many browsers populate
+    // dataTransfer.files reliably, while webkitGetAsEntry may be incomplete.
+    const directFiles = Array.from(e.dataTransfer.files || []).filter(isValidFile);
+    policyFiles.push(...directFiles);
+
     // Handle folder drops - readEntries may not return all files in one call
     const traverseDirectory = async (entry: FileSystemEntry): Promise<File[]> => {
       const files: File[] = [];
@@ -165,19 +170,24 @@ export default function BulkPolicyUploadDialog({
       }
     }
 
-    if (policyFiles.length === 0) {
+    // De-dupe (folder traversal + direct files can overlap)
+    const uniquePolicyFiles = Array.from(
+      new Map(policyFiles.map((f) => [`${f.name}-${f.size}-${f.lastModified}`, f])).values()
+    );
+
+    if (uniquePolicyFiles.length === 0) {
       toast.error("No PDF or Word documents found in the dropped folder");
       return;
     }
 
-    const parsedFiles: ParsedPolicy[] = policyFiles.map(file => ({
+    const parsedFiles: ParsedPolicy[] = uniquePolicyFiles.map(file => ({
       file,
       status: "pending",
       selected: true,
     }));
 
     setFiles(parsedFiles);
-    toast.success(`Found ${policyFiles.length} policy documents`);
+    toast.success(`Found ${uniquePolicyFiles.length} policy documents`);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,7 +195,11 @@ export default function BulkPolicyUploadDialog({
     if (!selectedFiles) return;
 
     const policyFiles: ParsedPolicy[] = Array.from(selectedFiles)
-      .filter(file => validTypes.includes(file.type))
+      .filter((file) => {
+        if (validTypes.includes(file.type)) return true;
+        const fileName = file.name.toLowerCase();
+        return fileName.endsWith(".pdf") || fileName.endsWith(".doc") || fileName.endsWith(".docx");
+      })
       .map(file => ({
         file,
         status: "pending",
