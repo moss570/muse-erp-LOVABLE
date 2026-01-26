@@ -1845,6 +1845,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "corrective_actions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "corrective_actions_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
@@ -3248,6 +3255,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employee_account_invitations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "employee_account_invitations_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
@@ -3313,6 +3327,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -3392,6 +3413,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_discipline_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
         ]
       }
       employee_documents: {
@@ -3456,6 +3484,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employee_documents_uploaded_by_fkey"
@@ -3580,6 +3615,143 @@ export type Database = {
           {
             foreignKeyName: "employee_personal_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_policy_training: {
+        Row: {
+          assigned_at: string
+          certificate_file_path: string | null
+          certificate_file_url: string | null
+          certificate_issued_at: string | null
+          certificate_number: string | null
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          expires_at: string | null
+          id: string
+          notes: string | null
+          passed: boolean | null
+          policy_id: string
+          policy_version: number
+          quiz_answers: Json | null
+          quiz_attempts: number | null
+          quiz_score: number | null
+          started_at: string | null
+          status: string | null
+          time_spent_minutes: number | null
+          training_requirement_id: string | null
+          training_type: string | null
+          updated_at: string
+          waived_by: string | null
+          waived_reason: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          certificate_file_path?: string | null
+          certificate_file_url?: string | null
+          certificate_issued_at?: string | null
+          certificate_number?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          employee_id: string
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          passed?: boolean | null
+          policy_id: string
+          policy_version: number
+          quiz_answers?: Json | null
+          quiz_attempts?: number | null
+          quiz_score?: number | null
+          started_at?: string | null
+          status?: string | null
+          time_spent_minutes?: number | null
+          training_requirement_id?: string | null
+          training_type?: string | null
+          updated_at?: string
+          waived_by?: string | null
+          waived_reason?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          certificate_file_path?: string | null
+          certificate_file_url?: string | null
+          certificate_issued_at?: string | null
+          certificate_number?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          employee_id?: string
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          passed?: boolean | null
+          policy_id?: string
+          policy_version?: number
+          quiz_answers?: Json | null
+          quiz_attempts?: number | null
+          quiz_score?: number | null
+          started_at?: string | null
+          status?: string | null
+          time_spent_minutes?: number | null
+          training_requirement_id?: string | null
+          training_type?: string | null
+          updated_at?: string
+          waived_by?: string | null
+          waived_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_policy_training_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_policy_training_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_policy_training_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_policy_training_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "employee_policy_training_training_requirement_id_fkey"
+            columns: ["training_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["requirement_id"]
+          },
+          {
+            foreignKeyName: "employee_policy_training_training_requirement_id_fkey"
+            columns: ["training_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_policy_training_waived_by_fkey"
+            columns: ["waived_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3722,6 +3894,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
         ]
       }
       employee_shifts: {
@@ -3797,6 +3976,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_shifts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employee_shifts_job_position_id_fkey"
@@ -3958,6 +4144,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employee_time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "employee_time_entries_job_position_id_fkey"
             columns: ["job_position_id"]
             isOneToOne: false
@@ -4033,6 +4226,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_time_off_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -4116,11 +4316,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employee_training_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "employee_training_trainer_id_fkey"
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_training_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -4256,6 +4470,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_wage_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employee_wage_history_job_position_id_fkey"
@@ -4496,6 +4717,641 @@ export type Database = {
           xero_account_id?: string | null
         }
         Relationships: []
+      }
+      haccp_ccp_deviations: {
+        Row: {
+          capa_id: string | null
+          ccp_id: string
+          closed_at: string | null
+          closed_by: string | null
+          corrective_action: string | null
+          created_at: string
+          created_by: string | null
+          critical_limit_value: number | null
+          description: string
+          deviation_number: string
+          deviation_time: string
+          deviation_type: string | null
+          id: string
+          immediate_action: string | null
+          measured_value: number | null
+          product_disposition: string | null
+          production_lot_id: string | null
+          quantity_affected: number | null
+          quantity_unit: string | null
+          root_cause: string | null
+          status: string | null
+          updated_at: string
+          verification_record_id: string | null
+        }
+        Insert: {
+          capa_id?: string | null
+          ccp_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_limit_value?: number | null
+          description: string
+          deviation_number: string
+          deviation_time?: string
+          deviation_type?: string | null
+          id?: string
+          immediate_action?: string | null
+          measured_value?: number | null
+          product_disposition?: string | null
+          production_lot_id?: string | null
+          quantity_affected?: number | null
+          quantity_unit?: string | null
+          root_cause?: string | null
+          status?: string | null
+          updated_at?: string
+          verification_record_id?: string | null
+        }
+        Update: {
+          capa_id?: string | null
+          ccp_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_limit_value?: number | null
+          description?: string
+          deviation_number?: string
+          deviation_time?: string
+          deviation_type?: string | null
+          id?: string
+          immediate_action?: string | null
+          measured_value?: number | null
+          product_disposition?: string | null
+          production_lot_id?: string | null
+          quantity_affected?: number | null
+          quantity_unit?: string | null
+          root_cause?: string | null
+          status?: string | null
+          updated_at?: string
+          verification_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_ccp_deviations_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_deviations_ccp_id_fkey"
+            columns: ["ccp_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_critical_control_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_deviations_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_deviations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_deviations_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_deviations_verification_record_id_fkey"
+            columns: ["verification_record_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_ccp_verification_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_ccp_verification_records: {
+        Row: {
+          ccp_id: string
+          corrective_action_effective: boolean | null
+          corrective_action_taken: string | null
+          created_at: string
+          id: string
+          is_within_limits: boolean | null
+          limit_exceeded: string | null
+          measured_unit: string | null
+          measured_value: number | null
+          notes: string | null
+          photo_path: string | null
+          photo_url: string | null
+          production_lot_id: string | null
+          verification_time: string
+          verified_by: string | null
+        }
+        Insert: {
+          ccp_id: string
+          corrective_action_effective?: boolean | null
+          corrective_action_taken?: string | null
+          created_at?: string
+          id?: string
+          is_within_limits?: boolean | null
+          limit_exceeded?: string | null
+          measured_unit?: string | null
+          measured_value?: number | null
+          notes?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
+          production_lot_id?: string | null
+          verification_time?: string
+          verified_by?: string | null
+        }
+        Update: {
+          ccp_id?: string
+          corrective_action_effective?: boolean | null
+          corrective_action_taken?: string | null
+          created_at?: string
+          id?: string
+          is_within_limits?: boolean | null
+          limit_exceeded?: string | null
+          measured_unit?: string | null
+          measured_value?: number | null
+          notes?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
+          production_lot_id?: string | null
+          verification_time?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_ccp_verification_records_ccp_id_fkey"
+            columns: ["ccp_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_critical_control_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_verification_records_production_lot_id_fkey"
+            columns: ["production_lot_id"]
+            isOneToOne: false
+            referencedRelation: "production_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_ccp_verification_records_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_critical_control_points: {
+        Row: {
+          ccp_number: string
+          ccp_type: string | null
+          corrective_action: string | null
+          created_at: string
+          created_by: string | null
+          critical_limit_max: number | null
+          critical_limit_min: number | null
+          critical_limit_text: string | null
+          critical_limit_unit: string | null
+          description: string | null
+          haccp_plan_id: string
+          hazard_id: string | null
+          id: string
+          is_active: boolean | null
+          monitoring_frequency: string | null
+          monitoring_procedure: string | null
+          monitoring_responsibility: string | null
+          name: string
+          process_step_id: string | null
+          records_kept: string | null
+          target_value: number | null
+          updated_at: string
+          verification_frequency: string | null
+          verification_procedure: string | null
+        }
+        Insert: {
+          ccp_number: string
+          ccp_type?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_limit_max?: number | null
+          critical_limit_min?: number | null
+          critical_limit_text?: string | null
+          critical_limit_unit?: string | null
+          description?: string | null
+          haccp_plan_id: string
+          hazard_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          monitoring_frequency?: string | null
+          monitoring_procedure?: string | null
+          monitoring_responsibility?: string | null
+          name: string
+          process_step_id?: string | null
+          records_kept?: string | null
+          target_value?: number | null
+          updated_at?: string
+          verification_frequency?: string | null
+          verification_procedure?: string | null
+        }
+        Update: {
+          ccp_number?: string
+          ccp_type?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_limit_max?: number | null
+          critical_limit_min?: number | null
+          critical_limit_text?: string | null
+          critical_limit_unit?: string | null
+          description?: string | null
+          haccp_plan_id?: string
+          hazard_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          monitoring_frequency?: string | null
+          monitoring_procedure?: string | null
+          monitoring_responsibility?: string | null
+          name?: string
+          process_step_id?: string | null
+          records_kept?: string | null
+          target_value?: number | null
+          updated_at?: string
+          verification_frequency?: string | null
+          verification_procedure?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_critical_control_points_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_critical_control_points_haccp_plan_id_fkey"
+            columns: ["haccp_plan_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_critical_control_points_hazard_id_fkey"
+            columns: ["hazard_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_hazards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_critical_control_points_process_step_id_fkey"
+            columns: ["process_step_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_process_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_hazards: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          haccp_plan_id: string
+          hazard_name: string
+          hazard_type: string
+          id: string
+          is_significant: boolean | null
+          justification: string | null
+          likelihood: string | null
+          preventive_measures: string | null
+          process_step_id: string | null
+          risk_score: number | null
+          severity: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          haccp_plan_id: string
+          hazard_name: string
+          hazard_type: string
+          id?: string
+          is_significant?: boolean | null
+          justification?: string | null
+          likelihood?: string | null
+          preventive_measures?: string | null
+          process_step_id?: string | null
+          risk_score?: number | null
+          severity?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          haccp_plan_id?: string
+          hazard_name?: string
+          hazard_type?: string
+          id?: string
+          is_significant?: boolean | null
+          justification?: string | null
+          likelihood?: string | null
+          preventive_measures?: string | null
+          process_step_id?: string | null
+          risk_score?: number | null
+          severity?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_hazards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_hazards_haccp_plan_id_fkey"
+            columns: ["haccp_plan_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_hazards_process_step_id_fkey"
+            columns: ["process_step_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_process_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_plan_validations: {
+        Row: {
+          conclusions: string | null
+          created_at: string
+          created_by: string | null
+          findings: string | null
+          haccp_plan_id: string
+          id: string
+          is_valid: boolean | null
+          methodology: string | null
+          next_validation_date: string | null
+          report_file_path: string | null
+          report_file_url: string | null
+          scope: string | null
+          updated_at: string
+          validation_date: string
+          validation_type: string | null
+          validator_id: string | null
+          validator_name: string | null
+        }
+        Insert: {
+          conclusions?: string | null
+          created_at?: string
+          created_by?: string | null
+          findings?: string | null
+          haccp_plan_id: string
+          id?: string
+          is_valid?: boolean | null
+          methodology?: string | null
+          next_validation_date?: string | null
+          report_file_path?: string | null
+          report_file_url?: string | null
+          scope?: string | null
+          updated_at?: string
+          validation_date: string
+          validation_type?: string | null
+          validator_id?: string | null
+          validator_name?: string | null
+        }
+        Update: {
+          conclusions?: string | null
+          created_at?: string
+          created_by?: string | null
+          findings?: string | null
+          haccp_plan_id?: string
+          id?: string
+          is_valid?: boolean | null
+          methodology?: string | null
+          next_validation_date?: string | null
+          report_file_path?: string | null
+          report_file_url?: string | null
+          scope?: string | null
+          updated_at?: string
+          validation_date?: string
+          validation_type?: string | null
+          validator_id?: string | null
+          validator_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_plan_validations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_plan_validations_haccp_plan_id_fkey"
+            columns: ["haccp_plan_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_plan_validations_validator_id_fkey"
+            columns: ["validator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_plans: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          effective_date: string | null
+          id: string
+          intended_use: string | null
+          name: string
+          notes: string | null
+          plan_number: string
+          policy_id: string | null
+          product_category: string | null
+          product_description: string | null
+          review_date: string | null
+          scope: string | null
+          status: string | null
+          target_consumer: string | null
+          team_leader_id: string | null
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          id?: string
+          intended_use?: string | null
+          name: string
+          notes?: string | null
+          plan_number: string
+          policy_id?: string | null
+          product_category?: string | null
+          product_description?: string | null
+          review_date?: string | null
+          scope?: string | null
+          status?: string | null
+          target_consumer?: string | null
+          team_leader_id?: string | null
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          id?: string
+          intended_use?: string | null
+          name?: string
+          notes?: string | null
+          plan_number?: string
+          policy_id?: string | null
+          product_category?: string | null
+          product_description?: string | null
+          review_date?: string | null
+          scope?: string | null
+          status?: string | null
+          target_consumer?: string | null
+          team_leader_id?: string | null
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_plans_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_plans_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_plans_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "haccp_plans_team_leader_id_fkey"
+            columns: ["team_leader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_process_steps: {
+        Row: {
+          created_at: string
+          description: string | null
+          equipment: string | null
+          haccp_plan_id: string
+          id: string
+          inputs: string | null
+          is_ccp: boolean | null
+          location: string | null
+          name: string
+          outputs: string | null
+          sort_order: number | null
+          step_number: number
+          step_type: string | null
+          time_temp_requirements: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          equipment?: string | null
+          haccp_plan_id: string
+          id?: string
+          inputs?: string | null
+          is_ccp?: boolean | null
+          location?: string | null
+          name: string
+          outputs?: string | null
+          sort_order?: number | null
+          step_number: number
+          step_type?: string | null
+          time_temp_requirements?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          equipment?: string | null
+          haccp_plan_id?: string
+          id?: string
+          inputs?: string | null
+          is_ccp?: boolean | null
+          location?: string | null
+          name?: string
+          outputs?: string | null
+          sort_order?: number | null
+          step_number?: number
+          step_type?: string | null
+          time_temp_requirements?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_process_steps_haccp_plan_id_fkey"
+            columns: ["haccp_plan_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hold_reason_codes: {
         Row: {
@@ -9296,6 +10152,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+          {
             foreignKeyName: "policies_type_id_fkey"
             columns: ["type_id"]
             isOneToOne: false
@@ -9347,11 +10210,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "policy_acknowledgements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "policy_acknowledgements_policy_id_fkey"
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
           },
         ]
       }
@@ -9399,6 +10276,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "policies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_attachments_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
           },
           {
             foreignKeyName: "policy_attachments_uploaded_by_fkey"
@@ -9526,6 +10410,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "policy_comments_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+          {
             foreignKeyName: "policy_comments_resolved_by_fkey"
             columns: ["resolved_by"]
             isOneToOne: false
@@ -9578,10 +10469,121 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "policy_related_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+          {
             foreignKeyName: "policy_related_related_policy_id_fkey"
             columns: ["related_policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_related_related_policy_id_fkey"
+            columns: ["related_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+        ]
+      }
+      policy_sqf_mappings: {
+        Row: {
+          compliance_status: string | null
+          created_at: string
+          created_by: string | null
+          gap_description: string | null
+          gap_severity: string | null
+          id: string
+          notes: string | null
+          policy_id: string
+          remediation_completed_at: string | null
+          remediation_due_date: string | null
+          remediation_plan: string | null
+          sqf_code_id: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          compliance_status?: string | null
+          created_at?: string
+          created_by?: string | null
+          gap_description?: string | null
+          gap_severity?: string | null
+          id?: string
+          notes?: string | null
+          policy_id: string
+          remediation_completed_at?: string | null
+          remediation_due_date?: string | null
+          remediation_plan?: string | null
+          sqf_code_id: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          compliance_status?: string | null
+          created_at?: string
+          created_by?: string | null
+          gap_description?: string | null
+          gap_severity?: string | null
+          id?: string
+          notes?: string | null
+          policy_id?: string
+          remediation_completed_at?: string | null
+          remediation_due_date?: string | null
+          remediation_plan?: string | null
+          sqf_code_id?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_sqf_mappings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_sqf_mappings_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_sqf_mappings_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "policy_sqf_mappings_sqf_code_id_fkey"
+            columns: ["sqf_code_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_sqf_mappings_sqf_code_id_fkey"
+            columns: ["sqf_code_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_compliance_summary"
+            referencedColumns: ["sqf_code_id"]
+          },
+          {
+            foreignKeyName: "policy_sqf_mappings_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -9612,6 +10614,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "policies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_tag_mappings_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
           },
           {
             foreignKeyName: "policy_tag_mappings_tag_id_fkey"
@@ -9651,6 +10660,97 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_training_requirements: {
+        Row: {
+          certificate_template: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          id: string
+          initial_due_days: number | null
+          is_required: boolean | null
+          max_attempts: number | null
+          notifications_enabled: boolean | null
+          passing_score: number | null
+          policy_id: string
+          quiz_questions: Json | null
+          refresher_frequency_days: number | null
+          reminder_days_before: number | null
+          target_all_employees: boolean | null
+          target_departments: string[] | null
+          target_job_positions: string[] | null
+          training_materials_url: string | null
+          training_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          certificate_template?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string
+          initial_due_days?: number | null
+          is_required?: boolean | null
+          max_attempts?: number | null
+          notifications_enabled?: boolean | null
+          passing_score?: number | null
+          policy_id: string
+          quiz_questions?: Json | null
+          refresher_frequency_days?: number | null
+          reminder_days_before?: number | null
+          target_all_employees?: boolean | null
+          target_departments?: string[] | null
+          target_job_positions?: string[] | null
+          training_materials_url?: string | null
+          training_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          certificate_template?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string
+          initial_due_days?: number | null
+          is_required?: boolean | null
+          max_attempts?: number | null
+          notifications_enabled?: boolean | null
+          passing_score?: number | null
+          policy_id?: string
+          quiz_questions?: Json | null
+          refresher_frequency_days?: number | null
+          reminder_days_before?: number | null
+          target_all_employees?: boolean | null
+          target_departments?: string[] | null
+          target_job_positions?: string[] | null
+          training_materials_url?: string | null
+          training_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_training_requirements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_training_requirements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: true
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_training_requirements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: true
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
           },
         ]
       }
@@ -9758,6 +10858,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "policies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_versions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["policy_id"]
           },
         ]
       }
@@ -14668,6 +15775,400 @@ export type Database = {
           },
         ]
       }
+      sqf_audit_findings: {
+        Row: {
+          assigned_to: string | null
+          audit_id: string
+          capa_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          evidence: string | null
+          finding_number: string
+          finding_type: string
+          id: string
+          location: string | null
+          response: string | null
+          response_date: string | null
+          response_due_date: string | null
+          sqf_code_id: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          verification_notes: string | null
+          verified_by: string | null
+          verified_date: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          audit_id: string
+          capa_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          evidence?: string | null
+          finding_number: string
+          finding_type: string
+          id?: string
+          location?: string | null
+          response?: string | null
+          response_date?: string | null
+          response_due_date?: string | null
+          sqf_code_id?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          verification_notes?: string | null
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          audit_id?: string
+          capa_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          evidence?: string | null
+          finding_number?: string
+          finding_type?: string
+          id?: string
+          location?: string | null
+          response?: string | null
+          response_date?: string | null
+          response_due_date?: string | null
+          sqf_code_id?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          verification_notes?: string | null
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sqf_audit_findings_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_compliance_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_capa_id_fkey"
+            columns: ["capa_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_sqf_code_id_fkey"
+            columns: ["sqf_code_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_sqf_code_id_fkey"
+            columns: ["sqf_code_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_compliance_summary"
+            referencedColumns: ["sqf_code_id"]
+          },
+          {
+            foreignKeyName: "sqf_audit_findings_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sqf_codes: {
+        Row: {
+          category: string | null
+          code_number: string
+          common_nonconformances: string | null
+          created_at: string
+          edition_id: string
+          evidence_required: string | null
+          guidance_notes: string | null
+          id: string
+          implementation_tips: string | null
+          is_fundamental: boolean | null
+          is_mandatory: boolean | null
+          module: string | null
+          related_codes: string[] | null
+          requirement_text: string | null
+          section: string | null
+          sort_order: number | null
+          subsection: string | null
+          supersedes_code: string | null
+          title: string
+          updated_at: string
+          verification_method: string | null
+        }
+        Insert: {
+          category?: string | null
+          code_number: string
+          common_nonconformances?: string | null
+          created_at?: string
+          edition_id: string
+          evidence_required?: string | null
+          guidance_notes?: string | null
+          id?: string
+          implementation_tips?: string | null
+          is_fundamental?: boolean | null
+          is_mandatory?: boolean | null
+          module?: string | null
+          related_codes?: string[] | null
+          requirement_text?: string | null
+          section?: string | null
+          sort_order?: number | null
+          subsection?: string | null
+          supersedes_code?: string | null
+          title: string
+          updated_at?: string
+          verification_method?: string | null
+        }
+        Update: {
+          category?: string | null
+          code_number?: string
+          common_nonconformances?: string | null
+          created_at?: string
+          edition_id?: string
+          evidence_required?: string | null
+          guidance_notes?: string | null
+          id?: string
+          implementation_tips?: string | null
+          is_fundamental?: boolean | null
+          is_mandatory?: boolean | null
+          module?: string | null
+          related_codes?: string[] | null
+          requirement_text?: string | null
+          section?: string | null
+          sort_order?: number | null
+          subsection?: string | null
+          supersedes_code?: string | null
+          title?: string
+          updated_at?: string
+          verification_method?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sqf_codes_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_compliance_summary"
+            referencedColumns: ["edition_id"]
+          },
+          {
+            foreignKeyName: "sqf_codes_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sqf_compliance_audits: {
+        Row: {
+          audit_date: string
+          audit_end_date: string | null
+          audit_number: string
+          audit_type: string
+          auditor_name: string | null
+          auditor_organization: string | null
+          created_at: string
+          created_by: string | null
+          critical_findings: number | null
+          edition_id: string | null
+          id: string
+          lead_auditor_id: string | null
+          major_findings: number | null
+          minor_findings: number | null
+          next_audit_date: string | null
+          observations: number | null
+          overall_score: number | null
+          report_file_path: string | null
+          report_file_url: string | null
+          scope: string | null
+          status: string | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          audit_date: string
+          audit_end_date?: string | null
+          audit_number: string
+          audit_type: string
+          auditor_name?: string | null
+          auditor_organization?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_findings?: number | null
+          edition_id?: string | null
+          id?: string
+          lead_auditor_id?: string | null
+          major_findings?: number | null
+          minor_findings?: number | null
+          next_audit_date?: string | null
+          observations?: number | null
+          overall_score?: number | null
+          report_file_path?: string | null
+          report_file_url?: string | null
+          scope?: string | null
+          status?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audit_date?: string
+          audit_end_date?: string | null
+          audit_number?: string
+          audit_type?: string
+          auditor_name?: string | null
+          auditor_organization?: string | null
+          created_at?: string
+          created_by?: string | null
+          critical_findings?: number | null
+          edition_id?: string | null
+          id?: string
+          lead_auditor_id?: string | null
+          major_findings?: number | null
+          minor_findings?: number | null
+          next_audit_date?: string | null
+          observations?: number | null
+          overall_score?: number | null
+          report_file_path?: string | null
+          report_file_url?: string | null
+          scope?: string | null
+          status?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sqf_compliance_audits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_compliance_audits_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_compliance_summary"
+            referencedColumns: ["edition_id"]
+          },
+          {
+            foreignKeyName: "sqf_compliance_audits_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "sqf_editions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sqf_compliance_audits_lead_auditor_id_fkey"
+            columns: ["lead_auditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sqf_editions: {
+        Row: {
+          codes_extracted: number | null
+          created_at: string
+          created_by: string | null
+          edition_date: string | null
+          effective_date: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          parsing_error: string | null
+          parsing_status: string | null
+          sections_found: number | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          codes_extracted?: number | null
+          created_at?: string
+          created_by?: string | null
+          edition_date?: string | null
+          effective_date?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          parsing_error?: string | null
+          parsing_status?: string | null
+          sections_found?: number | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          codes_extracted?: number | null
+          created_at?: string
+          created_by?: string | null
+          edition_date?: string | null
+          effective_date?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          parsing_error?: string | null
+          parsing_status?: string | null
+          sections_found?: number | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sqf_editions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_category_mapping: {
         Row: {
           category_code: string
@@ -15873,6 +17374,57 @@ export type Database = {
         }
         Relationships: []
       }
+      training_reminders: {
+        Row: {
+          created_at: string
+          delivery_method: string | null
+          delivery_status: string | null
+          employee_training_id: string
+          error_message: string | null
+          id: string
+          reminder_type: string
+          scheduled_for: string
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_method?: string | null
+          delivery_status?: string | null
+          employee_training_id: string
+          error_message?: string | null
+          id?: string
+          reminder_type: string
+          scheduled_for: string
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_method?: string | null
+          delivery_status?: string | null
+          employee_training_id?: string
+          error_message?: string | null
+          id?: string
+          reminder_type?: string
+          scheduled_for?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_reminders_employee_training_id_fkey"
+            columns: ["employee_training_id"]
+            isOneToOne: false
+            referencedRelation: "employee_policy_training"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_reminders_employee_training_id_fkey"
+            columns: ["employee_training_id"]
+            isOneToOne: false
+            referencedRelation: "policy_training_compliance"
+            referencedColumns: ["training_id"]
+          },
+        ]
+      }
       unfulfilled_so_acknowledgments: {
         Row: {
           acknowledged_at: string
@@ -16975,6 +18527,46 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_training_compliance: {
+        Row: {
+          completed_at: string | null
+          compliance_status: string | null
+          department_id: string | null
+          due_date: string | null
+          employee_id: string | null
+          employee_number: string | null
+          expires_at: string | null
+          first_name: string | null
+          job_position_id: string | null
+          last_name: string | null
+          passed: boolean | null
+          passing_score: number | null
+          policy_id: string | null
+          policy_number: string | null
+          policy_title: string | null
+          quiz_score: number | null
+          requirement_id: string | null
+          training_id: string | null
+          training_status: string | null
+          training_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qa_pending_items: {
         Row: {
           approval_status: string | null
@@ -16985,6 +18577,23 @@ export type Database = {
           qa_verified_by: string | null
           table_name: string | null
           updated_at: string | null
+        }
+        Relationships: []
+      }
+      sqf_compliance_summary: {
+        Row: {
+          category: string | null
+          code_number: string | null
+          compliant_count: number | null
+          edition_id: string | null
+          edition_name: string | null
+          gap_count: number | null
+          is_fundamental: boolean | null
+          mapping_count: number | null
+          overall_status: string | null
+          partial_count: number | null
+          sqf_code_id: string | null
+          title: string | null
         }
         Relationships: []
       }
