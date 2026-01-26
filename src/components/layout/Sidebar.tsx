@@ -31,7 +31,6 @@ import {
   GraduationCap,
   Search,
   X,
-  BookOpen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -143,17 +142,6 @@ const navItems: NavItem[] = [
       { title: 'Receiving Inspections', href: '/qa/receiving-inspections' },
       { title: 'Lot Traceability', href: '/quality/lot-traceability' },
       { title: 'Mock Recall Drills', href: '/quality/mock-recall-drills' },
-    ],
-  },
-  {
-    title: 'Policies & SOPs',
-    href: '/policies',
-    icon: BookOpen,
-    children: [
-      { title: 'All Policies', href: '/policies' },
-      { title: 'Create Policy', href: '/policies/new' },
-      { title: 'SQF Compliance', href: '/sqf/compliance' },
-      { title: 'SQF Code Library', href: '/sqf/codes' },
     ],
   },
   {
