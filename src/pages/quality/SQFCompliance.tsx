@@ -7,14 +7,17 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Search, FileText, AlertTriangle, BookOpen, ClipboardCheck } from "lucide-react";
+import { Plus, Search, FileText, BookOpen, ClipboardCheck, Upload, Settings } from "lucide-react";
 import { useSQFEditions, useSQFCodes, useSQFComplianceAudits } from "@/hooks/useSQF";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import SQFEditionUploadDialog from "@/components/sqf/SQFEditionUploadDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SQFCompliance() {
+  const { isManager } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   
   const { data: editions } = useSQFEditions();
   const currentEdition = editions?.find(e => e.is_active);
@@ -38,11 +41,16 @@ export default function SQFCompliance() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><FileText className="mr-2 h-4 w-4" />Export Report</Button>
+          {isManager && (
+            <Button variant="outline" onClick={() => setIsUploadOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />Upload SQF Code
+            </Button>
+          )}
           <Button><Plus className="mr-2 h-4 w-4" />New Audit</Button>
         </div>
       </div>
 
-      {currentEdition && (
+      {currentEdition ? (
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
@@ -68,12 +76,29 @@ export default function SQFCompliance() {
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="py-8 text-center">
+            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No SQF Edition Uploaded</h3>
+            <p className="text-muted-foreground mb-4">
+              Upload your SQF Code PDF to get started. AI will automatically extract all code requirements.
+            </p>
+            {isManager && (
+              <Button onClick={() => setIsUploadOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload SQF Code Document
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="codes">SQF Codes</TabsTrigger>
+          <TabsTrigger value="editions">Editions</TabsTrigger>
           <TabsTrigger value="audits">Audits</TabsTrigger>
         </TabsList>
 
@@ -116,10 +141,77 @@ export default function SQFCompliance() {
                         <TableCell><Button variant="ghost" size="sm"><ClipboardCheck className="h-4 w-4" /></Button></TableCell>
                       </TableRow>
                     ))}
-                    {(!filteredCodes || filteredCodes.length === 0) && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No codes found</TableCell></TableRow>}
+                    {(!filteredCodes || filteredCodes.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          {currentEdition ? "No codes found. AI parsing may still be in progress." : "Upload an SQF edition to view codes."}
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="editions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div><CardTitle>SQF Editions</CardTitle><CardDescription>Manage uploaded SQF code editions</CardDescription></div>
+                {isManager && (
+                  <Button onClick={() => setIsUploadOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload New Edition
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Edition</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead>Effective Date</TableHead>
+                    <TableHead>Codes Extracted</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {editions?.map((edition) => (
+                    <TableRow key={edition.id}>
+                      <TableCell className="font-medium">{edition.name}</TableCell>
+                      <TableCell>{edition.version}</TableCell>
+                      <TableCell>
+                        {edition.effective_date ? format(new Date(edition.effective_date), "MMM d, yyyy") : "—"}
+                      </TableCell>
+                      <TableCell>{edition.codes_extracted || 0}</TableCell>
+                      <TableCell>
+                        {edition.is_active ? (
+                          <Badge variant="default">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!editions || editions.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No editions uploaded yet
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -147,6 +239,9 @@ export default function SQFCompliance() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Upload Dialog */}
+      <SQFEditionUploadDialog open={isUploadOpen} onOpenChange={setIsUploadOpen} />
     </div>
   );
 }
