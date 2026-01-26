@@ -140,6 +140,11 @@ import PolicyDetail from "./pages/policies/PolicyDetail";
 import PolicyForm from "./pages/policies/PolicyForm";
 import CategoryManagement from "./pages/settings/CategoryManagement";
 import TypeManagement from "./pages/settings/TypeManagement";
+import SQFEditionUpload from "./pages/sqf/SQFEditionUpload";
+import SQFEditionManagement from "./pages/sqf/SQFEditionManagement";
+import SQFCodeLibrary from "./pages/sqf/SQFCodeLibrary";
+import SQFCodeDetail from "./pages/sqf/SQFCodeDetail";
+import SQFComplianceDashboard from "./pages/sqf/SQFComplianceDashboard";
 
 const queryClient = new QueryClient();
 
@@ -306,6 +311,13 @@ const App = () => (
             <Route path="/policies/new" element={<AppLayout><PolicyForm /></AppLayout>} />
             <Route path="/policies/:id" element={<AppLayout><PolicyDetail /></AppLayout>} />
             <Route path="/policies/:id/edit" element={<AppLayout><PolicyForm /></AppLayout>} />
+
+            {/* SQF routes */}
+            <Route path="/sqf/compliance" element={<AppLayout><SQFComplianceDashboard /></AppLayout>} />
+            <Route path="/sqf/codes" element={<AppLayout><SQFCodeLibrary /></AppLayout>} />
+            <Route path="/sqf/codes/:id" element={<AppLayout><SQFCodeDetail /></AppLayout>} />
+            <Route path="/settings/sqf-editions" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'quality_director']}><SQFEditionManagement /></RequireRole></AppLayout>} />
+            <Route path="/settings/sqf-editions/upload" element={<AppLayout><RequireRole allowedRoles={['admin', 'manager', 'quality_director']}><SQFEditionUpload /></RequireRole></AppLayout>} />
 
             {/* Quality routes */}
             <Route path="/quality/dashboard" element={<AppLayout><QADashboard /></AppLayout>} />
