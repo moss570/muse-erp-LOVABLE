@@ -14,9 +14,13 @@ import { format, differenceInDays } from "date-fns";
 import SQFEditionUploadDialog from "@/components/sqf/SQFEditionUploadDialog";
 import SQFEditionSettingsDialog from "@/components/sqf/SQFEditionSettingsDialog";
 import PolicySQFMappingDialog from "@/components/sqf/PolicySQFMappingDialog";
+import SQFCodeDetailDialog from "@/components/sqf/SQFCodeDetailDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+
+type SQFCode = Database["public"]["Tables"]["sqf_codes"]["Row"];
 
 export default function SQFCompliance() {
   const { isManager } = useAuth();
@@ -26,6 +30,8 @@ export default function SQFCompliance() {
   const [selectedEdition, setSelectedEdition] = useState<any>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMappingOpen, setIsMappingOpen] = useState(false);
+  const [selectedCode, setSelectedCode] = useState<SQFCode | null>(null);
+  const [isCodeDetailOpen, setIsCodeDetailOpen] = useState(false);
   
   const { data: editions } = useSQFEditions();
   const currentEdition = editions?.find(e => e.is_active);
@@ -223,7 +229,14 @@ export default function SQFCompliance() {
                   </TableHeader>
                   <TableBody>
                     {filteredCodes?.map((code) => (
-                      <TableRow key={code.id}>
+                      <TableRow 
+                        key={code.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => {
+                          setSelectedCode(code);
+                          setIsCodeDetailOpen(true);
+                        }}
+                      >
                         <TableCell className="font-mono font-medium">{code.code_number}</TableCell>
                         <TableCell><div className="font-medium">{code.title}</div></TableCell>
                         <TableCell>{code.category || "—"}</TableCell>
@@ -232,7 +245,8 @@ export default function SQFCompliance() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               navigator.clipboard.writeText(code.code_number);
                               toast.success(`Copied ${code.code_number} to clipboard`);
                             }}
@@ -367,6 +381,13 @@ export default function SQFCompliance() {
           editionId={currentEdition.id}
         />
       )}
+
+      {/* SQF Code Detail Dialog */}
+      <SQFCodeDetailDialog
+        code={selectedCode}
+        open={isCodeDetailOpen}
+        onOpenChange={setIsCodeDetailOpen}
+      />
     </div>
   );
 }
