@@ -35,6 +35,7 @@ export default function Policies() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editPolicy, setEditPolicy] = useState<Policy | null>(null);
   
   const { data: policies, isLoading } = usePolicies({
     search: search || undefined,
@@ -277,7 +278,7 @@ export default function Policies() {
                             <Eye className="h-4 w-4 mr-2" />
                             View
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/quality/policies/${policy.id}/edit`)}>
+                          <DropdownMenuItem onClick={() => setEditPolicy(policy)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
@@ -336,6 +337,17 @@ export default function Policies() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Policy Dialog */}
+      {categories && types && editPolicy && (
+        <PolicyFormDialog
+          open={!!editPolicy}
+          onOpenChange={(open) => !open && setEditPolicy(null)}
+          categories={categories}
+          types={types}
+          policy={editPolicy}
+        />
+      )}
     </div>
   );
 }

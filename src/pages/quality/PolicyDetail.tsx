@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { usePolicy } from "@/hooks/usePolicies";
+import { usePolicy, usePolicyCategories, usePolicyTypes } from "@/hooks/usePolicies";
 import { usePolicyVersions } from "@/hooks/usePolicyVersions";
 import { usePolicyAttachments } from "@/hooks/usePolicyAttachments";
 import { usePolicyAcknowledgements, usePolicyAcknowledgementStats } from "@/hooks/usePolicyAcknowledgements";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
@@ -27,13 +31,97 @@ export default function PolicyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isManager } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("content");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
 
   const { data: policy, isLoading } = usePolicy(id);
   const { data: versions } = usePolicyVersions(id);
   const { data: attachments } = usePolicyAttachments(id);
   const { data: acknowledgements } = usePolicyAcknowledgements(id);
   const { data: ackStats } = usePolicyAcknowledgementStats(id);
+  const { data: categories } = usePolicyCategories();
+  const { data: types } = usePolicyTypes();
+
+  const handleReanalyze = async () => {
+    if (!attachments?.length || !id) {
+      toast.error("No attachments found to analyze");
+      return;
+    }
+
+    const attachment = attachments[0]; // Use first attachment
+    if (!attachment.file_path) {
+      toast.error("Attachment file path not found");
+      return;
+    }
+
+    setIsReanalyzing(true);
+    try {
+      // Download the file from storage
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from("policy-attachments")
+        .download(attachment.file_path);
+
+      if (downloadError || !fileData) {
+        throw new Error("Failed to download attachment");
+      }
+
+      // Convert to base64
+      const arrayBuffer = await fileData.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const fileBase64 = btoa(binary);
+
+      // Get the active SQF edition
+      const { data: editions } = await supabase
+        .from("sqf_editions")
+        .select("id")
+        .eq("is_active", true)
+        .limit(1);
+      
+      const editionId = editions?.[0]?.id;
+      if (!editionId) {
+        throw new Error("No active SQF edition found");
+      }
+
+      // Call the analyze function
+      const { data, error } = await supabase.functions.invoke("analyze-policy-sqf", {
+        body: {
+          fileBase64,
+          fileName: attachment.file_name,
+          mimeType: attachment.file_type || "application/octet-stream",
+          editionId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.document_content) {
+        // Update the policy with the extracted content
+        const { error: updateError } = await supabase
+          .from("policies")
+          .update({ content: data.document_content })
+          .eq("id", id);
+
+        if (updateError) throw updateError;
+
+        // Invalidate the query to refresh the data
+        queryClient.invalidateQueries({ queryKey: ["policy", id] });
+        toast.success("Policy content extracted successfully");
+      } else {
+        toast.error(data?.error || "Failed to extract content from document");
+      }
+    } catch (error) {
+      console.error("Re-analyze error:", error);
+      toast.error("Failed to re-analyze document");
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -76,10 +164,12 @@ export default function PolicyDetail() {
           </div>
         </div>
         {isManager && (
-          <Button onClick={() => navigate(`/quality/policies/${id}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsEditOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </div>
         )}
       </div>
 
@@ -178,16 +268,34 @@ export default function PolicyDetail() {
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
                   <div>
                     <p className="text-muted-foreground mb-4">
-                      This policy's content is available as an attached document.
+                      This policy's content hasn't been extracted yet. Click "Re-analyze" to extract the text content from the attached document.
                     </p>
-                    <div className="flex flex-col items-center gap-2">
+                    <div className="flex flex-col items-center gap-4">
+                      <Button 
+                        onClick={handleReanalyze} 
+                        disabled={isReanalyzing}
+                      >
+                        {isReanalyzing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Extracting Content...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Re-analyze Document
+                          </>
+                        )}
+                      </Button>
+                      <Separator className="w-24" />
+                      <p className="text-sm text-muted-foreground">Or download the original document:</p>
                       {attachments.map((attachment) => {
                         const fileUrl = attachment.file_url || 
                           (attachment.file_path ? 
                             `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/policy-attachments/${attachment.file_path}` 
                             : null);
                         return (
-                          <Button key={attachment.id} variant="outline" asChild>
+                          <Button key={attachment.id} variant="outline" size="sm" asChild>
                             <a href={fileUrl || "#"} target="_blank" rel="noopener noreferrer">
                               <Paperclip className="h-4 w-4 mr-2" />
                               {attachment.file_name}
@@ -309,6 +417,17 @@ export default function PolicyDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Policy Dialog */}
+      {categories && types && (
+        <PolicyFormDialog
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          categories={categories}
+          types={types}
+          policy={policy}
+        />
+      )}
     </div>
   );
 }
