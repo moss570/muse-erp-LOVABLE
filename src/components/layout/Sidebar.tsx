@@ -126,16 +126,24 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    title: 'Policies',
+    href: '/policies',
+    icon: FileText,
+    children: [
+      { title: 'Policy Library', href: '/quality/policies' },
+      { title: 'SQF Compliance', href: '/quality/sqf' },
+      { title: 'Gap Analysis', href: '/policies/gap-analysis' },
+      { title: 'HACCP Plans', href: '/quality/haccp' },
+      { title: 'Policy Training', href: '/quality/training' },
+    ],
+  },
+  {
     title: 'Quality & Safety',
     href: '/quality',
     icon: ClipboardCheck,
     children: [
       { title: 'QA Dashboard', href: '/quality/dashboard' },
       { title: 'Work Queue', href: '/quality/work-queue' },
-      { title: 'Policies & SOPs', href: '/quality/policies' },
-      { title: 'SQF Compliance', href: '/quality/sqf' },
-      { title: 'HACCP Plans', href: '/quality/haccp' },
-      { title: 'Policy Training', href: '/quality/training' },
       { title: 'Non-Conformities', href: '/quality/non-conformities' },
       { title: 'NC Analytics', href: '/quality/nc-analytics' },
       { title: 'Corrective Actions', href: '/quality/capa' },
