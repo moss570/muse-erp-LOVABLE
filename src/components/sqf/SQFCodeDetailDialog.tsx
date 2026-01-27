@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -34,6 +35,9 @@ export default function SQFCodeDetailDialog({
             {code.is_fundamental && <Badge variant="secondary">Fundamental</Badge>}
           </div>
           <DialogTitle className="text-xl">{code.title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Details for SQF code {code.code_number}
+          </DialogDescription>
         </DialogHeader>
         
         <ScrollArea className="max-h-[60vh] pr-4">
