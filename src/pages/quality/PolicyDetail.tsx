@@ -27,6 +27,25 @@ const statusColors: Record<string, string> = {
   superseded: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
 };
 
+// Format policy content with proper HTML rendering
+function formatPolicyContent(content: string): string {
+  return content
+    // Convert markdown-style headers (## HEADER)
+    .replace(/\n## ([^\n]+)\n/g, '<h2 class="text-lg font-bold mt-6 mb-3 text-foreground border-b pb-2">$1</h2>')
+    // Convert bold text (**text**)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
+    // Convert double newlines to paragraph breaks
+    .replace(/\n\n+/g, '</p><p class="mb-3">')
+    // Convert single newlines to line breaks
+    .replace(/\n/g, '<br/>')
+    // Wrap in paragraph tags
+    .replace(/^/, '<p class="mb-3">')
+    .replace(/$/, '</p>')
+    // Clean up empty paragraphs
+    .replace(/<p class="mb-3"><\/p>/g, '')
+    .replace(/<p class="mb-3"><br\/>/g, '<p class="mb-3">');
+}
+
 export default function PolicyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -251,15 +270,40 @@ export default function PolicyDetail() {
 
         <TabsContent value="content" className="mt-4">
           <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">{policy.title}</CardTitle>
+                  <CardDescription>
+                    {policy.policy_number} • Version {policy.version}
+                    {policy.effective_date && ` • Effective: ${format(new Date(policy.effective_date), "MMM d, yyyy")}`}
+                    {policy.review_date && ` • Review: ${format(new Date(policy.review_date), "MMM d, yyyy")}`}
+                  </CardDescription>
+                </div>
+                {attachments?.length && policy.content && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleReanalyze}
+                    disabled={isReanalyzing}
+                    title="Re-extract content from document"
+                  >
+                    {isReanalyzing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <Separator />
             <CardContent className="pt-6">
               {policy.content ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <div 
-                    className="whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ 
-                      __html: policy.content
-                        .replace(/\n\n+/g, '</p><p class="mb-4">')
-                        .replace(/\n/g, '<br/>')
+                      __html: formatPolicyContent(policy.content)
                     }} 
                   />
                 </div>
