@@ -120,18 +120,17 @@ export default function BulkPolicyUploadDialog({
       return validExtensions.some(ext => fileName.endsWith(ext));
     };
 
-    // Support dragging multiple files directly (not folders). Many browsers populate
-    // dataTransfer.files reliably, while webkitGetAsEntry may be incomplete.
-    const directFiles = Array.from(e.dataTransfer.files || []).filter(isValidFile);
-    policyFiles.push(...directFiles);
+    console.log("[BulkUpload] Drop event - items count:", items?.length);
+    console.log("[BulkUpload] Drop event - files count:", e.dataTransfer.files?.length);
 
+    // First, try to get all files via webkitGetAsEntry (works for folders)
     // Handle folder drops - readEntries may not return all files in one call
     const traverseDirectory = async (entry: FileSystemEntry): Promise<File[]> => {
       const files: File[] = [];
       if (entry.isFile) {
         const fileEntry = entry as FileSystemFileEntry;
-        const file = await new Promise<File>((resolve) => {
-          fileEntry.file(resolve);
+        const file = await new Promise<File>((resolve, reject) => {
+          fileEntry.file(resolve, reject);
         });
         if (isValidFile(file)) {
           files.push(file);
@@ -145,15 +144,18 @@ export default function BulkPolicyUploadDialog({
           const allEntries: FileSystemEntry[] = [];
           let batch: FileSystemEntry[];
           do {
-            batch = await new Promise<FileSystemEntry[]>((resolve) => {
-              reader.readEntries(resolve);
+            batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
+              reader.readEntries(resolve, reject);
             });
             allEntries.push(...batch);
+            console.log(`[BulkUpload] Read batch of ${batch.length} entries, total: ${allEntries.length}`);
           } while (batch.length > 0);
           return allEntries;
         };
 
         const entries = await readAllEntries();
+        console.log(`[BulkUpload] Directory ${entry.name} has ${entries.length} entries`);
+        
         for (const childEntry of entries) {
           const childFiles = await traverseDirectory(childEntry);
           files.push(...childFiles);
@@ -162,21 +164,46 @@ export default function BulkPolicyUploadDialog({
       return files;
     };
 
+    // Check if we're dealing with folders or direct file selection
+    let hasDirectoryEntry = false;
     for (let i = 0; i < items.length; i++) {
       const entry = items[i].webkitGetAsEntry();
-      if (entry) {
-        const foundFiles = await traverseDirectory(entry);
-        policyFiles.push(...foundFiles);
+      if (entry?.isDirectory) {
+        hasDirectoryEntry = true;
+        break;
       }
     }
 
-    // De-dupe (folder traversal + direct files can overlap)
+    console.log(`[BulkUpload] Has directory entry: ${hasDirectoryEntry}`);
+
+    if (hasDirectoryEntry) {
+      // Folder drop - use webkitGetAsEntry for full traversal
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry();
+        if (entry) {
+          const foundFiles = await traverseDirectory(entry);
+          console.log(`[BulkUpload] Traversed entry ${entry.name}, found ${foundFiles.length} files`);
+          policyFiles.push(...foundFiles);
+        }
+      }
+    } else {
+      // Direct file drop - use dataTransfer.files which is more reliable for multi-file
+      const directFiles = Array.from(e.dataTransfer.files || []).filter(isValidFile);
+      console.log(`[BulkUpload] Direct file drop, found ${directFiles.length} valid files`);
+      policyFiles.push(...directFiles);
+    }
+
+    console.log(`[BulkUpload] Total policy files collected: ${policyFiles.length}`);
+
+    // De-dupe by name+size+lastModified
     const uniquePolicyFiles = Array.from(
       new Map(policyFiles.map((f) => [`${f.name}-${f.size}-${f.lastModified}`, f])).values()
     );
 
+    console.log(`[BulkUpload] After de-dupe: ${uniquePolicyFiles.length} unique files`);
+
     if (uniquePolicyFiles.length === 0) {
-      toast.error("No PDF or Word documents found in the dropped folder");
+      toast.error("No PDF or Word documents found in the dropped items");
       return;
     }
 
