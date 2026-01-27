@@ -410,11 +410,25 @@ export default function PolicyFormDialog({
     setIsSubmitting(true);
 
     try {
-      // Create policy first
+      // Check for duplicate policy number first
+      const policyNum = formData.policy_number || policyNumber || `POL-${Date.now()}`;
+      const { data: existing } = await supabase
+        .from("policies")
+        .select("id, title")
+        .eq("policy_number", policyNum)
+        .maybeSingle();
+
+      if (existing) {
+        toast.error(`Policy number "${policyNum}" already exists (${existing.title}). Please use a different number.`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create policy
       const newPolicy = await new Promise<any>((resolve, reject) => {
         createPolicy.mutate(
           {
-            policy_number: formData.policy_number || policyNumber || `POL-${Date.now()}`,
+            policy_number: policyNum,
             title: formData.title,
             summary: formData.summary || null,
             content: formData.content || null,
