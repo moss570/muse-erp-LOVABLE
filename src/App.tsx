@@ -142,6 +142,7 @@ import PolicyDetail from "./pages/quality/PolicyDetail";
 import SQFCompliance from "./pages/quality/SQFCompliance";
 import HACCPPlans from "./pages/quality/HACCPPlans";
 import PolicyTraining from "./pages/quality/PolicyTraining";
+import GapAnalysis from "./pages/policies/GapAnalysis";
 import MobileLauncher from "./pages/mobile/MobileLauncher";
 
 const queryClient = new QueryClient();
@@ -321,6 +322,7 @@ const App = () => (
             <Route path="/quality/sqf" element={<AppLayout><SQFCompliance /></AppLayout>} />
             <Route path="/quality/haccp" element={<AppLayout><HACCPPlans /></AppLayout>} />
             <Route path="/quality/training" element={<AppLayout><PolicyTraining /></AppLayout>} />
+            <Route path="/policies/gap-analysis" element={<AppLayout><GapAnalysis /></AppLayout>} />
             <Route path="/qa/receiving-inspections" element={<AppLayout><ReceivingInspections /></AppLayout>} />
             <Route path="/qa/receiving-inspection/:sessionId" element={<AppLayout><ReceivingInspection /></AppLayout>} />
             <Route
