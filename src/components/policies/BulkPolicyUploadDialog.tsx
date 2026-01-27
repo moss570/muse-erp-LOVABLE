@@ -45,8 +45,10 @@ interface ParsedPolicy {
     suggested_category?: string;
     extracted_effective_date?: string;
     extracted_review_date?: string;
+    extracted_author?: string;
   };
   summary?: string;
+  content?: string;
   sqfMappings?: any[];
   existingPolicyId?: string;
   existingPolicyTitle?: string;
@@ -245,6 +247,7 @@ export default function BulkPolicyUploadDialog({
   const analyzeDocument = async (file: File): Promise<{
     metadata: any;
     summary: string;
+    content: string | null;
     sqfMappings: any[];
   } | null> => {
     try {
@@ -274,6 +277,7 @@ export default function BulkPolicyUploadDialog({
         return {
           metadata: data.document_metadata || {},
           summary: data.policy_summary || "",
+          content: data.document_content || null,
           sqfMappings: data.mappings || [],
         };
       }
@@ -330,6 +334,7 @@ export default function BulkPolicyUploadDialog({
       if (result) {
         updatedFiles[i].metadata = result.metadata;
         updatedFiles[i].summary = result.summary;
+        updatedFiles[i].content = result.content || undefined;
         updatedFiles[i].sqfMappings = result.sqfMappings;
         
         // Check for duplicates
@@ -441,13 +446,14 @@ export default function BulkPolicyUploadDialog({
             policy_number: policyNumber,
             title: file.metadata?.extracted_title || file.file.name.replace(/\.[^/.]+$/, ""),
             summary: file.summary || null,
+            content: file.content || null,
             type_id: typeId,
             category_id: categoryId,
             effective_date: file.metadata?.extracted_effective_date || null,
             review_date: file.metadata?.extracted_review_date || null,
             status: "draft",
             created_by: user.user?.id,
-          })
+          } as any)
           .select()
           .single();
 

@@ -146,12 +146,13 @@ Only include codes that the policy document clearly relates to. Be thorough but 
     const isPdf = mimeType.includes("pdf") || fileName.endsWith(".pdf");
 
     let messages: any[];
+    let extractedDocumentText: string | null = null;
 
     if (isWordDocument) {
       // Extract text from Word document and send as text
       console.log("Extracting text from Word document...");
-      const extractedText = await extractTextFromDocx(fileBase64);
-      console.log(`Extracted ${extractedText.length} characters from Word document`);
+      extractedDocumentText = await extractTextFromDocx(fileBase64);
+      console.log(`Extracted ${extractedDocumentText.length} characters from Word document`);
 
       messages = [
         { role: "system", content: systemPrompt },
@@ -165,7 +166,7 @@ Return both the extracted metadata and the SQF mapping results.
 
 POLICY DOCUMENT CONTENT:
 ---
-${extractedText}
+${extractedDocumentText}
 ---` 
         },
       ];
@@ -350,6 +351,7 @@ Return both the extracted metadata and the SQF mapping results.`
         success: true,
         document_metadata: analysisResult.document_metadata || {},
         policy_summary: analysisResult.policy_summary,
+        document_content: extractedDocumentText,
         mappings: enrichedMappings,
         total_mappings: enrichedMappings.length,
       }),

@@ -164,7 +164,14 @@ export default function PolicyDetail() {
             <CardContent className="pt-6">
               {policy.content ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: policy.content.replace(/\n/g, '<br/>') }} />
+                  <div 
+                    className="whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ 
+                      __html: policy.content
+                        .replace(/\n\n+/g, '</p><p class="mb-4">')
+                        .replace(/\n/g, '<br/>')
+                    }} 
+                  />
                 </div>
               ) : attachments?.length ? (
                 <div className="text-center py-8 space-y-4">
