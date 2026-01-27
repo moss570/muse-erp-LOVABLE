@@ -1,0 +1,188 @@
+/* Policy Document Viewer Styles */
+/* Styling for mammoth.js converted Word documents */
+
+.policy-document-content {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  padding: 1in;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  min-height: 11in;
+}
+
+/* Dark mode adjustments */
+.dark .policy-document-content {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Headings */
+.policy-document-content h1,
+.policy-document-content .policy-heading-1 {
+  font-size: 18pt;
+  font-weight: bold;
+  margin: 1em 0 0.5em;
+  color: inherit;
+}
+
+.policy-document-content h2,
+.policy-document-content .policy-heading-2 {
+  font-size: 14pt;
+  font-weight: bold;
+  margin: 1em 0 0.5em;
+  color: inherit;
+}
+
+.policy-document-content h3,
+.policy-document-content .policy-heading-3 {
+  font-size: 12pt;
+  font-weight: bold;
+  margin: 0.8em 0 0.4em;
+  color: inherit;
+}
+
+/* Paragraphs */
+.policy-document-content p {
+  margin: 0 0 0.5em;
+  text-align: left;
+}
+
+/* Tables - Critical for policy documents */
+.policy-document-content table,
+.policy-document-content .policy-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 11pt;
+}
+
+.policy-document-content table td,
+.policy-document-content table th,
+.policy-document-content .policy-cell,
+.policy-document-content .policy-header-cell {
+  border: 1px solid #333;
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.dark .policy-document-content table td,
+.dark .policy-document-content table th {
+  border-color: #555;
+}
+
+/* First column often contains headers */
+.policy-document-content table td:first-child,
+.policy-document-content table th:first-child {
+  font-weight: bold;
+  background-color: #f5f5f5;
+  width: 30%;
+}
+
+.dark .policy-document-content table td:first-child,
+.dark .policy-document-content table th:first-child {
+  background-color: #2a2a3e;
+}
+
+/* Table header row */
+.policy-document-content table thead th,
+.policy-document-content table tr:first-child th,
+.policy-document-content .policy-header-cell {
+  background-color: #e0e0e0;
+  font-weight: bold;
+}
+
+.dark .policy-document-content table thead th,
+.dark .policy-document-content table tr:first-child th {
+  background-color: #3a3a4e;
+}
+
+/* Nested tables (e.g., Reference Documents) */
+.policy-document-content table table {
+  margin: 0;
+  width: 100%;
+}
+
+.policy-document-content table table td {
+  border: 1px solid #999;
+  background: transparent;
+  font-weight: normal;
+}
+
+.dark .policy-document-content table table td {
+  border-color: #666;
+}
+
+/* Lists */
+.policy-document-content ul,
+.policy-document-content ol {
+  margin: 0.5em 0 0.5em 1.5em;
+  padding: 0;
+}
+
+.policy-document-content li {
+  margin: 0.25em 0;
+}
+
+/* Strong/Bold */
+.policy-document-content strong,
+.policy-document-content b {
+  font-weight: bold;
+}
+
+/* Underline */
+.policy-document-content u {
+  text-decoration: underline;
+}
+
+/* Italic */
+.policy-document-content em,
+.policy-document-content i {
+  font-style: italic;
+}
+
+/* Links */
+.policy-document-content a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.dark .policy-document-content a {
+  color: #66b3ff;
+}
+
+/* Images */
+.policy-document-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+}
+
+/* Page break indicators (if any) */
+.policy-document-content hr {
+  border: none;
+  border-top: 1px dashed #ccc;
+  margin: 2em 0;
+}
+
+/* Preserve whitespace for specific elements */
+.policy-document-content pre {
+  white-space: pre-wrap;
+  font-family: "Courier New", Courier, monospace;
+  background: #f5f5f5;
+  padding: 1em;
+  border-radius: 4px;
+}
+
+.dark .policy-document-content pre {
+  background: #2a2a3e;
+}
+
+/* Section headers that are all caps */
+.policy-document-content p strong:only-child {
+  display: block;
+  margin-top: 1em;
+}

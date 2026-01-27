@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
+import PolicyDocumentViewer from "@/components/policies/PolicyDocumentViewer";
+import "@/styles/policy-document.css";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
@@ -54,6 +56,7 @@ export default function PolicyDetail() {
   const [activeTab, setActiveTab] = useState("content");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [contentViewMode, setContentViewMode] = useState<"visual" | "extracted">("visual");
 
   const { data: policy, isLoading } = usePolicy(id);
   const { data: versions } = usePolicyVersions(id);
@@ -280,79 +283,106 @@ export default function PolicyDetail() {
                     {policy.review_date && ` • Review: ${format(new Date(policy.review_date), "MMM d, yyyy")}`}
                   </CardDescription>
                 </div>
-                {attachments?.length && policy.content && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleReanalyze}
-                    disabled={isReanalyzing}
-                    title="Re-extract content from document"
-                  >
-                    {isReanalyzing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {/* View mode toggle */}
+                  {attachments?.length > 0 && (
+                    <div className="flex items-center gap-1 border rounded-lg p-0.5">
+                      <Button 
+                        variant={contentViewMode === "visual" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setContentViewMode("visual")}
+                        title="View original document"
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Original
+                      </Button>
+                      <Button 
+                        variant={contentViewMode === "extracted" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setContentViewMode("extracted")}
+                        title="View extracted text"
+                      >
+                        <FileCode className="h-3.5 w-3.5 mr-1" />
+                        Text
+                      </Button>
+                    </div>
+                  )}
+                  {/* Re-analyze button */}
+                  {attachments?.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleReanalyze}
+                      disabled={isReanalyzing}
+                      title="Re-extract content from document"
+                    >
+                      {isReanalyzing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <Separator />
-            <CardContent className="pt-6">
-              {policy.content ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
+            <CardContent className="p-0">
+              {/* Visual Document View (Original) */}
+              {contentViewMode === "visual" && attachments?.length ? (
+                <div className="min-h-[600px]">
+                  <PolicyDocumentViewer
+                    filePath={attachments[0].file_path!}
+                    fileName={attachments[0].file_name}
+                    fileType={attachments[0].file_type || undefined}
+                    fileUrl={attachments[0].file_url || undefined}
+                    className="h-[600px]"
+                  />
+                </div>
+              ) : contentViewMode === "extracted" && policy.content ? (
+                /* Extracted Text View */
+                <div className="p-6 prose prose-sm dark:prose-invert max-w-none">
                   <div 
                     dangerouslySetInnerHTML={{ 
                       __html: formatPolicyContent(policy.content)
                     }} 
                   />
                 </div>
-              ) : attachments?.length ? (
-                <div className="text-center py-8 space-y-4">
+              ) : contentViewMode === "extracted" && !policy.content && attachments?.length ? (
+                /* No extracted content yet */
+                <div className="text-center py-8 space-y-4 p-6">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
                   <div>
                     <p className="text-muted-foreground mb-4">
-                      This policy's content hasn't been extracted yet. Click "Re-analyze" to extract the text content from the attached document.
+                      This policy's text content hasn't been extracted yet. Click the re-analyze button to extract searchable text from the document.
                     </p>
-                    <div className="flex flex-col items-center gap-4">
-                      <Button 
-                        onClick={handleReanalyze} 
-                        disabled={isReanalyzing}
-                      >
-                        {isReanalyzing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Extracting Content...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Re-analyze Document
-                          </>
-                        )}
-                      </Button>
-                      <Separator className="w-24" />
-                      <p className="text-sm text-muted-foreground">Or download the original document:</p>
-                      {attachments.map((attachment) => {
-                        const fileUrl = attachment.file_url || 
-                          (attachment.file_path ? 
-                            `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/policy-attachments/${attachment.file_path}` 
-                            : null);
-                        return (
-                          <Button key={attachment.id} variant="outline" size="sm" asChild>
-                            <a href={fileUrl || "#"} target="_blank" rel="noopener noreferrer">
-                              <Paperclip className="h-4 w-4 mr-2" />
-                              {attachment.file_name}
-                            </a>
-                          </Button>
-                        );
-                      })}
-                    </div>
+                    <Button 
+                      onClick={handleReanalyze} 
+                      disabled={isReanalyzing}
+                    >
+                      {isReanalyzing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Extracting Content...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Extract Text Content
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">No content yet</p>
-              )}
+              ) : !attachments?.length ? (
+                /* No attachments at all */
+                <div className="text-center py-8 p-6">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No document attached to this policy</p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Extract text from Word document (.docx) with better formatting preservation
+// Extract text from Word document (.docx) with proper table structure preservation
 async function extractTextFromDocx(base64Data: string): Promise<string> {
   try {
     // Decode base64 to binary
@@ -27,54 +27,137 @@ async function extractTextFromDocx(base64Data: string): Promise<string> {
       throw new Error("Could not find document.xml in the Word file");
     }
 
-    // Parse the document more intelligently
-    const lines: string[] = [];
+    const output: string[] = [];
     
-    // Split by paragraphs (<w:p>...</w:p>)
-    const paragraphs = documentXml.match(/<w:p[^>]*>[\s\S]*?<\/w:p>/g) || [];
-    
-    for (const para of paragraphs) {
-      // Check if this paragraph has bold styling (indicates a header)
-      const isBold = para.includes('<w:b/>') || para.includes('<w:b ');
-      const isHeading = para.includes('w:val="Heading') || para.includes('pStyle');
-      
-      // Check for table cells
-      const isTableCell = para.includes('<w:tc>') || para.includes('<w:tc ');
-      
-      // Extract all text runs from this paragraph
-      const textMatches = para.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-      const paraText = textMatches
-        .map(match => {
-          const text = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
-          return text;
-        })
+    // Helper function to extract text from a node/element string
+    function extractTextRuns(elementXml: string): string {
+      const textMatches = elementXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+      return textMatches
+        .map(match => match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, ""))
         .join("");
-      
-      if (paraText.trim()) {
-        // Format headers with markers
-        if (isBold || isHeading) {
-          // Check if it's an all-caps section header
-          const upperText = paraText.trim();
-          if (upperText === upperText.toUpperCase() && upperText.length > 2 && !upperText.match(/^\d/)) {
-            lines.push(`\n## ${upperText}\n`);
-          } else {
-            lines.push(`**${paraText.trim()}**`);
-          }
-        } else {
-          lines.push(paraText.trim());
-        }
-      } else {
-        // Empty paragraph = line break
-        lines.push("");
-      }
     }
     
-    // Handle tables separately
-    const tables = documentXml.match(/<w:tbl[^>]*>[\s\S]*?<\/w:tbl>/g) || [];
-    // Tables are already included in paragraphs, but we could enhance this further
+    // Helper function to extract paragraphs from content
+    function extractParagraphsFromContent(content: string): string[] {
+      const paragraphs: string[] = [];
+      const paraMatches = content.match(/<w:p[^>]*>[\s\S]*?<\/w:p>/g) || [];
+      
+      for (const para of paraMatches) {
+        const text = extractTextRuns(para);
+        if (text.trim()) {
+          const isBold = para.includes('<w:b/>') || para.includes('<w:b ');
+          const isHeading = para.includes('w:val="Heading') || para.includes('pStyle');
+          
+          if (isBold || isHeading) {
+            const upperText = text.trim();
+            if (upperText === upperText.toUpperCase() && upperText.length > 2 && !upperText.match(/^\d/)) {
+              paragraphs.push(`\n## ${upperText}\n`);
+            } else {
+              paragraphs.push(`**${text.trim()}**`);
+            }
+          } else {
+            paragraphs.push(text.trim());
+          }
+        }
+      }
+      return paragraphs;
+    }
+    
+    // Helper function to extract and format tables as Markdown
+    function extractTable(tableXml: string): string {
+      const rows: string[][] = [];
+      const rowMatches = tableXml.match(/<w:tr[^>]*>[\s\S]*?<\/w:tr>/g) || [];
+      
+      for (const row of rowMatches) {
+        const cells: string[] = [];
+        const cellMatches = row.match(/<w:tc[^>]*>[\s\S]*?<\/w:tc>/g) || [];
+        
+        for (const cell of cellMatches) {
+          // Check for nested tables
+          if (cell.includes('<w:tbl')) {
+            // Extract nested table recursively
+            const nestedTableMatch = cell.match(/<w:tbl[^>]*>[\s\S]*?<\/w:tbl>/);
+            if (nestedTableMatch) {
+              cells.push(extractTable(nestedTableMatch[0]));
+            } else {
+              cells.push(extractTextRuns(cell));
+            }
+          } else {
+            // Regular cell - extract all paragraphs
+            const cellParagraphs = extractParagraphsFromContent(cell);
+            cells.push(cellParagraphs.join(" "));
+          }
+        }
+        rows.push(cells);
+      }
+      
+      if (rows.length === 0) return "";
+      
+      // Format as Markdown table
+      const maxCols = Math.max(...rows.map(r => r.length));
+      const lines: string[] = [];
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        // Pad row to max columns
+        while (row.length < maxCols) {
+          row.push("");
+        }
+        
+        // Clean cell content for markdown table
+        const cleanedCells = row.map(cell => 
+          cell.replace(/\|/g, "\\|").replace(/\n/g, " ").trim()
+        );
+        
+        lines.push(`| ${cleanedCells.join(" | ")} |`);
+        
+        // Add header separator after first row
+        if (i === 0) {
+          lines.push(`| ${Array(maxCols).fill("---").join(" | ")} |`);
+        }
+      }
+      
+      return lines.join("\n");
+    }
+    
+    // Process the document - handle tables and paragraphs in order
+    // First, identify all tables and their positions
+    const tableRegex = /<w:tbl[^>]*>[\s\S]*?<\/w:tbl>/g;
+    const tables: { start: number; end: number; content: string }[] = [];
+    let tableMatch;
+    
+    while ((tableMatch = tableRegex.exec(documentXml)) !== null) {
+      tables.push({
+        start: tableMatch.index,
+        end: tableMatch.index + tableMatch[0].length,
+        content: tableMatch[0]
+      });
+    }
+    
+    // Extract paragraphs that are NOT inside tables
+    let lastEnd = 0;
+    for (const table of tables) {
+      // Get content before this table
+      const contentBefore = documentXml.substring(lastEnd, table.start);
+      const paragraphs = extractParagraphsFromContent(contentBefore);
+      output.push(...paragraphs);
+      
+      // Add the table
+      const tableMarkdown = extractTable(table.content);
+      if (tableMarkdown) {
+        output.push("\n" + tableMarkdown + "\n");
+      }
+      
+      lastEnd = table.end;
+    }
+    
+    // Get any content after the last table
+    const contentAfter = documentXml.substring(lastEnd);
+    const remainingParagraphs = extractParagraphsFromContent(contentAfter);
+    output.push(...remainingParagraphs);
     
     // Clean up and format
-    let result = lines.join("\n")
+    let result = output.join("\n")
       .replace(/\n{3,}/g, "\n\n")  // Max 2 consecutive newlines
       .trim();
     
