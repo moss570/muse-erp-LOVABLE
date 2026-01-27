@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { usePolicy, usePolicyCategories, usePolicyTypes } from "@/hooks/usePolicies";
+import { usePolicy, usePolicyCategories, usePolicyTypes, useDeletePolicy } from "@/hooks/usePolicies";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePolicyVersions } from "@/hooks/usePolicyVersions";
 import { usePolicyAttachments } from "@/hooks/usePolicyAttachments";
 import { usePolicyAcknowledgements, usePolicyAcknowledgementStats } from "@/hooks/usePolicyAcknowledgements";
@@ -54,7 +55,7 @@ function formatPolicyContent(content: string): string {
 export default function PolicyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isManager } = useAuth();
+  const { isManager, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("content");
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -62,6 +63,9 @@ export default function PolicyDetail() {
   const [contentViewMode, setContentViewMode] = useState<"visual" | "extracted">("visual");
   const [isCompareEnabled, setIsCompareEnabled] = useState(false);
   const [selectedMappingId, setSelectedMappingId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const deletePolicy = useDeletePolicy();
 
   const { data: policy, isLoading } = usePolicy(id);
   const { data: versions } = usePolicyVersions(id);
@@ -222,12 +226,20 @@ export default function PolicyDetail() {
             )}
           </div>
         </div>
-        {isManager && (
+        {(isManager || isAdmin) && (
           <div className="flex gap-2">
-            <Button onClick={() => setIsEditOpen(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
+            {isManager && (
+              <Button onClick={() => setIsEditOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+            {isAdmin && (
+              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -588,6 +600,33 @@ export default function PolicyDetail() {
           policy={policy}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Policy</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{policy.title}"? This action cannot be undone and will remove all associated attachments, versions, and acknowledgements.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                deletePolicy.mutate(id!, {
+                  onSuccess: () => {
+                    navigate("/quality/policies");
+                  }
+                });
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
