@@ -186,3 +186,68 @@
   display: block;
   margin-top: 1em;
 }
+
+/* ==========================================
+   Evidence Highlighting Styles
+   ========================================== */
+
+/* Base highlight style */
+.evidence-highlight {
+  background-color: hsl(217 91% 60% / 0.2);
+  border-bottom: 2px solid hsl(217 91% 60%);
+  padding: 0 2px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+/* Hover state */
+.evidence-highlight:hover {
+  background-color: hsl(217 91% 60% / 0.35);
+}
+
+/* Active/selected highlight */
+.evidence-highlight.active,
+.policy-content-with-highlights .evidence-highlight {
+  background-color: hsl(142 76% 36% / 0.2);
+  border-bottom-color: hsl(142 76% 36%);
+}
+
+.policy-content-with-highlights .evidence-highlight:hover {
+  background-color: hsl(142 76% 36% / 0.35);
+}
+
+/* Dark mode adjustments */
+.dark .evidence-highlight {
+  background-color: hsl(217 91% 60% / 0.25);
+  border-bottom-color: hsl(217 91% 75%);
+}
+
+.dark .evidence-highlight:hover {
+  background-color: hsl(217 91% 60% / 0.4);
+}
+
+.dark .policy-content-with-highlights .evidence-highlight {
+  background-color: hsl(142 76% 50% / 0.25);
+  border-bottom-color: hsl(142 76% 60%);
+}
+
+.dark .policy-content-with-highlights .evidence-highlight:hover {
+  background-color: hsl(142 76% 50% / 0.4);
+}
+
+/* Animation for newly highlighted content */
+@keyframes highlight-pulse {
+  0% {
+    background-color: hsl(142 76% 36% / 0.4);
+  }
+  50% {
+    background-color: hsl(142 76% 36% / 0.2);
+  }
+  100% {
+    background-color: hsl(142 76% 36% / 0.4);
+  }
+}
+
+.evidence-highlight[data-first-highlight="true"] {
+  animation: highlight-pulse 1.5s ease-in-out 2;
+}

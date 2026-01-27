@@ -231,6 +231,7 @@ serve(async (req) => {
 Your task is to analyze a policy document and:
 1. Extract metadata from the document header/title page (title, document number, version, dates, etc.)
 2. Identify which SQF codes it addresses or satisfies
+3. Extract specific text excerpts that provide evidence of compliance
 
 Available SQF Codes:
 ${sqfCodesSummary}
@@ -250,8 +251,10 @@ For each SQF code that the policy document addresses, determine:
 1. The code number it maps to
 2. Whether the policy fully satisfies (compliant), partially satisfies (partial), or identifies a gap (gap) in the requirement
 3. A brief explanation of how the policy addresses or doesn't address the requirement
+4. **IMPORTANT**: Extract 1-5 specific text excerpts (exact quotes) from the policy that provide evidence of compliance. These should be direct quotes from the document that demonstrate how the policy satisfies the requirement.
 
-Only include codes that the policy document clearly relates to. Be thorough but accurate.`;
+Only include codes that the policy document clearly relates to. Be thorough but accurate.
+For evidence excerpts, quote the exact text from the document - do not paraphrase.`;
 
     // Determine if we're dealing with a Word document or PDF
     const isWordDocument = mimeType.includes("word") || 
@@ -403,6 +406,11 @@ Return both the extracted metadata and the SQF mapping results.`
                           type: "string", 
                           description: "If partial or gap, what is missing" 
                         },
+                        evidence_excerpts: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Array of specific text excerpts (exact quotes) from the policy document that provide evidence of compliance with this SQF code. Each excerpt should be 1-3 sentences that directly demonstrate compliance. Include 1-5 excerpts per code.",
+                        },
                       },
                       required: ["code_number", "compliance_status", "explanation"],
                     },
@@ -458,6 +466,7 @@ Return both the extracted metadata and the SQF mapping results.`
         sqf_code_id: matchedCode?.id || null,
         sqf_code_title: matchedCode?.title || null,
         is_mandatory: matchedCode?.is_mandatory || false,
+        evidence_excerpts: mapping.evidence_excerpts || [],
       };
     }).filter((m: any) => m.sqf_code_id !== null);
 
