@@ -106,8 +106,8 @@ export default function PolicySQFMappingsTab({
   return (
     <div className="space-y-4">
       {/* Header with Compare Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-4 flex-wrap">
           <Badge variant="outline" className="text-sm">
             {mappings.length} SQF Code{mappings.length !== 1 ? "s" : ""} Mapped
           </Badge>
@@ -135,6 +135,11 @@ export default function PolicySQFMappingsTab({
           </div>
         )}
       </div>
+
+      {/* Hint about highlighting */}
+      <p className="text-xs text-muted-foreground">
+        💡 Select a code and enable Compare View to see evidence highlighting in the Text view.
+      </p>
 
       {/* Mappings List */}
       <ScrollArea className="h-[500px]">

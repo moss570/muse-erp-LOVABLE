@@ -485,6 +485,7 @@ export default function BulkPolicyUploadDialog({
             gap_description: m.gap_description || null,
             notes: m.explanation,
             created_by: user.user?.id,
+            evidence_excerpts: m.evidence_excerpts ?? [],
           }));
 
           await supabase.from("policy_sqf_mappings").upsert(mappingsToInsert, {
