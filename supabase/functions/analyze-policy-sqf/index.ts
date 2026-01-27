@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Extract text from Word document (.docx)
+// Extract text from Word document (.docx) with better formatting preservation
 async function extractTextFromDocx(base64Data: string): Promise<string> {
   try {
     // Decode base64 to binary
@@ -27,26 +27,58 @@ async function extractTextFromDocx(base64Data: string): Promise<string> {
       throw new Error("Could not find document.xml in the Word file");
     }
 
-    // Extract text content from XML by removing tags
-    // Word uses <w:t> tags for text content
-    const textMatches = documentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-    const extractedText = textMatches
-      .map(match => {
-        const textContent = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
-        return textContent;
-      })
-      .join(" ");
-
-    // Also extract paragraph breaks for better formatting
-    const formattedText = documentXml
-      .replace(/<w:p[^>]*>/g, "\n")
-      .replace(/<w:t[^>]*>/g, "")
-      .replace(/<\/w:t>/g, "")
-      .replace(/<[^>]+>/g, "")
-      .replace(/\n\s*\n/g, "\n\n")
+    // Parse the document more intelligently
+    const lines: string[] = [];
+    
+    // Split by paragraphs (<w:p>...</w:p>)
+    const paragraphs = documentXml.match(/<w:p[^>]*>[\s\S]*?<\/w:p>/g) || [];
+    
+    for (const para of paragraphs) {
+      // Check if this paragraph has bold styling (indicates a header)
+      const isBold = para.includes('<w:b/>') || para.includes('<w:b ');
+      const isHeading = para.includes('w:val="Heading') || para.includes('pStyle');
+      
+      // Check for table cells
+      const isTableCell = para.includes('<w:tc>') || para.includes('<w:tc ');
+      
+      // Extract all text runs from this paragraph
+      const textMatches = para.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+      const paraText = textMatches
+        .map(match => {
+          const text = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
+          return text;
+        })
+        .join("");
+      
+      if (paraText.trim()) {
+        // Format headers with markers
+        if (isBold || isHeading) {
+          // Check if it's an all-caps section header
+          const upperText = paraText.trim();
+          if (upperText === upperText.toUpperCase() && upperText.length > 2 && !upperText.match(/^\d/)) {
+            lines.push(`\n## ${upperText}\n`);
+          } else {
+            lines.push(`**${paraText.trim()}**`);
+          }
+        } else {
+          lines.push(paraText.trim());
+        }
+      } else {
+        // Empty paragraph = line break
+        lines.push("");
+      }
+    }
+    
+    // Handle tables separately
+    const tables = documentXml.match(/<w:tbl[^>]*>[\s\S]*?<\/w:tbl>/g) || [];
+    // Tables are already included in paragraphs, but we could enhance this further
+    
+    // Clean up and format
+    let result = lines.join("\n")
+      .replace(/\n{3,}/g, "\n\n")  // Max 2 consecutive newlines
       .trim();
-
-    return formattedText || extractedText;
+    
+    return result;
   } catch (error) {
     console.error("Error extracting text from docx:", error);
     throw new Error("Failed to extract text from Word document");
