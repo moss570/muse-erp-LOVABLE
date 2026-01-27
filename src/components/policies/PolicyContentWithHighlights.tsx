@@ -58,9 +58,11 @@ export default function PolicyContentWithHighlights({
     sortedExcerpts.forEach((excerpt) => {
       if (!excerpt.trim()) return;
       
-      // Create a regex that matches the excerpt (case-insensitive, allowing whitespace variations)
-      const normalizedExcerpt = excerpt.trim().replace(/\s+/g, "\\s+");
-      const regex = new RegExp(`(${escapeRegex(normalizedExcerpt)})`, "gi");
+      // Normalize the excerpt: escape regex special chars, then allow flexible whitespace
+      const escapedExcerpt = escapeRegex(excerpt.trim());
+      // Allow whitespace variations (newlines, multiple spaces, br tags, etc.)
+      const flexibleExcerpt = escapedExcerpt.replace(/\s+/g, "[\\s\\n\\r]*(?:<br\\s*\\/?>)?[\\s\\n\\r]*");
+      const regex = new RegExp(`(${flexibleExcerpt})`, "gi");
       
       formattedContent = formattedContent.replace(regex, (match) => {
         const dataAttr = isFirstHighlight ? 'data-first-highlight="true"' : '';
