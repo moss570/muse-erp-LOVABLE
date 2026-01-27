@@ -461,6 +461,7 @@ export default function PolicyFormDialog({
           gap_description: m.gap_description || null,
           notes: m.explanation,
           created_by: user.user?.id,
+          evidence_excerpts: (m as any).evidence_excerpts ?? [],
         }));
 
         const { error: mappingError } = await supabase

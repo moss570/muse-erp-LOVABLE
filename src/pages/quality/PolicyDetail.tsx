@@ -142,9 +142,35 @@ export default function PolicyDetail() {
 
         if (updateError) throw updateError;
 
-        // Invalidate the query to refresh the data
+        // Upsert SQF mappings with evidence_excerpts
+        if (data.mappings && data.mappings.length > 0) {
+          const { data: user } = await supabase.auth.getUser();
+          const mappingsToUpsert = data.mappings.map((m: any) => ({
+            policy_id: id,
+            sqf_code_id: m.sqf_code_id,
+            compliance_status: m.compliance_status,
+            gap_description: m.gap_description || null,
+            notes: m.explanation,
+            created_by: user.user?.id,
+            evidence_excerpts: m.evidence_excerpts ?? [],
+          }));
+
+          const { error: mappingError } = await supabase
+            .from("policy_sqf_mappings")
+            .upsert(mappingsToUpsert as any, {
+              onConflict: "policy_id,sqf_code_id",
+            });
+
+          if (mappingError) {
+            console.error("Failed to update SQF mappings:", mappingError);
+          }
+        }
+
+        // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["policy", id] });
-        toast.success("Policy content extracted successfully");
+        queryClient.invalidateQueries({ queryKey: ["policy-sqf-mappings", id] });
+        queryClient.invalidateQueries({ queryKey: ["sqf-compliance-summary"] });
+        toast.success(`Policy content extracted${data.mappings?.length ? ` with ${data.mappings.length} SQF mappings` : ""}`);
       } else {
         toast.error(data?.error || "Failed to extract content from document");
       }
