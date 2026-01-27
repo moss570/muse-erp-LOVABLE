@@ -1,121 +1,166 @@
 
-
-# Fix SQF Document Parsing Timeout Issue
+# Plan: High-Fidelity Policy Document Viewing
 
 ## Problem Summary
-The SQF document parsing is failing because the multi-pass AI extraction takes 10-15 minutes, but edge functions have a timeout limit of approximately 60-120 seconds. The function gets killed before completing all 3 passes, leaving the status stuck at "processing" with 0 codes extracted.
+The current text extraction from Word documents is losing critical formatting:
+- **Tables are flattened**: Left column headers and right column content become a single vertical list
+- **Nested tables are missed**: Reference document lists and similar structures are lost
+- **Entire sections missing**: "ROLES & RESPONSIBILITIES" and similar content stored in tables is skipped
+- **No visual parity**: The extracted text doesn't match the original document layout
 
-## Solution: Queue-Based Async Processing
+## Proposed Solution: Hybrid Document Viewer
 
-We'll implement an asynchronous processing pattern where:
-1. The initial upload triggers a quick "queue" operation (returns immediately)
-2. A separate "process" function handles one pass at a time
-3. The client polls for progress or uses real-time subscriptions to show status
+Given your requirements (three-pane review feature, need to read full policy content), I recommend a **dual-mode approach**:
+
+### Mode 1: Visual Document Viewer (Primary)
+Render the original document visually for reading, using the already-installed `pdfjs-dist` library:
+
+- **For PDFs**: Render directly using the existing `PdfJsViewer` component
+- **For Word docs**: Convert to PDF on the server using a conversion service, then render
+
+This ensures 100% visual fidelity with the original document.
+
+### Mode 2: Enhanced Text Extraction (For AI/Search)
+Improve the extraction logic to preserve table structures for AI analysis and search functionality:
+
+- Parse `<w:tbl>` elements properly with row/cell structure
+- Output Markdown tables for structured data
+- Handle nested tables recursively
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Add Queue Tracking Columns
-Add new columns to `sqf_editions` to track multi-pass processing:
-- `current_pass` (integer, default 0) - tracks which pass we're on (0-3)
-- `pass_results` (JSONB) - stores results from each completed pass
+### Step 1: Create Policy Document Viewer Component
+Build a new `PolicyDocumentViewer` component that:
+- Detects file type (PDF vs Word)
+- For PDFs: Uses `PdfJsViewer` directly
+- For Word docs: Shows the PDF-converted version or falls back to enhanced text view
+- Includes zoom, page navigation, and scroll sync for the three-pane review
 
-### Step 2: Create Lightweight Queue Function
-Create a new edge function `queue-sqf-parsing` that:
-- Accepts the PDF and edition_id
-- Stores the PDF in Supabase Storage temporarily
-- Sets status to "queued" and returns immediately (~2 seconds)
-- Client gets instant feedback that processing started
+**New file**: `src/components/policies/PolicyDocumentViewer.tsx`
 
-### Step 3: Create Single-Pass Processing Function
-Create a new edge function `process-sqf-pass` that:
-- Takes edition_id and pass_number (1, 2, or 3)
-- Retrieves the PDF from storage
-- Runs ONE pass of AI extraction (Part A, B, or C)
-- Saves extracted codes to database
-- Updates `current_pass` and `pass_results`
-- If all passes complete, sets status to "completed"
+### Step 2: Add Word-to-PDF Conversion Edge Function
+Create a backend function that converts Word documents to PDF for rendering:
 
-### Step 4: Implement Client-Side Orchestration
-Update the upload dialog to:
-1. Call `queue-sqf-parsing` (fast, returns immediately)
-2. Close the dialog and show a toast: "Processing started - check back in 10-15 minutes"
-3. The SQF Editions list will show real-time status updates
+- Uses a cloud conversion API (like CloudConvert or LibreOffice in Docker)
+- Caches the converted PDF in storage alongside the original
+- Falls back gracefully if conversion fails
 
-### Step 5: Add Retry/Resume Capability  
-Create a "Resume Parsing" button that:
-- Checks which pass was last completed
-- Calls `process-sqf-pass` for the next uncompleted pass
-- Allows users to manually continue if processing stalls
+**New file**: `supabase/functions/convert-to-pdf/index.ts`
 
----
+**Alternative**: Use a client-side approach with `mammoth.js` to convert DOCX to HTML, which can then be styled to match the original layout.
 
-## Alternative Simpler Approach (Recommended)
+### Step 3: Improve Text Extraction for AI/Metadata
+Refactor the `extractTextFromDocx` function to properly handle tables:
 
-Instead of the full queue system, we can use a **sequential client-triggered approach**:
+```text
+Current approach:
+  - Matches <w:p> paragraphs only
+  - Ignores table structure
+  - Loses cell relationships
 
-### Modified Flow:
-1. **Client calls Pass 1** → Edge function extracts Module 2 codes (~60s) → Returns codes count
-2. **Client calls Pass 2** → Edge function extracts Modules 3-9 codes (~60s) → Returns codes count  
-3. **Client calls Pass 3** → Edge function extracts Modules 10-15 codes (~60s) → Returns codes count
-4. **All complete** → Status set to "completed"
+New approach:
+  - Parse document as DOM tree
+  - Identify <w:tbl> elements first
+  - For each table:
+    - Extract rows (<w:tr>)
+    - Extract cells (<w:tc>)
+    - Detect if first column is headers
+    - Output as Markdown table or structured format
+  - Handle nested tables recursively
+  - Preserve section markers
+```
 
-This keeps each edge function call under the timeout limit while still extracting all modules.
+**Updated file**: `supabase/functions/analyze-policy-sqf/index.ts`
+
+### Step 4: Update PolicyDetail Content Tab
+Modify the Content tab to use the new viewer:
+
+- Show original document visually (not extracted text)
+- Keep extracted text for search/AI purposes only
+- Add "View Original" and "View Extracted Text" toggle if needed
+
+**Updated file**: `src/pages/quality/PolicyDetail.tsx`
+
+### Step 5: Integrate with Three-Pane Review
+Ensure the document viewer works in the existing review layout:
+- Scrollable document pane
+- Synchronized navigation
+- Proper sizing for side-by-side comparison
 
 ---
 
 ## Technical Details
 
-### New Edge Function: `parse-sqf-pass`
+### Table Extraction Algorithm
 ```text
-Input: { pdfBase64, edition_id, pass_number }
-- pass_number 1 = Module 2 only
-- pass_number 2 = Modules 3-9
-- pass_number 3 = Modules 10-15
-
-Process:
-1. Call Gemini 2.5 Pro for ONLY the specified modules
-2. Insert extracted codes to database
-3. Update edition with partial progress
-4. Return { success, codes_extracted, is_final_pass }
+function extractTables(xmlContent):
+  1. Find all <w:tbl> elements
+  2. For each table:
+     a. Extract all <w:tr> (rows)
+     b. For each row, extract <w:tc> (cells)
+     c. For each cell:
+        - Check for nested <w:tbl> (recursive)
+        - Extract text from <w:p> paragraphs
+     d. Determine if Column 0 contains headers (bold/caps)
+     e. Output as Markdown table:
+        | Header | Content |
+        |--------|---------|
+        | Cell 1 | Cell 2  |
+  3. Return structured content with tables inline
 ```
 
-### Client-Side Loop (SQFEditionUploadDialog)
-```text
-1. Create edition record
-2. Set status to "processing"
-3. For each pass (1, 2, 3):
-   a. Show progress: "Extracting Module X codes..."
-   b. Call parse-sqf-pass with pass_number
-   c. Update progress bar
-   d. If error, mark as failed and stop
-4. If all passes complete, set status to "completed"
-5. Invalidate queries to refresh UI
-```
+### Word-to-HTML Alternative
+Instead of PDF conversion, convert DOCX to HTML using `mammoth.js`:
+- Preserves tables as HTML `<table>` elements
+- Can be styled with CSS to match original
+- Works entirely client-side
+- Lighter weight than PDF conversion
 
-### UI Progress Updates
-- Pass 1: "Extracting System Elements (Module 2)..." 
-- Pass 2: "Extracting Food Safety Plans (Modules 3-9)..."
-- Pass 3: "Extracting Good Manufacturing Practices (Modules 10-15)..."
-- Complete: "Successfully extracted X SQF codes"
+### Storage Structure
+```text
+policy-attachments/
+  policies/{policy_id}/
+    original.docx          (uploaded file)
+    converted.pdf          (generated for viewing)
+```
 
 ---
 
 ## Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `supabase/functions/parse-sqf-pass/index.ts` | Create - single-pass extraction function |
-| `supabase/functions/parse-sqf-document/index.ts` | Delete or keep as fallback |
-| `src/components/sqf/SQFEditionUploadDialog.tsx` | Modify - implement sequential pass calls |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/policies/PolicyDocumentViewer.tsx` | Create | Visual document viewer component |
+| `supabase/functions/convert-to-pdf/index.ts` | Create | Word-to-PDF conversion (optional) |
+| `supabase/functions/analyze-policy-sqf/index.ts` | Modify | Improve table extraction logic |
+| `src/pages/quality/PolicyDetail.tsx` | Modify | Use new viewer in Content tab |
 
 ---
 
-## Expected Outcome
-- Each AI call stays under 60-second timeout
-- All modules (including Module 11) get extracted
-- User sees real-time progress as each pass completes
-- If one pass fails, user can retry from that point
-- Total processing time: ~3-5 minutes (3 passes × 60s each)
+## Recommended Approach
+
+Given the complexity of perfect Word document rendering and your immediate need, I recommend:
+
+**Phase 1 (Quick Win)**: 
+- Render PDF attachments directly using the existing `PdfJsViewer`
+- For Word docs, provide a download link until conversion is set up
+
+**Phase 2 (Full Solution)**:
+- Add Word-to-HTML conversion using `mammoth.js` (no external API needed)
+- Render HTML with styled tables matching original layout
+- Keep enhanced text extraction for AI/search only
+
+This gives you visual fidelity immediately for PDFs while we build proper Word support.
+
+---
+
+## Question for You
+
+Before proceeding, I have one clarification:
+
+**Are most of your policy documents PDFs or Word documents?**
+- If primarily **PDFs**: We can have visual fidelity working today
+- If primarily **Word docs**: We should prioritize the mammoth.js HTML conversion approach
 
