@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { usePolicy, usePolicyCategories, usePolicyTypes } from "@/hooks/usePolic
 import { usePolicyVersions } from "@/hooks/usePolicyVersions";
 import { usePolicyAttachments } from "@/hooks/usePolicyAttachments";
 import { usePolicyAcknowledgements, usePolicyAcknowledgementStats } from "@/hooks/usePolicyAcknowledgements";
+import { usePolicySQFMappings } from "@/hooks/useSQF";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
 import PolicyDocumentViewer from "@/components/policies/PolicyDocumentViewer";
+import PolicySQFMappingsTab from "@/components/policies/PolicySQFMappingsTab";
+import PolicySideBySideView from "@/components/policies/PolicySideBySideView";
 import "@/styles/policy-document.css";
 
 const statusColors: Record<string, string> = {
@@ -57,14 +60,22 @@ export default function PolicyDetail() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [contentViewMode, setContentViewMode] = useState<"visual" | "extracted">("visual");
+  const [isCompareEnabled, setIsCompareEnabled] = useState(false);
+  const [selectedMappingId, setSelectedMappingId] = useState<string | null>(null);
 
   const { data: policy, isLoading } = usePolicy(id);
   const { data: versions } = usePolicyVersions(id);
   const { data: attachments } = usePolicyAttachments(id);
   const { data: acknowledgements } = usePolicyAcknowledgements(id);
   const { data: ackStats } = usePolicyAcknowledgementStats(id);
+  const { data: sqfMappings } = usePolicySQFMappings(id);
   const { data: categories } = usePolicyCategories();
   const { data: types } = usePolicyTypes();
+
+  // Get the selected mapping with full details
+  const selectedMapping = selectedMappingId 
+    ? sqfMappings?.find(m => m.id === selectedMappingId) 
+    : null;
 
   const handleReanalyze = async () => {
     if (!attachments?.length || !id) {
@@ -255,6 +266,10 @@ export default function PolicyDetail() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="sqf-codes" className="flex items-center gap-1">
+            <BookOpen className="h-3 w-3" />
+            SQF Codes ({sqfMappings?.length || 0})
+          </TabsTrigger>
           <TabsTrigger value="versions" className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             Versions ({versions?.length || 0})
@@ -385,6 +400,51 @@ export default function PolicyDetail() {
               ) : null}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="sqf-codes" className="mt-4">
+          {isCompareEnabled && selectedMapping ? (
+            <PolicySideBySideView
+              policy={{
+                id: policy.id,
+                title: policy.title,
+                content: policy.content,
+              }}
+              attachment={attachments?.[0] ? {
+                file_path: attachments[0].file_path!,
+                file_name: attachments[0].file_name,
+                file_type: attachments[0].file_type,
+                file_url: attachments[0].file_url,
+              } : null}
+              selectedMapping={selectedMapping as any}
+              onClose={() => {
+                setIsCompareEnabled(false);
+                setSelectedMappingId(null);
+              }}
+            />
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <PolicySQFMappingsTab
+                  policyId={id!}
+                  onAnalyze={handleReanalyze}
+                  isAnalyzing={isReanalyzing}
+                  onCompareToggle={(enabled) => {
+                    setIsCompareEnabled(enabled);
+                    if (!enabled) setSelectedMappingId(null);
+                  }}
+                  isCompareEnabled={isCompareEnabled}
+                  selectedMappingId={selectedMappingId}
+                  onMappingSelect={(mappingId) => {
+                    setSelectedMappingId(mappingId);
+                    if (mappingId && isCompareEnabled) {
+                      // Already in compare mode with selection
+                    }
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="versions" className="mt-4">

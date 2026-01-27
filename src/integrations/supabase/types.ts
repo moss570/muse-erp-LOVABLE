@@ -10496,6 +10496,7 @@ export type Database = {
           compliance_status: string | null
           created_at: string
           created_by: string | null
+          evidence_excerpts: string[] | null
           gap_description: string | null
           gap_severity: string | null
           id: string
@@ -10513,6 +10514,7 @@ export type Database = {
           compliance_status?: string | null
           created_at?: string
           created_by?: string | null
+          evidence_excerpts?: string[] | null
           gap_description?: string | null
           gap_severity?: string | null
           id?: string
@@ -10530,6 +10532,7 @@ export type Database = {
           compliance_status?: string | null
           created_at?: string
           created_by?: string | null
+          evidence_excerpts?: string[] | null
           gap_description?: string | null
           gap_severity?: string | null
           id?: string
