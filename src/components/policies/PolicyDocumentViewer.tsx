@@ -64,12 +64,17 @@ export function PolicyDocumentViewer({
     setError(null);
 
     try {
+      console.log("PolicyDocumentViewer: Downloading from path:", filePath);
       const { data, error: downloadError } = await supabase.storage
         .from("policy-attachments")
         .download(filePath);
 
       if (downloadError || !data) {
-        throw new Error(downloadError?.message || "Failed to download document");
+        console.error("Storage download error:", downloadError);
+        const errMsg = downloadError?.message || 
+                       (typeof downloadError === 'object' ? JSON.stringify(downloadError) : String(downloadError)) ||
+                       "Failed to download document";
+        throw new Error(errMsg);
       }
 
       if (isPdf) {

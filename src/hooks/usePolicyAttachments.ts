@@ -60,8 +60,8 @@ export function useUploadPolicyAttachment() {
         .upload(filePath, file);
       
       if (uploadError) {
-        // If bucket doesn't exist, create the record without storage
-        console.warn("Storage upload failed, saving metadata only:", uploadError);
+        console.error("Storage upload failed:", uploadError);
+        throw new Error(`File upload failed: ${uploadError.message}`);
       }
       
       // Get public URL
