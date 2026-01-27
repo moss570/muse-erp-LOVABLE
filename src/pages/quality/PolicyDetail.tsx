@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -165,6 +165,31 @@ export default function PolicyDetail() {
               {policy.content ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <div dangerouslySetInnerHTML={{ __html: policy.content.replace(/\n/g, '<br/>') }} />
+                </div>
+              ) : attachments?.length ? (
+                <div className="text-center py-8 space-y-4">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground mb-4">
+                      This policy's content is available as an attached document.
+                    </p>
+                    <div className="flex flex-col items-center gap-2">
+                      {attachments.map((attachment) => {
+                        const fileUrl = attachment.file_url || 
+                          (attachment.file_path ? 
+                            `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/policy-attachments/${attachment.file_path}` 
+                            : null);
+                        return (
+                          <Button key={attachment.id} variant="outline" asChild>
+                            <a href={fileUrl || "#"} target="_blank" rel="noopener noreferrer">
+                              <Paperclip className="h-4 w-4 mr-2" />
+                              {attachment.file_name}
+                            </a>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-8">No content yet</p>
