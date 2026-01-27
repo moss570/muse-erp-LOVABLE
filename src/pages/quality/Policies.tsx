@@ -27,7 +27,7 @@ const statusColors: Record<string, string> = {
 
 export default function Policies() {
   const navigate = useNavigate();
-  const { isManager } = useAuth();
+  const { isManager, isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -286,13 +286,15 @@ export default function Policies() {
                             <Archive className="h-4 w-4 mr-2" />
                             Archive
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onClick={() => setDeleteId(policy.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => setDeleteId(policy.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
