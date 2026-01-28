@@ -409,8 +409,9 @@ export default function PolicyDetail() {
             <CardContent className="p-0">
               {/* Visual Document View - Shows edited content as formatted HTML */}
               {contentViewMode === "visual" && policy.content ? (
-                <div className="p-6 prose prose-sm dark:prose-invert max-w-none policy-content-with-highlights">
+                <div className="p-4 bg-muted/20">
                   <div 
+                    className="policy-document-content mx-auto max-w-4xl"
                     dangerouslySetInnerHTML={{ 
                       __html: formatPolicyContent(policy.content)
                     }} 
