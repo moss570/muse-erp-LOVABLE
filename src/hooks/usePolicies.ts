@@ -192,6 +192,79 @@ export function useUpdatePolicy() {
   });
 }
 
+/**
+ * Updates a policy while automatically creating a version snapshot of the current state.
+ * This ensures edit history is preserved with every save.
+ */
+export function useUpdatePolicyWithVersion() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      id, 
+      changeNotes,
+      ...updates 
+    }: Partial<Policy> & { id: string; changeNotes?: string }) => {
+      // Get the current user
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      // Fetch current policy state before updating
+      const { data: currentPolicy, error: fetchError } = await supabase
+        .from("policies")
+        .select("*")
+        .eq("id", id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      const currentVersion = currentPolicy.version || 1;
+      const newVersion = currentVersion + 1;
+      
+      // Create a version snapshot of the current state BEFORE applying updates
+      const { error: versionError } = await supabase
+        .from("policy_versions")
+        .insert({
+          policy_id: id,
+          version_number: currentVersion,
+          title: currentPolicy.title,
+          content: currentPolicy.content,
+          summary: currentPolicy.summary,
+          status: currentPolicy.status,
+          effective_date: currentPolicy.effective_date,
+          change_notes: changeNotes || `Updated on ${new Date().toLocaleDateString()}`,
+          snapshot: currentPolicy,
+          created_by: userId,
+        } as any);
+      
+      if (versionError) {
+        console.error("Failed to create version snapshot:", versionError);
+        // Continue with update even if version creation fails
+      }
+      
+      // Now apply the updates with incremented version number
+      const { data, error } = await supabase
+        .from("policies")
+        .update({ ...updates, version: newVersion })
+        .eq("id", id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["policies"] });
+      queryClient.invalidateQueries({ queryKey: ["policy", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["policy-versions", data.id] });
+      toast.success("Policy updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update policy: ${error.message}`);
+    },
+  });
+}
+
 export function useDeletePolicy() {
   const queryClient = useQueryClient();
   

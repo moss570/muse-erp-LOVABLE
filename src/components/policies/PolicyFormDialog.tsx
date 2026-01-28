@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useCreatePolicy, useGeneratePolicyNumber, type Policy, type PolicyCategory, type PolicyType } from "@/hooks/usePolicies";
+import { useCreatePolicy, useUpdatePolicyWithVersion, useGeneratePolicyNumber, type Policy, type PolicyCategory, type PolicyType } from "@/hooks/usePolicies";
 import { useUploadPolicyAttachment } from "@/hooks/usePolicyAttachments";
 import { useSQFEditions } from "@/hooks/useSQF";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,6 +83,7 @@ export default function PolicyFormDialog({
     requires_acknowledgement: false,
     acknowledgement_frequency_days: 365,
   });
+  const [changeNotes, setChangeNotes] = useState("");
 
   // SQF Mapping state
   const [selectedEditionId, setSelectedEditionId] = useState<string>("");
@@ -110,6 +111,7 @@ export default function PolicyFormDialog({
     },
   });
   const createPolicy = useCreatePolicy();
+  const updatePolicyWithVersion = useUpdatePolicyWithVersion();
   const uploadAttachment = useUploadPolicyAttachment();
 
   // Set active edition as default
@@ -153,6 +155,7 @@ export default function PolicyFormDialog({
       setPolicySummary("");
       setAnalyzedFileName("");
       setExtractedMetadata(null);
+      setChangeNotes("");
     }
   }, [policy, open]);
 
@@ -410,6 +413,36 @@ export default function PolicyFormDialog({
     setIsSubmitting(true);
 
     try {
+      // EDIT MODE: Update existing policy with versioning
+      if (policy) {
+        await new Promise<any>((resolve, reject) => {
+          updatePolicyWithVersion.mutate(
+            {
+              id: policy.id,
+              title: formData.title,
+              summary: formData.summary || null,
+              content: formData.content || null,
+              type_id: formData.type_id,
+              category_id: formData.category_id || null,
+              department_id: formData.department_id || null,
+              effective_date: formData.effective_date || null,
+              review_date: formData.review_date || null,
+              requires_acknowledgement: formData.requires_acknowledgement,
+              acknowledgement_frequency_days: formData.requires_acknowledgement ? formData.acknowledgement_frequency_days : null,
+              changeNotes: changeNotes || undefined,
+            },
+            {
+              onSuccess: resolve,
+              onError: reject,
+            }
+          );
+        });
+        
+        onOpenChange(false);
+        return;
+      }
+
+      // CREATE MODE: New policy
       // Check for duplicate policy number first
       const policyNum = formData.policy_number || policyNumber || `POL-${Date.now()}`;
       const { data: existing } = await supabase
@@ -498,8 +531,8 @@ export default function PolicyFormDialog({
       onOpenChange(false);
       navigate(`/quality/policies/${newPolicy.id}`);
     } catch (error) {
-      console.error("Failed to create policy:", error);
-      toast.error("Failed to create policy");
+      console.error("Failed to save policy:", error);
+      toast.error(policy ? "Failed to update policy" : "Failed to create policy");
     } finally {
       setIsSubmitting(false);
     }
@@ -710,6 +743,23 @@ export default function PolicyFormDialog({
                     value={formData.acknowledgement_frequency_days}
                     onChange={(e) => setFormData({ ...formData, acknowledgement_frequency_days: parseInt(e.target.value) || 365 })}
                   />
+                </div>
+              )}
+
+              {/* Change Notes - only shown when editing existing policy */}
+              {policy && (
+                <div className="col-span-2">
+                  <Label htmlFor="changeNotes">Change Notes</Label>
+                  <Textarea
+                    id="changeNotes"
+                    value={changeNotes}
+                    onChange={(e) => setChangeNotes(e.target.value)}
+                    placeholder="Describe what changes you made (e.g., 'Updated section 3.2 per audit findings')"
+                    rows={2}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    These notes will be saved in the version history
+                  </p>
                 </div>
               )}
             </div>

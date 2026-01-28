@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { usePolicy, usePolicyCategories, usePolicyTypes, useDeletePolicy } from "@/hooks/usePolicies";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { usePolicyVersions } from "@/hooks/usePolicyVersions";
+import { usePolicyVersions, useRestorePolicyVersion } from "@/hooks/usePolicyVersions";
 import { usePolicyAttachments, useUploadPolicyAttachment } from "@/hooks/usePolicyAttachments";
 import { usePolicyAcknowledgements, usePolicyAcknowledgementStats } from "@/hooks/usePolicyAcknowledgements";
 import { usePolicySQFMappings } from "@/hooks/useSQF";
@@ -65,10 +65,12 @@ export default function PolicyDetail() {
   const [selectedMappingId, setSelectedMappingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [viewingVersion, setViewingVersion] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const deletePolicy = useDeletePolicy();
   const uploadAttachment = useUploadPolicyAttachment();
+  const restorePolicyVersion = useRestorePolicyVersion();
 
   const { data: policy, isLoading } = usePolicy(id);
   const { data: versions } = usePolicyVersions(id);
@@ -536,37 +538,101 @@ export default function PolicyDetail() {
 
         <TabsContent value="versions" className="mt-4">
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Version History
+              </CardTitle>
+              <CardDescription>
+                Track all changes made to this policy
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-2">
               {versions?.length ? (
                 <div className="space-y-4">
+                  {/* Current version indicator */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded-lg">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    Current version: <span className="font-medium">v{policy.version}</span>
+                  </div>
+                  
                   {versions.map((version, index) => (
-                    <div key={version.id} className="flex items-start gap-4">
+                    <div key={version.id} className="flex items-start gap-4 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
                       <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                          {version.version_number}
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                          v{version.version_number}
                         </div>
-                        {index < versions.length - 1 && (
-                          <div className="w-px h-8 bg-border mt-2" />
-                        )}
                       </div>
                       <div className="flex-1 pt-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">Version {version.version_number}</span>
                           <Badge variant="outline">{version.status}</Badge>
+                          {version.version_number === policy.version && (
+                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Current</Badge>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {version.creator && `${version.creator.first_name} ${version.creator.last_name} • `}
                           {format(new Date(version.created_at), "MMM d, yyyy 'at' h:mm a")}
                         </div>
                         {version.change_notes && (
-                          <p className="text-sm mt-1">{version.change_notes}</p>
+                          <p className="text-sm mt-2 p-2 bg-muted/50 rounded italic">"{version.change_notes}"</p>
+                        )}
+                        
+                        {/* View/Restore controls */}
+                        {viewingVersion === version.id ? (
+                          <div className="mt-3 p-3 border rounded-lg bg-background">
+                            <div className="text-sm space-y-2">
+                              <div><strong>Title:</strong> {version.title}</div>
+                              {version.summary && <div><strong>Summary:</strong> {version.summary}</div>}
+                              {version.content && (
+                                <div className="max-h-40 overflow-y-auto">
+                                  <strong>Content:</strong>
+                                  <pre className="text-xs whitespace-pre-wrap mt-1 bg-muted p-2 rounded">{version.content.slice(0, 500)}{version.content.length > 500 ? '...' : ''}</pre>
+                                </div>
+                              )}
+                            </div>
+                            <Button variant="outline" size="sm" className="mt-2" onClick={() => setViewingVersion(null)}>
+                              Close Preview
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setViewingVersion(version.id)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                            {(isManager || isAdmin) && version.version_number !== policy.version && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (confirm(`Restore policy to version ${version.version_number}? This will save the current state and restore the selected version.`)) {
+                                    restorePolicyVersion.mutate({ policyId: id!, versionId: version.id });
+                                  }
+                                }}
+                                disabled={restorePolicyVersion.isPending}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Restore
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">No version history</p>
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No version history yet</p>
+                  <p className="text-xs mt-1">Versions are created automatically when you edit the policy</p>
+                </div>
               )}
             </CardContent>
           </Card>
