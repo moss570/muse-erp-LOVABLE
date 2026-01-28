@@ -581,20 +581,29 @@ export default function PolicyDetail() {
                         
                         {/* View/Restore controls */}
                         {viewingVersion === version.id ? (
-                          <div className="mt-3 p-3 border rounded-lg bg-background">
-                            <div className="text-sm space-y-2">
-                              <div><strong>Title:</strong> {version.title}</div>
-                              {version.summary && <div><strong>Summary:</strong> {version.summary}</div>}
-                              {version.content && (
-                                <div className="max-h-40 overflow-y-auto">
-                                  <strong>Content:</strong>
-                                  <pre className="text-xs whitespace-pre-wrap mt-1 bg-muted p-2 rounded">{version.content.slice(0, 500)}{version.content.length > 500 ? '...' : ''}</pre>
+                          <div className="mt-3 border rounded-lg bg-background">
+                            <div className="p-3 border-b bg-muted/30">
+                              <div className="text-sm space-y-1">
+                                <div><strong>Title:</strong> {version.title}</div>
+                                {version.summary && <div><strong>Summary:</strong> {version.summary}</div>}
+                                <div className="text-muted-foreground">
+                                  Status: {version.status} • Effective: {version.effective_date ? format(new Date(version.effective_date), "MMM d, yyyy") : "Not set"}
                                 </div>
-                              )}
+                              </div>
                             </div>
-                            <Button variant="outline" size="sm" className="mt-2" onClick={() => setViewingVersion(null)}>
-                              Close Preview
-                            </Button>
+                            {version.content ? (
+                              <div 
+                                className="p-4 max-h-80 overflow-y-auto prose prose-sm dark:prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: formatPolicyContent(version.content) }}
+                              />
+                            ) : (
+                              <div className="p-4 text-sm text-muted-foreground italic">No content available for this version</div>
+                            )}
+                            <div className="p-3 border-t">
+                              <Button variant="outline" size="sm" onClick={() => setViewingVersion(null)}>
+                                Close Preview
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 mt-3">
