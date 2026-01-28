@@ -407,8 +407,17 @@ export default function PolicyDetail() {
             </CardHeader>
             <Separator />
             <CardContent className="p-0">
-              {/* Visual Document View (Original) */}
-              {contentViewMode === "visual" && attachments?.length ? (
+              {/* Visual Document View - Shows edited content as formatted HTML */}
+              {contentViewMode === "visual" && policy.content ? (
+                <div className="p-6 prose prose-sm dark:prose-invert max-w-none policy-content-with-highlights">
+                  <div 
+                    dangerouslySetInnerHTML={{ 
+                      __html: formatPolicyContent(policy.content)
+                    }} 
+                  />
+                </div>
+              ) : contentViewMode === "visual" && !policy.content && attachments?.length ? (
+                /* No content yet - show original document */
                 <div className="min-h-[600px]">
                   <PolicyDocumentViewer
                     filePath={attachments[0].file_path!}
