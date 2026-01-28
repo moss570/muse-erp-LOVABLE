@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { usePolicy, usePolicyCategories, usePolicyTypes, useDeletePolicy } from "@/hooks/usePolicies";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePolicyVersions } from "@/hooks/usePolicyVersions";
-import { usePolicyAttachments } from "@/hooks/usePolicyAttachments";
+import { usePolicyAttachments, useUploadPolicyAttachment } from "@/hooks/usePolicyAttachments";
 import { usePolicyAcknowledgements, usePolicyAcknowledgementStats } from "@/hooks/usePolicyAcknowledgements";
 import { usePolicySQFMappings } from "@/hooks/useSQF";
 import { format } from "date-fns";
@@ -64,8 +64,11 @@ export default function PolicyDetail() {
   const [isCompareEnabled, setIsCompareEnabled] = useState(false);
   const [selectedMappingId, setSelectedMappingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const deletePolicy = useDeletePolicy();
+  const uploadAttachment = useUploadPolicyAttachment();
 
   const { data: policy, isLoading } = usePolicy(id);
   const { data: versions } = usePolicyVersions(id);
@@ -80,6 +83,25 @@ export default function PolicyDetail() {
   const selectedMapping = selectedMappingId 
     ? sqfMappings?.find(m => m.id === selectedMappingId) 
     : null;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    setIsUploading(true);
+    try {
+      await uploadAttachment.mutateAsync({
+        policyId: id,
+        file,
+      });
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleReanalyze = async () => {
     if (!attachments?.length || !id) {
@@ -431,9 +453,36 @@ export default function PolicyDetail() {
                 </div>
               ) : !attachments?.length ? (
                 /* No attachments at all */
-                <div className="text-center py-8 p-6">
+                <div className="text-center py-12 p-6">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No document attached to this policy</p>
+                  <p className="text-muted-foreground mb-4">No document attached to this policy</p>
+                  {isManager && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <Button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Document
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </div>
               ) : null}
             </CardContent>
@@ -525,7 +574,36 @@ export default function PolicyDetail() {
 
         <TabsContent value="attachments" className="mt-4">
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base">Attachments</CardTitle>
+              {isManager && (
+                <>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="attachment-upload"
+                  />
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('attachment-upload')?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </CardHeader>
+            <CardContent className="pt-2">
               {attachments?.length ? (
                 <div className="space-y-2">
                   {attachments.map((attachment) => (
@@ -549,7 +627,7 @@ export default function PolicyDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">No attachments</p>
+                <p className="text-muted-foreground text-center py-8">No attachments yet. Upload a document above.</p>
               )}
             </CardContent>
           </Card>
