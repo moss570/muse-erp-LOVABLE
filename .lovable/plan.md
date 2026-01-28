@@ -1,82 +1,159 @@
 
-## What you should see (where to look)
-The green highlights only appear in **Compare View** when you are looking at the **Text** version of the policy.
 
-To see them:
-1. Open the policy page.
-2. Click the **SQF Codes** tab.
-3. Click an SQF code in the list so it becomes **selected**.
-4. Turn on the **Compare View** toggle.
-5. In the left panel (“Policy Document”), make sure you’re on **Text** (not Original).
+# Policy Editing & Versioning Enhancement Plan
 
-If everything is wired correctly and evidence exists, the policy text on the left should show green highlighted phrases and auto-scroll to the first one.
+## Overview
 
-## Why you’re not seeing any highlights right now (root cause found)
-Even if you do all the steps above, there are currently **no evidence excerpts saved** for this policy’s mappings, so there’s nothing to highlight.
+This plan enhances the policy editing workflow so that **every save automatically creates a version snapshot** in the version history. Users will also be prompted for **change notes** explaining what was modified.
 
-I confirmed in the database for policy `1f943f7e-ffac-452f-96e6-6e4665ad3a7a` that **all mappings have `evidence_excerpts` length = 0**.
+---
 
-This is happening because the UI code that saves SQF mappings to the database **does not persist `evidence_excerpts`**, even though the analyzer function is returning them.
+## Current State
 
-Places missing `evidence_excerpts` on save:
-- `src/components/policies/PolicyFormDialog.tsx` (when creating a policy)
-- `src/components/policies/BulkPolicyUploadDialog.tsx` (bulk import)
-- `src/components/sqf/PolicySQFMappingDialog.tsx` (manual mapping dialog)
-Also, the **Re-analyze** button in `PolicyDetail.tsx` currently updates only `policies.content` and does **not upsert mappings at all**, so it can’t populate evidence excerpts.
+- **Editing**: The `PolicyFormDialog` directly updates the `policies` table via `useUpdatePolicy()`, overwriting existing data
+- **Versioning**: A `policy_versions` table exists but is only populated during the "Restore" flow
+- **Version Number**: The `version` field on policies exists but isn't incremented during normal edits
+- **History**: The "Versions" tab shows empty because no snapshots are being created
 
-## Implementation plan (so highlights actually show)
-### A) Fix persistence: store evidence_excerpts whenever mappings are saved
-1. Update the SQF mapping type in the UI (where applicable) to include:
-   - `evidence_excerpts?: string[]`
-2. In each place we upsert into `policy_sqf_mappings`, include:
-   - `evidence_excerpts: m.evidence_excerpts ?? []`
+---
 
-Files to update:
-- `src/components/policies/PolicyFormDialog.tsx`
-- `src/components/policies/BulkPolicyUploadDialog.tsx`
-- `src/components/sqf/PolicySQFMappingDialog.tsx`
+## What Will Change
 
-### B) Fix the “Re-analyze” button so it refreshes mappings + evidence too
-Update `src/pages/quality/PolicyDetail.tsx` → `handleReanalyze()` so that when `analyze-policy-sqf` returns:
-- `document_content`
-- `mappings` (with evidence)
+### User Experience
 
-…it will:
-1. Update `policies.content` (already done)
-2. Upsert returned mappings into `policy_sqf_mappings`, including `evidence_excerpts`
-3. Invalidate/refetch:
-   - policy data
-   - policy sqf mappings query
-   - compliance summary query (if needed)
+1. When clicking "Edit" on a policy, the edit dialog opens (same as now)
+2. A new **"Change Notes"** field will appear at the bottom of the form
+3. When saving:
+   - The **current state is captured** as a version snapshot before applying changes
+   - The **version number increments** (e.g., v3 → v4)
+   - Changes are applied to the policy
+4. The **Versions tab** will now show the full edit history with:
+   - Version number
+   - Who made the change
+   - When it was made
+   - Change notes explaining what was modified
+   - Option to view or restore previous versions
 
-This is the key change that will let an existing policy (like the one you’re on) gain evidence highlights without having to recreate it.
+---
 
-### C) Add a small UI hint so it’s obvious how to trigger highlights
-In `PolicySQFMappingsTab.tsx` and/or `PolicySideBySideView.tsx`, add a lightweight callout like:
-- “Evidence highlighting appears in Compare View when the policy is in Text view.”
-- If selected mapping has 0 evidence excerpts: “No evidence excerpts saved yet. Click Re-analyze to generate them.”
+## Technical Implementation
 
-This prevents confusion when users are in “Original” view (where highlighting is not possible) or when evidence hasn’t been generated yet.
+### 1. Update `PolicyFormDialog.tsx`
 
-### D) Verification steps (acceptance criteria)
-After implementing the above:
-1. Open the same policy.
-2. Click **Re-analyze** once.
-3. Go to **SQF Codes** tab and select a code.
-4. Turn on **Compare View**.
-5. Confirm:
-   - The mapping shows “X evidence excerpt(s) available”
-   - Green highlights appear in the left panel when in **Text**
-   - Auto-scroll goes to the first highlight
+**Add change notes field for edit mode:**
+- Add a `change_notes` state field
+- Display a textarea in the form footer when editing (not creating)
+- Make it optional but encouraged
 
-## Notes / edge cases we’ll handle
-- Evidence excerpts may not match perfectly if the extracted text differs from the original (formatting differences). Your current flexible whitespace regex helps, but we’ll also ensure:
-  - excerpts are trimmed
-  - we avoid empty excerpts
-- If the policy has no `content` yet, Compare View should still work for Original view, but highlighting will be disabled until text extraction exists.
+**Modify the save flow:**
+- Detect if this is an edit (policy prop exists)
+- Before updating, call a new `useUpdatePolicyWithVersion` hook
 
-## What you can do immediately (before the code fix)
-Right now, you can confirm you’re in the right place:
-- SQF Codes tab → select a code → Compare View ON → Left panel “Text”
-If you still see no highlights, that’s expected until we persist `evidence_excerpts` and re-analyze updates mappings.
+### 2. Create New Hook: `useUpdatePolicyWithVersion`
+
+Located in `src/hooks/usePolicies.ts`
+
+**Logic:**
+```text
+1. Fetch current policy state
+2. Create version snapshot with:
+   - version_number: current version
+   - title, content, summary, status
+   - change_notes from user input
+   - snapshot: full JSON of current policy
+   - created_by: current user
+3. Update policy with:
+   - New field values
+   - Incremented version number
+4. Invalidate query caches
+```
+
+### 3. Update the Form Save Handler
+
+**In `PolicyFormDialog.tsx`:**
+- Use `useUpdatePolicyWithVersion` instead of `useUpdatePolicy` for edits
+- Pass the change notes along with the update data
+
+### 4. Enhance Versions Tab Display
+
+**In `PolicyDetail.tsx`:**
+- Add "View" button to see the content of a specific version
+- Add "Restore" button for managers/admins
+- Show a diff indicator if content changed significantly
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/usePolicies.ts` | Add `useUpdatePolicyWithVersion` hook |
+| `src/components/policies/PolicyFormDialog.tsx` | Add change notes field, use new hook for edits |
+| `src/pages/quality/PolicyDetail.tsx` | Enhance versions tab with view/restore actions |
+
+---
+
+## Database Impact
+
+No schema changes needed - the `policy_versions` table already has all required columns:
+- `policy_id`, `version_number`, `title`, `content`, `summary`
+- `change_notes`, `snapshot` (JSONB), `status`, `effective_date`
+- `created_at`, `created_by`
+
+---
+
+## Example Flow
+
+```text
+User Flow:
+┌─────────────────────────────────────────────┐
+│ Policy: Food Safety Manual (v3)             │
+│ Content: "Original content..."              │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼ User clicks "Edit"
+┌─────────────────────────────────────────────┐
+│ Edit Dialog                                 │
+│ ─────────────────────────────────────────── │
+│ Title: [Food Safety Manual        ]         │
+│ Content: [Updated content...      ]         │
+│                                             │
+│ Change Notes (recommended):                 │
+│ [Updated section 3.2 per audit findings]   │
+│                                             │
+│           [Cancel]  [Save Changes]          │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼ User clicks "Save"
+┌─────────────────────────────────────────────┐
+│ System Actions:                             │
+│ 1. Snapshot v3 → policy_versions table      │
+│ 2. Update policy → v4, new content          │
+│ 3. Show success toast                       │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────┐
+│ Policy: Food Safety Manual (v4)             │
+│ Content: "Updated content..."               │
+│                                             │
+│ Versions Tab:                               │
+│ ● v3 - John Smith - Jan 28, 2026            │
+│   "Updated section 3.2 per audit findings"  │
+│   [View] [Restore]                          │
+│                                             │
+│ ● v2 - Jane Doe - Jan 15, 2026              │
+│   "Added appendix A"                        │
+│   [View] [Restore]                          │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## Edge Cases Handled
+
+1. **First edit of a policy**: Creates first version entry (v1)
+2. **Empty change notes**: Allowed but system will add default note "Updated on [date]"
+3. **No actual changes made**: Still creates version (user explicitly saved)
+4. **Concurrent edits**: Existing concurrent edit wrapper will handle conflicts
 
