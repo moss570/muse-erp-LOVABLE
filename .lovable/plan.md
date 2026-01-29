@@ -1,68 +1,54 @@
 
 
-# Plan: Complete Policy Form Enhancement
+# Plan: Fix Visual View Rendering and Add Visual Editor
 
-## Overview
-Enhance the PolicyFormDialog by adding all missing database fields including Owner, Reviewer, Approver, Expiry Date, Template flag, and Supersedes (versioning) selection. Also fix the submit button to display contextually appropriate text.
+## Problem Summary
 
-## Summary of Changes
+Looking at your screenshots, I can see two distinct issues:
 
-### Fields to Add
+### Issue 1: Reference Documents (Green Circle)
+**Original Word Document:** Has a proper table with columns "Reference No." and "Title" containing:
+- 22.0 (LEGACY SYSTEM) | Document and Records Management
+- SOP.00001.01 | Creating a Document Number and Revision Retention
+- REG.00001.01 | Register of Document Retention
 
-| Field | Purpose | UI Component |
-|-------|---------|--------------|
-| `owner_id` | Document owner responsible for the policy | EmployeeCombobox |
-| `reviewer_id` | Person assigned to review the policy | EmployeeCombobox |
-| `approver_id` | Person with authority to approve the policy | EmployeeCombobox |
-| `expiry_date` | Date when policy expires/needs renewal | Date picker |
-| `is_template` | Mark policy as a reusable template | Checkbox/Switch |
-| `supersedes_id` | Link to previous policy this one replaces | Policy dropdown |
+**Current Visual View:** Shows `##` markdown headers and `**bold**` text instead of a proper table format.
 
-### Button Text Fix
-- **"Save Changes"** when editing an existing policy
-- **"Create Policy"** when creating a new policy
-- Loading states: "Saving..." vs "Creating..."
+### Issue 2: Definitions (Blue Circle)
+**Original Word Document:** Has a clean definition list (AID, FORM, POL, SOP, SSOP, WORK, REG with their meanings)
+
+**Current Visual View:** Shows `**bold**` markdown syntax literally displayed, wrapped incorrectly, not formatted as a clean list.
+
+### Root Cause
+The `analyze-policy-sqf` Edge Function extracts Word document content as Markdown format. The `PolicyDocumentRenderer` component attempts to parse this Markdown and render it as HTML tables, but:
+1. The extraction creates inconsistent table structures
+2. Headers are marked with `##` which pollutes the content
+3. Nested tables lose their proper structure during extraction
 
 ---
 
-## Visual Layout
+## Proposed Solution
 
-The form will be organized into logical sections:
+### Part 1: Improve Content Extraction (Edge Function)
 
-```text
-+--------------------------------------------------+
-| BASIC INFORMATION                                |
-| - Policy Number, Title, Summary                  |
-| - Type, Category, Department                     |
-+--------------------------------------------------+
-| DOCUMENT OWNERSHIP & WORKFLOW                    |
-| +----------------+ +----------------+            |
-| | Owner          | | Reviewer       |            |
-| | [Employee ▼]   | | [Employee ▼]   |            |
-| +----------------+ +----------------+            |
-| +----------------+                               |
-| | Approver       |                               |
-| | [Employee ▼]   |                               |
-| +----------------+                               |
-+--------------------------------------------------+
-| DATES                                            |
-| +----------------+ +----------------+ +--------+ |
-| | Effective Date | | Review Date    | | Expiry | |
-| | [Date picker]  | | [Date picker]  | | [Date] | |
-| +----------------+ +----------------+ +--------+ |
-+--------------------------------------------------+
-| ADVANCED OPTIONS                                 |
-| [ ] This is a template (can be copied)           |
-| Supersedes Policy: [Select policy... ▼]          |
-+--------------------------------------------------+
-| CONTENT                                          |
-| [Rich text editor / extracted content]           |
-+--------------------------------------------------+
-| ATTACHMENTS & MAPPINGS                           |
-+--------------------------------------------------+
-|                    [Save Changes] / [Cancel]     |
-+--------------------------------------------------+
-```
+Update the `analyze-policy-sqf` Edge Function to:
+1. Better detect and format section-specific content (REFERENCE DOCUMENTS, DEFINITIONS)
+2. Use cleaner markers instead of Markdown symbols
+3. Preserve table structure without mixing with headers
+
+### Part 2: Improve Visual Rendering (Frontend)
+
+Update `PolicyDocumentRenderer.tsx` to:
+1. Better parse the REFERENCE DOCUMENTS section as a proper nested table
+2. Properly format DEFINITIONS as a clean definition list or table
+3. Handle edge cases in the extracted content
+
+### Part 3: Add Visual Editor for Manual Adjustments
+
+Create a new Rich Text Editor specifically for policy content that allows users to:
+1. Edit the extracted content directly
+2. Format tables, lists, and sections manually
+3. Save changes back to the policy record
 
 ---
 
@@ -70,240 +56,97 @@ The form will be organized into logical sections:
 
 ### Files to Modify
 
-**`src/components/policies/PolicyFormDialog.tsx`**
+#### 1. `supabase/functions/analyze-policy-sqf/index.ts`
 
-#### 1. Update Imports
-```typescript
-import EmployeeCombobox from '@/components/shared/EmployeeCombobox';
-import { Switch } from '@/components/ui/switch';
-```
+Improve the extraction logic to:
+- Detect "REFERENCE DOCUMENTS" and "DEFINITIONS" sections
+- Format them as structured JSON instead of Markdown tables
+- Return additional structured data in the AI response
 
-#### 2. Extend formData State
-Add new fields to the initial state object:
-```typescript
-const [formData, setFormData] = useState({
-  // Existing fields...
-  policy_number: "",
-  title: "",
-  summary: "",
-  content: "",
-  type_id: "",
-  category_id: "",
-  department_id: "",
-  effective_date: "",
-  review_date: "",
-  requires_acknowledgement: false,
-  acknowledgement_frequency_days: 365,
-  
-  // NEW FIELDS
-  owner_id: "",
-  reviewer_id: "",
-  approver_id: "",
-  expiry_date: "",
-  is_template: false,
-  supersedes_id: "",
-});
-```
+#### 2. `src/components/policies/PolicyDocumentRenderer.tsx`
 
-#### 3. Fetch Policies for Supersedes Dropdown
-Add a query to get all policies (excluding current one when editing):
-```typescript
-const { data: allPolicies } = useQuery({
-  queryKey: ['policies-for-supersedes'],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('policies')
-      .select('id, policy_number, title')
-      .order('policy_number');
-    if (error) throw error;
-    return data;
-  },
-});
-```
+Update the component to:
+- Better detect and render REFERENCE DOCUMENTS section
+- Parse DEFINITIONS as a proper definition list
+- Strip `##` and `**` markdown markers and render as proper HTML
+- Handle the case where content has markdown artifacts
 
-#### 4. Pre-populate When Editing
-Update the useEffect that populates form when editing:
+Key changes to `parsePolicyContent()` function:
 ```typescript
-if (policy) {
-  setFormData({
-    // Existing fields...
-    owner_id: policy.owner_id || "",
-    reviewer_id: policy.reviewer_id || "",
-    approver_id: policy.approver_id || "",
-    expiry_date: policy.expiry_date || "",
-    is_template: policy.is_template || false,
-    supersedes_id: policy.supersedes_id || "",
-  });
+// Add section detection for REFERENCE DOCUMENTS
+if (firstCell.includes('REFERENCE') && firstCell.includes('DOCUMENT')) {
+  // Parse the content as a nested table with Reference No. and Title columns
+  // Look for subsequent rows that belong to this table
+}
+
+// Add section detection for DEFINITIONS
+if (firstCell.includes('DEFINITION')) {
+  // Parse as definition list, not just text
+  // Split on bold markers and format as term/definition pairs
 }
 ```
 
-#### 5. Add Form UI Sections
+#### 3. Create `src/components/policies/PolicyContentEditor.tsx` (NEW)
 
-**Document Ownership & Workflow Section:**
+A new component that wraps TipTap editor with:
+- Table support (via `@tiptap/extension-table`)
+- Save functionality to update policy.content
+- Toggle between "Edit" and "View" modes
+- Toolbar with table, list, and formatting controls
+
 ```typescript
-<div className="space-y-4">
-  <h3 className="text-sm font-medium text-muted-foreground">
-    Document Ownership & Workflow
-  </h3>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <Label htmlFor="owner">Document Owner</Label>
-      <EmployeeCombobox
-        value={formData.owner_id}
-        onChange={(v) => setFormData({ ...formData, owner_id: v || "" })}
-        placeholder="Select owner..."
-      />
-    </div>
-    <div>
-      <Label htmlFor="reviewer">Reviewer</Label>
-      <EmployeeCombobox
-        value={formData.reviewer_id}
-        onChange={(v) => setFormData({ ...formData, reviewer_id: v || "" })}
-        placeholder="Select reviewer..."
-      />
-    </div>
-    <div>
-      <Label htmlFor="approver">Approver</Label>
-      <EmployeeCombobox
-        value={formData.approver_id}
-        onChange={(v) => setFormData({ ...formData, approver_id: v || "" })}
-        placeholder="Select approver..."
-      />
-    </div>
-  </div>
-</div>
+// New dependencies needed:
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
 ```
 
-**Expiry Date Field** (add to dates section):
-```typescript
-<div>
-  <Label htmlFor="expiry_date">Expiry Date</Label>
-  <Input
-    id="expiry_date"
-    type="date"
-    value={formData.expiry_date}
-    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-  />
-</div>
-```
+#### 4. Update `src/pages/quality/PolicyDetail.tsx`
 
-**Advanced Options Section:**
-```typescript
-<div className="space-y-4 border-t pt-4">
-  <h3 className="text-sm font-medium text-muted-foreground">
-    Advanced Options
-  </h3>
-  
-  {/* Template Toggle */}
-  <div className="flex items-center space-x-2">
-    <Switch
-      id="is_template"
-      checked={formData.is_template}
-      onCheckedChange={(checked) => 
-        setFormData({ ...formData, is_template: checked })
-      }
-    />
-    <Label htmlFor="is_template">
-      This is a template (can be copied to create new policies)
-    </Label>
-  </div>
-  
-  {/* Supersedes Dropdown */}
-  <div>
-    <Label htmlFor="supersedes">Supersedes Policy</Label>
-    <Select
-      value={formData.supersedes_id}
-      onValueChange={(v) => setFormData({ ...formData, supersedes_id: v })}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Select policy this replaces..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="">None</SelectItem>
-        {allPolicies
-          ?.filter(p => p.id !== policy?.id) // Exclude current policy
-          .map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.policy_number} - {p.title}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
-    <p className="text-xs text-muted-foreground mt-1">
-      If this policy replaces an older version, select it here
-    </p>
-  </div>
-</div>
-```
-
-#### 6. Update Mutations
-Include all new fields in both create and update mutations:
-```typescript
-// In updatePolicyWithVersion.mutate call:
-owner_id: formData.owner_id || null,
-reviewer_id: formData.reviewer_id || null,
-approver_id: formData.approver_id || null,
-expiry_date: formData.expiry_date || null,
-is_template: formData.is_template,
-supersedes_id: formData.supersedes_id || null,
-
-// Same for createPolicy.mutate call
-```
-
-#### 7. Fix Button Text
-```typescript
-<Button onClick={handleSubmit} disabled={...}>
-  {isSubmitting ? (
-    <>
-      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-      {policy ? "Saving..." : "Creating..."}
-    </>
-  ) : (
-    <>
-      {(pendingFiles.length > 0 || sqfMappings.filter(m => m.selected).length > 0) && (
-        <Paperclip className="h-4 w-4 mr-2" />
-      )}
-      {policy ? "Save Changes" : "Create Policy"}
-      {sqfMappings.filter(m => m.selected).length > 0 && (
-        <span className="ml-1">+ {sqfMappings.filter(m => m.selected).length} Mappings</span>
-      )}
-    </>
-  )}
-</Button>
-```
+Add an "Edit Content" button that:
+- Switches the Visual View to editor mode
+- Allows users to fix formatting issues manually
+- Saves changes back to the database
 
 ---
 
-## Feature Details
+## New Dependencies
 
-### Template Feature (`is_template`)
-- When enabled, marks the policy as a reusable template
-- Templates can be filtered/displayed separately in the policy list
-- Future enhancement: "Create from Template" button that copies template content
-
-### Supersedes Feature (`supersedes_id`)
-- Links to a previous policy that this one replaces
-- Creates a document lineage/chain
-- Could display "Superseded by" on the old policy detail page
-- Helps with compliance audits tracking policy evolution
-
-### Workflow Fields (Reviewer/Approver)
-- Assigns specific people to the review and approval workflow
-- Can be used for:
-  - Email notifications when review is due
-  - Approval workflows before publishing
-  - Audit trail of who reviewed/approved
+The following TipTap extensions need to be installed for table support:
+- `@tiptap/extension-table`
+- `@tiptap/extension-table-row`
+- `@tiptap/extension-table-cell`
+- `@tiptap/extension-table-header`
 
 ---
 
-## Files to Modify
+## UI Flow After Implementation
 
-1. **`src/components/policies/PolicyFormDialog.tsx`**
-   - Add imports for EmployeeCombobox and Switch
-   - Extend formData state with 6 new fields
-   - Add query to fetch policies for supersedes dropdown
-   - Update useEffect for pre-populating when editing
-   - Add UI sections for new fields
-   - Update both create and update mutations
-   - Fix button text logic
+1. **Visual View (Default):** Shows the professionally formatted document
+2. **Edit Content Button:** Appears for managers/admins
+3. **Editor Mode:** 
+   - Rich text editor with the policy content loaded
+   - Toolbar with: Bold, Italic, Headings, Tables, Lists, Alignment
+   - Insert Table button to add/edit tables
+   - Save/Cancel buttons
+4. **On Save:** Updates `policy.content` and refreshes the view
+
+---
+
+## Benefits
+
+1. **Immediate Fix:** Improved parsing will handle existing content better
+2. **Future-Proof:** Visual editor allows manual corrections for any document format
+3. **User Control:** Users can adjust layout without re-uploading documents
+4. **Consistency:** All policies can be formatted to match your standard template
+
+---
+
+## Implementation Order
+
+1. First: Fix the `PolicyDocumentRenderer` parsing to handle current content better
+2. Second: Add the PolicyContentEditor component with TipTap + tables
+3. Third: Wire up the edit button in PolicyDetail page
+4. Fourth: Improve the extraction in the Edge Function for future uploads
 
