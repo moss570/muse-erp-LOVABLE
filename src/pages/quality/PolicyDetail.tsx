@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
 import PolicyDocumentViewer from "@/components/policies/PolicyDocumentViewer";
+import PolicyDocumentRenderer from "@/components/policies/PolicyDocumentRenderer";
 import PolicySQFMappingsTab from "@/components/policies/PolicySQFMappingsTab";
 import PolicySideBySideView from "@/components/policies/PolicySideBySideView";
 import "@/styles/policy-document.css";
@@ -369,12 +370,12 @@ export default function PolicyDetail() {
                         size="sm"
                         className="h-7 text-xs"
                         onClick={() => setContentViewMode("visual")}
-                        title="View original document"
+                        title="View formatted document"
                       >
                         <Eye className="h-3.5 w-3.5 mr-1" />
-                        Original
+                        Visual View
                       </Button>
-                      <Button 
+                      <Button
                         variant={contentViewMode === "extracted" ? "secondary" : "ghost"}
                         size="sm"
                         className="h-7 text-xs"
@@ -407,15 +408,10 @@ export default function PolicyDetail() {
             </CardHeader>
             <Separator />
             <CardContent className="p-0">
-              {/* Visual Document View - Shows edited content as formatted HTML */}
+              {/* Visual Document View - Professional formatted document */}
               {contentViewMode === "visual" && policy.content ? (
                 <div className="p-4 bg-muted/20">
-                  <div 
-                    className="policy-document-content mx-auto max-w-4xl"
-                    dangerouslySetInnerHTML={{ 
-                      __html: formatPolicyContent(policy.content)
-                    }} 
-                  />
+                  <PolicyDocumentRenderer policy={policy} />
                 </div>
               ) : contentViewMode === "visual" && !policy.content && attachments?.length ? (
                 /* No content yet - show original document */
