@@ -31,7 +31,7 @@ export interface Policy {
   // Joined relations
   category?: PolicyCategory | null;
   type?: PolicyType | null;
-  owner?: { id: string; first_name: string; last_name: string } | null;
+  owner?: { id: string; name: string } | null; // Now references job_positions (role/position)
   department?: { id: string; name: string } | null;
   tags?: PolicyTag[];
 }
@@ -86,7 +86,7 @@ export function usePolicies(filters?: PolicyFilters) {
           *,
           category:policy_categories(*),
           type:policy_types(*),
-          owner:profiles!policies_owner_id_fkey(id, first_name, last_name),
+          owner:job_positions!policies_owner_id_fkey(id, name),
           department:departments(id, name)
         `)
         .order("updated_at", { ascending: false });
@@ -125,8 +125,7 @@ export function usePolicy(id: string | undefined) {
           *,
           category:policy_categories(*),
           type:policy_types(*),
-          owner:profiles!policies_owner_id_fkey(id, first_name, last_name),
-          reviewer:profiles!policies_reviewer_id_fkey(id, first_name, last_name),
+          owner:job_positions!policies_owner_id_fkey(id, name),
           approver:profiles!policies_approver_id_fkey(id, first_name, last_name),
           department:departments(id, name)
         `)

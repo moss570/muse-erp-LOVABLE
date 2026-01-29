@@ -297,9 +297,9 @@ export default function PolicyDetail() {
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-muted-foreground">Owner</div>
+            <div className="text-sm text-muted-foreground">Document Owner (Role)</div>
             <div className="font-medium">
-              {policy.owner ? `${policy.owner.first_name} ${policy.owner.last_name}` : "Not assigned"}
+              {policy.owner?.name || "Not assigned"}
             </div>
           </CardContent>
         </Card>
