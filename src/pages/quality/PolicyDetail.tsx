@@ -435,7 +435,7 @@ export default function PolicyDetail() {
                 </div>
               ) : /* Visual Document View - Professional formatted document */
               contentViewMode === "visual" && policy.content ? (
-                <div className="p-4 bg-muted/20">
+                <div className="p-4 bg-muted/20 max-h-[70vh] overflow-y-auto">
                   <PolicyDocumentRenderer policy={policy} />
                 </div>
               ) : contentViewMode === "visual" && !policy.content && attachments?.length ? (
