@@ -363,8 +363,8 @@ export default function PolicyDetail() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* View mode toggle */}
-                  {attachments?.length > 0 && contentViewMode !== "edit" && (
+                  {/* View mode toggle - show when content exists and not in edit mode */}
+                  {policy.content && contentViewMode !== "edit" && (
                     <div className="flex items-center gap-1 border rounded-lg p-0.5">
                       <Button 
                         variant={contentViewMode === "visual" ? "secondary" : "ghost"}
@@ -386,19 +386,20 @@ export default function PolicyDetail() {
                         <FileCode className="h-3.5 w-3.5 mr-1" />
                         Text
                       </Button>
+                      {/* Edit Content button - only for managers/admins */}
+                      {(isManager || isAdmin) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setContentViewMode("edit")}
+                          title="Edit document content"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Edit
+                        </Button>
+                      )}
                     </div>
-                  )}
-                  {/* Edit Content button - only for managers/admins when content exists */}
-                  {(isManager || isAdmin) && policy.content && contentViewMode !== "edit" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setContentViewMode("edit")}
-                      title="Edit document content"
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit Content
-                    </Button>
                   )}
                   {/* Re-analyze button */}
                   {attachments?.length > 0 && contentViewMode !== "edit" && (
