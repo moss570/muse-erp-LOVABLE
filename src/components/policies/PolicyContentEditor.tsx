@@ -38,14 +38,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { generateChangeNotes } from '@/utils/diffChangeNotes';
+import { useUpdatePolicyWithVersion } from '@/hooks/usePolicies';
 
 interface PolicyContentEditorProps {
   policyId: string;
   initialContent: string;
+  currentVersion?: number;
   onSave?: () => void;
   onCancel: () => void;
 }
@@ -123,11 +126,14 @@ function htmlToMarkdown(html: string): string {
 export default function PolicyContentEditor({
   policyId,
   initialContent,
+  currentVersion,
   onSave,
   onCancel,
 }: PolicyContentEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
+  const originalContentRef = useRef(initialContent);
+  const updatePolicyWithVersion = useUpdatePolicyWithVersion();
 
   const editor = useEditor({
     extensions: [
@@ -164,17 +170,19 @@ export default function PolicyContentEditor({
     setIsSaving(true);
     try {
       const html = editor.getHTML();
-      const markdown = htmlToMarkdown(html);
+      const newContent = htmlToMarkdown(html);
+      
+      // Auto-generate change notes by comparing old vs new content
+      const autoChangeNotes = generateChangeNotes(originalContentRef.current, newContent);
+      
+      // Use the versioning hook to save with automatic version snapshot
+      await updatePolicyWithVersion.mutateAsync({
+        id: policyId,
+        content: newContent,
+        changeNotes: autoChangeNotes,
+      });
 
-      const { error } = await supabase
-        .from('policies')
-        .update({ content: markdown })
-        .eq('id', policyId);
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ['policy', policyId] });
-      toast.success('Content saved successfully');
+      toast.success('Content saved with version history');
       onSave?.();
     } catch (error) {
       console.error('Error saving content:', error);
