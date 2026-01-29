@@ -19,6 +19,7 @@ import { useUploadPolicyAttachment } from "@/hooks/usePolicyAttachments";
 import { useSQFEditions } from "@/hooks/useSQF";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileText, X, Paperclip, Loader2, Sparkles, Check, AlertTriangle, FileSearch } from "lucide-react";
+import EmployeeCombobox from "@/components/shared/EmployeeCombobox";
 import { toast } from "sonner";
 
 interface PolicyFormDialogProps {
@@ -82,6 +83,13 @@ export default function PolicyFormDialog({
     review_date: "",
     requires_acknowledgement: false,
     acknowledgement_frequency_days: 365,
+    // New workflow & versioning fields
+    owner_id: "",
+    reviewer_id: "",
+    approver_id: "",
+    expiry_date: "",
+    is_template: false,
+    supersedes_id: "",
   });
   const [changeNotes, setChangeNotes] = useState("");
 
@@ -110,6 +118,20 @@ export default function PolicyFormDialog({
       return data;
     },
   });
+
+  // Fetch all policies for supersedes dropdown
+  const { data: allPolicies } = useQuery({
+    queryKey: ["policies-for-supersedes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policies")
+        .select("id, policy_number, title")
+        .order("policy_number");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const createPolicy = useCreatePolicy();
   const updatePolicyWithVersion = useUpdatePolicyWithVersion();
   const uploadAttachment = useUploadPolicyAttachment();
@@ -135,6 +157,13 @@ export default function PolicyFormDialog({
         review_date: policy.review_date || "",
         requires_acknowledgement: policy.requires_acknowledgement,
         acknowledgement_frequency_days: policy.acknowledgement_frequency_days || 365,
+        // New workflow & versioning fields
+        owner_id: policy.owner_id || "",
+        reviewer_id: policy.reviewer_id || "",
+        approver_id: policy.approver_id || "",
+        expiry_date: policy.expiry_date || "",
+        is_template: policy.is_template || false,
+        supersedes_id: policy.supersedes_id || "",
       });
     } else {
       setFormData({
@@ -149,6 +178,13 @@ export default function PolicyFormDialog({
         review_date: "",
         requires_acknowledgement: false,
         acknowledgement_frequency_days: 365,
+        // New workflow & versioning fields
+        owner_id: "",
+        reviewer_id: "",
+        approver_id: "",
+        expiry_date: "",
+        is_template: false,
+        supersedes_id: "",
       });
       setPendingFiles([]);
       setSqfMappings([]);
@@ -430,6 +466,13 @@ export default function PolicyFormDialog({
               requires_acknowledgement: formData.requires_acknowledgement,
               acknowledgement_frequency_days: formData.requires_acknowledgement ? formData.acknowledgement_frequency_days : null,
               changeNotes: changeNotes || undefined,
+              // New workflow & versioning fields
+              owner_id: formData.owner_id || null,
+              reviewer_id: formData.reviewer_id || null,
+              approver_id: formData.approver_id || null,
+              expiry_date: formData.expiry_date || null,
+              is_template: formData.is_template,
+              supersedes_id: formData.supersedes_id || null,
             },
             {
               onSuccess: resolve,
@@ -473,6 +516,13 @@ export default function PolicyFormDialog({
             requires_acknowledgement: formData.requires_acknowledgement,
             acknowledgement_frequency_days: formData.requires_acknowledgement ? formData.acknowledgement_frequency_days : null,
             status: "draft",
+            // New workflow & versioning fields
+            owner_id: formData.owner_id || null,
+            reviewer_id: formData.reviewer_id || null,
+            approver_id: formData.approver_id || null,
+            expiry_date: formData.expiry_date || null,
+            is_template: formData.is_template,
+            supersedes_id: formData.supersedes_id || null,
           },
           {
             onSuccess: resolve,
@@ -689,24 +739,68 @@ export default function PolicyFormDialog({
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="effective_date">Effective Date</Label>
-                <Input
-                  id="effective_date"
-                  type="date"
-                  value={formData.effective_date}
-                  onChange={(e) => setFormData({ ...formData, effective_date: e.target.value })}
-                />
+              {/* Document Ownership & Workflow Section */}
+              <div className="col-span-2 space-y-4 border-t pt-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Document Ownership & Workflow</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="owner">Document Owner</Label>
+                    <EmployeeCombobox
+                      value={formData.owner_id}
+                      onChange={(v) => setFormData({ ...formData, owner_id: v || "" })}
+                      placeholder="Select owner..."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="reviewer">Reviewer</Label>
+                    <EmployeeCombobox
+                      value={formData.reviewer_id}
+                      onChange={(v) => setFormData({ ...formData, reviewer_id: v || "" })}
+                      placeholder="Select reviewer..."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="approver">Approver</Label>
+                    <EmployeeCombobox
+                      value={formData.approver_id}
+                      onChange={(v) => setFormData({ ...formData, approver_id: v || "" })}
+                      placeholder="Select approver..."
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="review_date">Review Date</Label>
-                <Input
-                  id="review_date"
-                  type="date"
-                  value={formData.review_date}
-                  onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
-                />
+              {/* Dates Section */}
+              <div className="col-span-2 grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="effective_date">Effective Date</Label>
+                  <Input
+                    id="effective_date"
+                    type="date"
+                    value={formData.effective_date}
+                    onChange={(e) => setFormData({ ...formData, effective_date: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="review_date">Review Date</Label>
+                  <Input
+                    id="review_date"
+                    type="date"
+                    value={formData.review_date}
+                    onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="expiry_date">Expiry Date</Label>
+                  <Input
+                    id="expiry_date"
+                    type="date"
+                    value={formData.expiry_date}
+                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="col-span-2">
@@ -745,6 +839,49 @@ export default function PolicyFormDialog({
                   />
                 </div>
               )}
+
+              {/* Advanced Options Section */}
+              <div className="col-span-2 space-y-4 border-t pt-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Advanced Options</h3>
+                
+                {/* Template Toggle */}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_template"
+                    checked={formData.is_template}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_template: checked })}
+                  />
+                  <Label htmlFor="is_template">
+                    This is a template (can be copied to create new policies)
+                  </Label>
+                </div>
+
+                {/* Supersedes Dropdown */}
+                <div>
+                  <Label htmlFor="supersedes">Supersedes Policy</Label>
+                  <Select 
+                    value={formData.supersedes_id} 
+                    onValueChange={(v) => setFormData({ ...formData, supersedes_id: v === "none" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select policy this replaces..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {allPolicies
+                        ?.filter(p => p.id !== policy?.id)
+                        .map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.policy_number} - {p.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    If this policy replaces an older version, select it here
+                  </p>
+                </div>
+              </div>
 
               {/* Change Notes - only shown when editing existing policy */}
               {policy && (
@@ -989,14 +1126,14 @@ export default function PolicyFormDialog({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
+                {policy ? "Saving..." : "Creating..."}
               </>
             ) : (
               <>
                 {(pendingFiles.length > 0 || sqfMappings.filter(m => m.selected).length > 0) && (
                   <Paperclip className="h-4 w-4 mr-2" />
                 )}
-                Create Policy
+                {policy ? "Save Changes" : "Create Policy"}
                 {sqfMappings.filter(m => m.selected).length > 0 && (
                   <span className="ml-1">+ {sqfMappings.filter(m => m.selected).length} Mappings</span>
                 )}
