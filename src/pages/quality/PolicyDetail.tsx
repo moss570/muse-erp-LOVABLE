@@ -428,6 +428,7 @@ export default function PolicyDetail() {
                   <PolicyContentEditor
                     policyId={id!}
                     initialContent={policy.content}
+                    currentVersion={policy.version}
                     onSave={() => setContentViewMode("visual")}
                     onCancel={() => setContentViewMode("visual")}
                   />
@@ -578,101 +579,125 @@ export default function PolicyDetail() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">
-              {versions?.length ? (
-                <div className="space-y-4">
-                  {/* Current version indicator */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded-lg">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    Current version: <span className="font-medium">v{policy.version}</span>
+              {/* Display current version first, then historical versions */}
+              <div className="space-y-4">
+                {/* Current version card */}
+                <div className="flex items-start gap-4 p-3 border-2 border-primary/20 rounded-lg bg-primary/5">
+                  <div className="flex flex-col items-center">
+                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-sm font-medium text-primary-foreground">
+                      v{policy.version}
+                    </div>
                   </div>
-                  
-                  {versions.map((version, index) => (
-                    <div key={version.id} className="flex items-start gap-4 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
-                      <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                          v{version.version_number}
+                  <div className="flex-1 pt-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">Version {policy.version}</span>
+                      <Badge className="bg-primary/20 text-primary">Current</Badge>
+                      <Badge variant="outline">{policy.status}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Last modified: {format(new Date(policy.updated_at), "MMM d, yyyy 'at' h:mm a")}
+                    </div>
+                    {versions?.[0]?.change_notes && versions[0].version_number === policy.version - 1 && (
+                      <p className="text-sm mt-2 p-2 bg-muted/50 rounded">
+                        <span className="font-medium">Changes from v{versions[0].version_number}:</span>{' '}
+                        <span className="italic whitespace-pre-line">{versions[0].change_notes}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Historical versions */}
+                {versions?.length ? (
+                  <>
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-2">
+                      Previous Versions
+                    </div>
+                    {versions.map((version) => (
+                      <div key={version.id} className="flex items-start gap-4 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                        <div className="flex flex-col items-center">
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                            v{version.version_number}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">Version {version.version_number}</span>
-                          <Badge variant="outline">{version.status}</Badge>
-                          {version.version_number === policy.version && (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Current</Badge>
+                        <div className="flex-1 pt-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium">Version {version.version_number}</span>
+                            <Badge variant="outline">{version.status}</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {version.creator && `${version.creator.first_name} ${version.creator.last_name} • `}
+                            {format(new Date(version.created_at), "MMM d, yyyy 'at' h:mm a")}
+                          </div>
+                          {version.change_notes && (
+                            <p className="text-sm mt-2 p-2 bg-muted/50 rounded">
+                              <span className="font-medium">Changes:</span>{' '}
+                              <span className="italic whitespace-pre-line">{version.change_notes}</span>
+                            </p>
                           )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {version.creator && `${version.creator.first_name} ${version.creator.last_name} • `}
-                          {format(new Date(version.created_at), "MMM d, yyyy 'at' h:mm a")}
-                        </div>
-                        {version.change_notes && (
-                          <p className="text-sm mt-2 p-2 bg-muted/50 rounded italic">"{version.change_notes}"</p>
-                        )}
-                        
-                        {/* View/Restore controls */}
-                        {viewingVersion === version.id ? (
-                          <div className="mt-3 border rounded-lg bg-background">
-                            <div className="p-3 border-b bg-muted/30">
-                              <div className="text-sm space-y-1">
-                                <div><strong>Title:</strong> {version.title}</div>
-                                {version.summary && <div><strong>Summary:</strong> {version.summary}</div>}
-                                <div className="text-muted-foreground">
-                                  Status: {version.status} • Effective: {version.effective_date ? format(new Date(version.effective_date), "MMM d, yyyy") : "Not set"}
+                          
+                          {/* View/Restore controls */}
+                          {viewingVersion === version.id ? (
+                            <div className="mt-3 border rounded-lg bg-background">
+                              <div className="p-3 border-b bg-muted/30">
+                                <div className="text-sm space-y-1">
+                                  <div><strong>Title:</strong> {version.title}</div>
+                                  {version.summary && <div><strong>Summary:</strong> {version.summary}</div>}
+                                  <div className="text-muted-foreground">
+                                    Status: {version.status} • Effective: {version.effective_date ? format(new Date(version.effective_date), "MMM d, yyyy") : "Not set"}
+                                  </div>
                                 </div>
                               </div>
+                              {version.content ? (
+                                <div 
+                                  className="p-4 max-h-80 overflow-y-auto prose prose-sm dark:prose-invert max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: formatPolicyContent(version.content) }}
+                                />
+                              ) : (
+                                <div className="p-4 text-sm text-muted-foreground italic">No content available for this version</div>
+                              )}
+                              <div className="p-3 border-t">
+                                <Button variant="outline" size="sm" onClick={() => setViewingVersion(null)}>
+                                  Close Preview
+                                </Button>
+                              </div>
                             </div>
-                            {version.content ? (
-                              <div 
-                                className="p-4 max-h-80 overflow-y-auto prose prose-sm dark:prose-invert max-w-none"
-                                dangerouslySetInnerHTML={{ __html: formatPolicyContent(version.content) }}
-                              />
-                            ) : (
-                              <div className="p-4 text-sm text-muted-foreground italic">No content available for this version</div>
-                            )}
-                            <div className="p-3 border-t">
-                              <Button variant="outline" size="sm" onClick={() => setViewingVersion(null)}>
-                                Close Preview
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setViewingVersion(version.id)}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View
-                            </Button>
-                            {(isManager || isAdmin) && version.version_number !== policy.version && (
+                          ) : (
+                            <div className="flex items-center gap-2 mt-3">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  if (confirm(`Restore policy to version ${version.version_number}? This will save the current state and restore the selected version.`)) {
-                                    restorePolicyVersion.mutate({ policyId: id!, versionId: version.id });
-                                  }
-                                }}
-                                disabled={restorePolicyVersion.isPending}
+                                onClick={() => setViewingVersion(version.id)}
                               >
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                Restore
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
                               </Button>
-                            )}
-                          </div>
-                        )}
+                              {(isManager || isAdmin) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (confirm(`Restore policy to version ${version.version_number}? This will save the current state and restore the selected version.`)) {
+                                      restorePolicyVersion.mutate({ policyId: id!, versionId: version.id });
+                                    }
+                                  }}
+                                  disabled={restorePolicyVersion.isPending}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Restore
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No version history yet</p>
-                  <p className="text-xs mt-1">Versions are created automatically when you edit the policy</p>
-                </div>
-              )}
+                    ))}
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-xs">Edit the policy to create version history</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
