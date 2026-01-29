@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, DragEvent } from "react";
+import { useState, useEffect, useRef, DragEvent, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ import { useSQFEditions } from "@/hooks/useSQF";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileText, X, Paperclip, Loader2, Sparkles, Check, AlertTriangle, FileSearch } from "lucide-react";
 import EmployeeCombobox from "@/components/shared/EmployeeCombobox";
+import { calculateExpiryDate } from "@/lib/documentDateUtils";
 import { toast } from "sonner";
 
 interface PolicyFormDialogProps {
@@ -83,11 +84,9 @@ export default function PolicyFormDialog({
     review_date: "",
     requires_acknowledgement: false,
     acknowledgement_frequency_days: 365,
-    // New workflow & versioning fields
-    owner_id: "",
-    reviewer_id: "",
+    // Workflow & versioning fields
+    owner_id: "", // Now references job_positions table (role/position, not person)
     approver_id: "",
-    expiry_date: "",
     is_template: false,
     supersedes_id: "",
   });
@@ -113,6 +112,21 @@ export default function PolicyFormDialog({
       const { data, error } = await supabase
         .from("departments")
         .select("*")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch job positions for document owner dropdown
+  const { data: jobPositions } = useQuery({
+    queryKey: ["job-positions-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_positions")
+        .select("id, name, department_id")
+        .eq("is_active", true)
+        .order("sort_order")
         .order("name");
       if (error) throw error;
       return data;
@@ -157,11 +171,9 @@ export default function PolicyFormDialog({
         review_date: policy.review_date || "",
         requires_acknowledgement: policy.requires_acknowledgement,
         acknowledgement_frequency_days: policy.acknowledgement_frequency_days || 365,
-        // New workflow & versioning fields
+        // Workflow & versioning fields
         owner_id: policy.owner_id || "",
-        reviewer_id: policy.reviewer_id || "",
         approver_id: policy.approver_id || "",
-        expiry_date: policy.expiry_date || "",
         is_template: policy.is_template || false,
         supersedes_id: policy.supersedes_id || "",
       });
@@ -178,11 +190,9 @@ export default function PolicyFormDialog({
         review_date: "",
         requires_acknowledgement: false,
         acknowledgement_frequency_days: 365,
-        // New workflow & versioning fields
+        // Workflow & versioning fields
         owner_id: "",
-        reviewer_id: "",
         approver_id: "",
-        expiry_date: "",
         is_template: false,
         supersedes_id: "",
       });
@@ -445,8 +455,17 @@ export default function PolicyFormDialog({
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.type_id) return;
+    
+    // Review date is required
+    if (!formData.review_date) {
+      toast.error("Review Date is required");
+      return;
+    }
 
     setIsSubmitting(true);
+
+    // Calculate expiry date from review date (1 year later)
+    const calculatedExpiryDate = calculateExpiryDate(formData.review_date, 1);
 
     try {
       // EDIT MODE: Update existing policy with versioning
@@ -466,11 +485,10 @@ export default function PolicyFormDialog({
               requires_acknowledgement: formData.requires_acknowledgement,
               acknowledgement_frequency_days: formData.requires_acknowledgement ? formData.acknowledgement_frequency_days : null,
               changeNotes: changeNotes || undefined,
-              // New workflow & versioning fields
+              // Workflow & versioning fields
               owner_id: formData.owner_id || null,
-              reviewer_id: formData.reviewer_id || null,
               approver_id: formData.approver_id || null,
-              expiry_date: formData.expiry_date || null,
+              expiry_date: calculatedExpiryDate || null,
               is_template: formData.is_template,
               supersedes_id: formData.supersedes_id || null,
             },
@@ -516,11 +534,10 @@ export default function PolicyFormDialog({
             requires_acknowledgement: formData.requires_acknowledgement,
             acknowledgement_frequency_days: formData.requires_acknowledgement ? formData.acknowledgement_frequency_days : null,
             status: "draft",
-            // New workflow & versioning fields
+            // Workflow & versioning fields
             owner_id: formData.owner_id || null,
-            reviewer_id: formData.reviewer_id || null,
             approver_id: formData.approver_id || null,
-            expiry_date: formData.expiry_date || null,
+            expiry_date: calculatedExpiryDate || null,
             is_template: formData.is_template,
             supersedes_id: formData.supersedes_id || null,
           },
@@ -742,22 +759,28 @@ export default function PolicyFormDialog({
               {/* Document Ownership & Workflow Section */}
               <div className="col-span-2 space-y-4 border-t pt-4">
                 <h3 className="text-sm font-medium text-muted-foreground">Document Ownership & Workflow</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="owner">Document Owner</Label>
-                    <EmployeeCombobox
+                    <Label htmlFor="owner">Document Owner (Role/Position) *</Label>
+                    <Select
                       value={formData.owner_id}
-                      onChange={(v) => setFormData({ ...formData, owner_id: v || "" })}
-                      placeholder="Select owner..."
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reviewer">Reviewer</Label>
-                    <EmployeeCombobox
-                      value={formData.reviewer_id}
-                      onChange={(v) => setFormData({ ...formData, reviewer_id: v || "" })}
-                      placeholder="Select reviewer..."
-                    />
+                      onValueChange={(v) => setFormData({ ...formData, owner_id: v === "none" ? "" : v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select position..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {jobPositions?.map((pos) => (
+                          <SelectItem key={pos.id} value={pos.id}>
+                            {pos.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The job position responsible for this document
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="approver">Approver</Label>
@@ -783,12 +806,13 @@ export default function PolicyFormDialog({
                 </div>
 
                 <div>
-                  <Label htmlFor="review_date">Review Date</Label>
+                  <Label htmlFor="review_date">Review Date *</Label>
                   <Input
                     id="review_date"
                     type="date"
                     value={formData.review_date}
                     onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
+                    required
                   />
                 </div>
 
@@ -797,9 +821,13 @@ export default function PolicyFormDialog({
                   <Input
                     id="expiry_date"
                     type="date"
-                    value={formData.expiry_date}
-                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                    value={calculateExpiryDate(formData.review_date, 1) || ""}
+                    disabled
+                    className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Auto-calculated: 1 year from Review Date
+                  </p>
                 </div>
               </div>
 
