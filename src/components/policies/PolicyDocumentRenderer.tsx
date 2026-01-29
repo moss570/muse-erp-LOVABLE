@@ -6,7 +6,7 @@ interface PolicyDocumentRendererProps {
     title: string;
     effective_date?: string | null;
     review_date?: string | null;
-    owner?: { first_name?: string; last_name?: string } | null;
+    owner?: { id: string; name: string } | null; // Now references job_positions (role/position)
     content?: string | null;
   };
 }
@@ -168,9 +168,7 @@ export default function PolicyDocumentRenderer({ policy }: PolicyDocumentRendere
   const reviewDate = policy.review_date 
     ? format(new Date(policy.review_date), "MM/dd/yyyy") 
     : "N/A";
-  const ownerName = policy.owner 
-    ? `${policy.owner.first_name || ''} ${policy.owner.last_name || ''}`.trim() 
-    : "Not assigned";
+  const ownerName = policy.owner?.name || "Not assigned";
 
   return (
     <div className="policy-visual-document">

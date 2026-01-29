@@ -10134,7 +10134,7 @@ export type Database = {
             foreignKeyName: "policies_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "job_positions"
             referencedColumns: ["id"]
           },
           {
