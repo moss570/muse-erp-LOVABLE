@@ -435,8 +435,12 @@ export default function PolicyDetail() {
                 </div>
               ) : /* Visual Document View - Professional formatted document */
               contentViewMode === "visual" && policy.content ? (
-                <div className="p-4 bg-muted/20 h-[600px] overflow-y-auto">
+                <div className="policy-visual-scroll-container p-4 bg-muted/20 h-[600px] overflow-y-scroll">
                   <PolicyDocumentRenderer policy={policy} />
+                  {/* Scroll indicator at bottom */}
+                  <div className="text-center text-xs text-muted-foreground py-4 border-t mt-4">
+                    — End of Document —
+                  </div>
                 </div>
               ) : contentViewMode === "visual" && !policy.content && attachments?.length ? (
                 /* No content yet - show original document */
