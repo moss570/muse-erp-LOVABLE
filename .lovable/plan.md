@@ -1,159 +1,106 @@
 
-
-# Policy Editing & Versioning Enhancement Plan
+# Plan: Professional Policy Document Visual View
 
 ## Overview
+Create a polished, professional "Visual View" for policies that renders the extracted/edited content in a clean document format matching the original Word document layout. This includes a structured header, metadata tables, and properly formatted policy steps.
 
-This plan enhances the policy editing workflow so that **every save automatically creates a version snapshot** in the version history. Users will also be prompted for **change notes** explaining what was modified.
+## What You'll See
 
----
+### Current vs. New
+- **Current**: Raw markdown tables displayed as plain text with messy pipe characters
+- **New**: Professionally formatted document with:
+  - Header section with logo placeholder, document number, dates
+  - Colored title banner
+  - Two-column metadata tables (PURPOSE, SCOPE, etc.)
+  - Numbered POLICY steps in a clean table
 
-## Current State
+### Visual Structure (matching your screenshots)
 
-- **Editing**: The `PolicyFormDialog` directly updates the `policies` table via `useUpdatePolicy()`, overwriting existing data
-- **Versioning**: A `policy_versions` table exists but is only populated during the "Restore" flow
-- **Version Number**: The `version` field on policies exists but isn't incremented during normal edits
-- **History**: The "Versions" tab shows empty because no snapshots are being created
+```text
++--------------------------------------------------+
+| [Logo]              | Document Number: POL.00001 |
+|                     | Effective Date: 05/16/2022 |
+|                     | Review Date: 05/10/2025    |
++--------------------------------------------------+
+|   [Title Banner - Colored Background]            |
+|   Document Owner: Plant Manager                  |
++--------------------------------------------------+
+| PURPOSE          | Document control policies... |
++--------------------------------------------------+
+| SCOPE            | This procedure will be...    |
++--------------------------------------------------+
+| ROLES &          | All Employees - Follow...    |
+| RESPONSIBILITIES | Management - Ensure...       |
++--------------------------------------------------+
+| REFERENCE        | +--------+----------------+  |
+| DOCUMENTS        | | Ref No.| Title          |  |
+|                  | +--------+----------------+  |
++--------------------------------------------------+
+|                    POLICY                        |
++--------------------------------------------------+
+| Step | Action                                    |
++------+-------------------------------------------+
+|  1   | This policy is extracted from...         |
+|  2   | Electronic documents and record forms... |
++--------------------------------------------------+
+```
 
----
+## Key Changes
 
-## What Will Change
+### 1. Rename Button Label
+- Change "Original" to "Visual View" in the toggle buttons
 
-### User Experience
+### 2. New Policy Document Renderer Component
+Create `PolicyDocumentRenderer.tsx` that:
+- Parses the markdown content
+- Extracts metadata (policy number, dates, owner) from policy record
+- Renders a professional document header
+- Converts markdown tables to styled HTML tables
+- Specially formats the POLICY section as numbered steps
 
-1. When clicking "Edit" on a policy, the edit dialog opens (same as now)
-2. A new **"Change Notes"** field will appear at the bottom of the form
-3. When saving:
-   - The **current state is captured** as a version snapshot before applying changes
-   - The **version number increments** (e.g., v3 → v4)
-   - Changes are applied to the policy
-4. The **Versions tab** will now show the full edit history with:
-   - Version number
-   - Who made the change
-   - When it was made
-   - Change notes explaining what was modified
-   - Option to view or restore previous versions
+### 3. Enhanced Markdown-to-HTML Conversion
+- Full markdown table parsing (pipe-delimited rows)
+- Recognize section headers (PURPOSE, SCOPE, ROLES, DEFINITIONS, POLICY, etc.)
+- Two-column layout for metadata sections
+- Step/Line numbered tables for policy procedures
+
+### 4. CSS Styling Enhancements
+- Header with company branding area
+- Green/branded title banner
+- Clean bordered tables
+- Proper cell padding and typography
 
 ---
 
 ## Technical Implementation
 
-### 1. Update `PolicyFormDialog.tsx`
+### Files to Create
+1. **`src/components/policies/PolicyDocumentRenderer.tsx`** - New component that renders policy content in document format
 
-**Add change notes field for edit mode:**
-- Add a `change_notes` state field
-- Display a textarea in the form footer when editing (not creating)
-- Make it optional but encouraged
+### Files to Modify
+1. **`src/pages/quality/PolicyDetail.tsx`**
+   - Rename "Original" button to "Visual View"
+   - Replace inline `formatPolicyContent` with new `PolicyDocumentRenderer` component
+   
+2. **`src/styles/policy-document.css`**
+   - Add styles for document header, title banner, section tables
 
-**Modify the save flow:**
-- Detect if this is an edit (policy prop exists)
-- Before updating, call a new `useUpdatePolicyWithVersion` hook
+### Key Logic
+The renderer will:
+1. Take `policy` object with metadata (policy_number, title, effective_date, review_date, owner)
+2. Parse `policy.content` markdown into sections
+3. Identify standard sections: PURPOSE, SCOPE, ROLES & RESPONSIBILITIES, REFERENCE DOCUMENTS, DEFINITIONS, POLICY
+4. Render each section in the appropriate format:
+   - Metadata sections → Two-column table (header | content)
+   - POLICY section → Numbered step table (Step | Action)
+   - Nested tables → Preserve structure for Reference Documents
 
-### 2. Create New Hook: `useUpdatePolicyWithVersion`
-
-Located in `src/hooks/usePolicies.ts`
-
-**Logic:**
-```text
-1. Fetch current policy state
-2. Create version snapshot with:
-   - version_number: current version
-   - title, content, summary, status
-   - change_notes from user input
-   - snapshot: full JSON of current policy
-   - created_by: current user
-3. Update policy with:
-   - New field values
-   - Incremented version number
-4. Invalidate query caches
+### Parsing Strategy
 ```
-
-### 3. Update the Form Save Handler
-
-**In `PolicyFormDialog.tsx`:**
-- Use `useUpdatePolicyWithVersion` instead of `useUpdatePolicy` for edits
-- Pass the change notes along with the update data
-
-### 4. Enhance Versions Tab Display
-
-**In `PolicyDetail.tsx`:**
-- Add "View" button to see the content of a specific version
-- Add "Restore" button for managers/admins
-- Show a diff indicator if content changed significantly
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/hooks/usePolicies.ts` | Add `useUpdatePolicyWithVersion` hook |
-| `src/components/policies/PolicyFormDialog.tsx` | Add change notes field, use new hook for edits |
-| `src/pages/quality/PolicyDetail.tsx` | Enhance versions tab with view/restore actions |
-
----
-
-## Database Impact
-
-No schema changes needed - the `policy_versions` table already has all required columns:
-- `policy_id`, `version_number`, `title`, `content`, `summary`
-- `change_notes`, `snapshot` (JSONB), `status`, `effective_date`
-- `created_at`, `created_by`
-
----
-
-## Example Flow
-
-```text
-User Flow:
-┌─────────────────────────────────────────────┐
-│ Policy: Food Safety Manual (v3)             │
-│ Content: "Original content..."              │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼ User clicks "Edit"
-┌─────────────────────────────────────────────┐
-│ Edit Dialog                                 │
-│ ─────────────────────────────────────────── │
-│ Title: [Food Safety Manual        ]         │
-│ Content: [Updated content...      ]         │
-│                                             │
-│ Change Notes (recommended):                 │
-│ [Updated section 3.2 per audit findings]   │
-│                                             │
-│           [Cancel]  [Save Changes]          │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼ User clicks "Save"
-┌─────────────────────────────────────────────┐
-│ System Actions:                             │
-│ 1. Snapshot v3 → policy_versions table      │
-│ 2. Update policy → v4, new content          │
-│ 3. Show success toast                       │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────┐
-│ Policy: Food Safety Manual (v4)             │
-│ Content: "Updated content..."               │
-│                                             │
-│ Versions Tab:                               │
-│ ● v3 - John Smith - Jan 28, 2026            │
-│   "Updated section 3.2 per audit findings"  │
-│   [View] [Restore]                          │
-│                                             │
-│ ● v2 - Jane Doe - Jan 15, 2026              │
-│   "Added appendix A"                        │
-│   [View] [Restore]                          │
-└─────────────────────────────────────────────┘
+1. Split content by markdown table blocks (lines starting with |)
+2. For each table:
+   - Check first column for section keywords
+   - If POLICY section with Step/Action → render as numbered list table
+   - Otherwise → render as two-column metadata table
+3. Non-table content rendered as formatted paragraphs
 ```
-
----
-
-## Edge Cases Handled
-
-1. **First edit of a policy**: Creates first version entry (v1)
-2. **Empty change notes**: Allowed but system will add default note "Updated on [date]"
-3. **No actual changes made**: Still creates version (user explicitly saved)
-4. **Concurrent edits**: Existing concurrent edit wrapper will handle conflicts
-
