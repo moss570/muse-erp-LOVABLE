@@ -526,3 +526,33 @@
 .dark .policy-doc-text-section {
   border-color: #555;
 }
+
+/* ==========================================
+   Visual View Scroll Container
+   ========================================== */
+
+.policy-visual-scroll-container {
+  /* Always show scrollbar */
+  scrollbar-width: auto;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.policy-visual-scroll-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.policy-visual-scroll-container::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 6px;
+}
+
+.policy-visual-scroll-container::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5);
+  border-radius: 6px;
+  border: 2px solid hsl(var(--muted));
+}
+
+.policy-visual-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.7);
+}
