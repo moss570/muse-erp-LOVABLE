@@ -351,7 +351,7 @@ export default function PolicyDetail() {
         </TabsList>
 
         <TabsContent value="content" className="mt-4">
-          <Card>
+          <Card className="flex flex-col">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -421,7 +421,7 @@ export default function PolicyDetail() {
               </div>
             </CardHeader>
             <Separator />
-            <CardContent className="p-0">
+            <CardContent className="p-0 flex-1 overflow-hidden">
               {/* Edit Mode - Rich text editor for content adjustments */}
               {contentViewMode === "edit" && policy.content ? (
                 <div className="p-4">
@@ -435,7 +435,7 @@ export default function PolicyDetail() {
                 </div>
               ) : /* Visual Document View - Professional formatted document */
               contentViewMode === "visual" && policy.content ? (
-                <div className="p-4 bg-muted/20 max-h-[70vh] overflow-y-auto">
+                <div className="p-4 bg-muted/20 h-[600px] overflow-y-auto">
                   <PolicyDocumentRenderer policy={policy} />
                 </div>
               ) : contentViewMode === "visual" && !policy.content && attachments?.length ? (
