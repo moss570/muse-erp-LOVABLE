@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Edit, Clock, Users, Paperclip, MessageSquare, Link2, MoreHorizontal, CheckCircle2, AlertCircle, FileText, RefreshCw, Loader2, Eye, FileCode, BookOpen, Trash2, Upload, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import PolicyDocumentViewer from "@/components/policies/PolicyDocumentViewer";
 import PolicyDocumentRenderer from "@/components/policies/PolicyDocumentRenderer";
 import PolicySQFMappingsTab from "@/components/policies/PolicySQFMappingsTab";
 import PolicySideBySideView from "@/components/policies/PolicySideBySideView";
+import PolicyContentEditor from "@/components/policies/PolicyContentEditor";
 import "@/styles/policy-document.css";
 
 const statusColors: Record<string, string> = {
@@ -61,7 +62,7 @@ export default function PolicyDetail() {
   const [activeTab, setActiveTab] = useState("content");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
-  const [contentViewMode, setContentViewMode] = useState<"visual" | "extracted">("visual");
+  const [contentViewMode, setContentViewMode] = useState<"visual" | "extracted" | "edit">("visual");
   const [isCompareEnabled, setIsCompareEnabled] = useState(false);
   const [selectedMappingId, setSelectedMappingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -363,7 +364,7 @@ export default function PolicyDetail() {
                 </div>
                 <div className="flex items-center gap-2">
                   {/* View mode toggle */}
-                  {attachments?.length > 0 && (
+                  {attachments?.length > 0 && contentViewMode !== "edit" && (
                     <div className="flex items-center gap-1 border rounded-lg p-0.5">
                       <Button 
                         variant={contentViewMode === "visual" ? "secondary" : "ghost"}
@@ -387,8 +388,20 @@ export default function PolicyDetail() {
                       </Button>
                     </div>
                   )}
+                  {/* Edit Content button - only for managers/admins when content exists */}
+                  {(isManager || isAdmin) && policy.content && contentViewMode !== "edit" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setContentViewMode("edit")}
+                      title="Edit document content"
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit Content
+                    </Button>
+                  )}
                   {/* Re-analyze button */}
-                  {attachments?.length > 0 && (
+                  {attachments?.length > 0 && contentViewMode !== "edit" && (
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -408,8 +421,18 @@ export default function PolicyDetail() {
             </CardHeader>
             <Separator />
             <CardContent className="p-0">
-              {/* Visual Document View - Professional formatted document */}
-              {contentViewMode === "visual" && policy.content ? (
+              {/* Edit Mode - Rich text editor for content adjustments */}
+              {contentViewMode === "edit" && policy.content ? (
+                <div className="p-4">
+                  <PolicyContentEditor
+                    policyId={id!}
+                    initialContent={policy.content}
+                    onSave={() => setContentViewMode("visual")}
+                    onCancel={() => setContentViewMode("visual")}
+                  />
+                </div>
+              ) : /* Visual Document View - Professional formatted document */
+              contentViewMode === "visual" && policy.content ? (
                 <div className="p-4 bg-muted/20">
                   <PolicyDocumentRenderer policy={policy} />
                 </div>
